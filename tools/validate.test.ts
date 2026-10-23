@@ -31,19 +31,19 @@ test('the shipped content passes', () => {
 
 test('contradicting hidden problems are rejected', () => {
   const files = real();
-  get(files, 'cases/c01-uefi-mbr.json').problems.fixed = ['uefi-mbr', 'legacy-mbr'];
+  get(files, 'cases/c03-red-text.json').problems.fixed = ['uefi-mbr', 'legacy-mbr'];
   hasError(files, 'contradict each other');
 });
 
 test('a keep-my-files customer cannot need a destructive-only fix', () => {
   const files = real();
-  get(files, 'cases/c03-keep-my-files.json').problems = { fixed: ['storage-low'], pool: [], extra: [0, 0] };
+  get(files, 'cases/adv-keep-my-files.json').problems = { fixed: ['storage-low'], pool: [], extra: [0, 0] };
   hasError(files, 'no listed fix is allowed');
 });
 
 test('a machine that is broken before problems are added is rejected', () => {
   const files = real();
-  get(files, 'cases/c01-uefi-mbr.json').machine.ramGB = [2];
+  get(files, 'cases/c03-red-text.json').machine.ramGB = [2];
   hasError(files, 'already broken');
 });
 
@@ -52,7 +52,7 @@ test('a brand whose BIOS lacks the needed setting makes the case unsolvable', ()
   const hp = get(files, 'brands/hp.json');
   hp.phase = 'next';
   hp.pages = hp.pages.filter((p: { id: string }) => p.id !== 'security'); // removes the TPM setting
-  const c02 = get(files, 'cases/c02-security-chip.json');
+  const c02 = get(files, 'cases/c04-security-chip.json');
   c02.brands = ['hp'];
   hasError(files, 'no sequence of repairs fixes this machine');
 });
@@ -71,7 +71,7 @@ test('A/B quiz items must be parallel and test the same objective', () => {
 
 test('unknown references are reported', () => {
   const files = real();
-  get(files, 'cases/c02-security-chip.json').brands = ['dell'];
+  get(files, 'cases/c04-security-chip.json').brands = ['dell'];
   hasError(files, 'unknown brand dell');
 });
 
@@ -79,7 +79,7 @@ test('Acer needs a supervisor password before Secure Boot can be turned on', () 
   const files = real();
   const brand = BrandSchema.parse(get(files, 'brands/acer.json'));
   const problems = ProblemsSchema.parse(get(files, 'problems.json'));
-  const template = CaseSchema.parse({ ...get(files, 'cases/c02-security-chip.json'), brands: ['acer'], problems: { fixed: ['secure-boot-off'] } });
+  const template = CaseSchema.parse({ ...get(files, 'cases/c04-security-chip.json'), brands: ['acer'], problems: { fixed: ['secure-boot-off'] } });
   const g = generateCase(template, { problems, brands: [brand] }, 'x');
   assert.deepEqual(solve(g.machine, brand, { keepData: false }), ['set-supervisor-password', 'enable-secure-boot']);
 });
@@ -87,14 +87,14 @@ test('Acer needs a supervisor password before Secure Boot can be turned on', () 
 test('the same seed always builds the same machine', () => {
   const files = real();
   const lib = { problems: ProblemsSchema.parse(get(files, 'problems.json')), brands: [BrandSchema.parse(get(files, 'brands/classic.json'))] };
-  const c = CaseSchema.parse(get(files, 'cases/c03-keep-my-files.json'));
+  const c = CaseSchema.parse(get(files, 'cases/adv-keep-my-files.json'));
   assert.deepEqual(generateCase(c, lib, 'abc').machine, generateCase(c, lib, 'abc').machine);
 });
 
 test('daily case: every player gets the same problems, but spec details vary between players', () => {
   const files = real();
   const lib = { problems: ProblemsSchema.parse(get(files, 'problems.json')), brands: [BrandSchema.parse(get(files, 'brands/classic.json'))] };
-  const c = CaseSchema.parse({ ...get(files, 'cases/c02-security-chip.json'), machine: { ramGB: [8, 16, 32], storageGB: [256, 512, 1024], cpu: ['A', 'B', 'C'] } });
+  const c = CaseSchema.parse({ ...get(files, 'cases/c04-security-chip.json'), machine: { ramGB: [8, 16, 32], storageGB: [256, 512, 1024], cpu: ['A', 'B', 'C'] } });
   const players = Array.from({ length: 12 }, (_, i) => dailySeeds('2026-10-22', `student-${i}`));
   const built = players.map((p) => generateCase(c, lib, p.caseSeed, p.detailSeed));
   const problemSets = new Set(built.map((g) => g.problems.map((p) => p.id).join(',')));
@@ -106,7 +106,7 @@ test('daily case: every player gets the same problems, but spec details vary bet
 test('a customer with an old Windows on the disk can be fixed with mbr2gpt (prototype path 3)', () => {
   const files = real();
   const lib = { problems: ProblemsSchema.parse(get(files, 'problems.json')), brands: [BrandSchema.parse(get(files, 'brands/classic.json'))] };
-  const c = CaseSchema.parse(get(files, 'cases/c01-uefi-mbr.json'));
+  const c = CaseSchema.parse({ ...get(files, 'cases/c03-red-text.json'), problems: { fixed: ['uefi-mbr'] } });
   const g = generateCase(c, lib, 'any');
   assert.equal(g.machine.diskHasData, true);
   assert.deepEqual(solve(g.machine, g.brand, { keepData: true }), ['mbr2gpt']);
@@ -114,7 +114,7 @@ test('a customer with an old Windows on the disk can be fixed with mbr2gpt (prot
 
 test('keep-my-files customer on an empty disk is rejected', () => {
   const files = real();
-  get(files, 'cases/c03-keep-my-files.json').machine.diskHasData = false;
+  get(files, 'cases/adv-keep-my-files.json').machine.diskHasData = false;
   hasError(files, 'machine.diskHasData is false');
 });
 
@@ -122,7 +122,7 @@ test('problems that need different values of the same field cannot be combined',
   const files = real();
   const problems = get(files, 'problems.json') as unknown as Record<string, unknown>[];
   problems.push({ ...problems.find((p) => p.id === 'tpm-disabled')!, id: 'legacy-only', requires: { bootMode: 'legacy' } });
-  get(files, 'cases/c02-security-chip.json').problems = { fixed: ['secure-boot-off', 'legacy-only'], pool: [], extra: [0, 0] };
+  get(files, 'cases/c04-security-chip.json').problems = { fixed: ['secure-boot-off', 'legacy-only'], pool: [], extra: [0, 0] };
   hasError(files, 'need different values of bootMode');
 });
 
@@ -151,7 +151,7 @@ test('the textbook problems are repaired the textbook way', () => {
   const brand = BrandSchema.parse(get(files, 'brands/classic.json'));
   const problems = ProblemsSchema.parse(get(files, 'problems.json'));
   const fixWith = (problem: string, target: 'win10' | 'win11') => {
-    const template = CaseSchema.parse({ ...get(files, 'cases/c01-uefi-mbr.json'), targetOs: target, problems: { fixed: [problem] } });
+    const template = CaseSchema.parse({ ...get(files, 'cases/c03-red-text.json'), targetOs: target, problems: { fixed: [problem] } });
     const g = generateCase(template, { problems, brands: [brand] }, 'x');
     return solve(g.machine, brand, { keepData: false });
   };
@@ -163,13 +163,50 @@ test('the textbook problems are repaired the textbook way', () => {
 
 test('a Windows 11-only problem in a Windows 10 case is rejected', () => {
   const files = real();
-  get(files, 'cases/c04-old-office-pc.json').problems = { fixed: ['tpm-disabled'], pool: [], extra: [0, 0] };
+  get(files, 'cases/adv-old-office-pc.json').problems = { fixed: ['tpm-disabled'], pool: [], extra: [0, 0] };
   hasError(files, 'problem tpm-disabled does not apply to win10');
 });
 
 test('the first five cases are warned when they use topics beyond the textbook', () => {
   const files = real();
-  get(files, 'cases/c02-security-chip.json').problems = { fixed: ['raid-mode'], pool: [], extra: [0, 0] };
+  get(files, 'cases/c04-security-chip.json').problems = { fixed: ['raid-mode'], pool: [], extra: [0, 0] };
   const { warnings } = run(files);
-  assert.ok(warnings.some((w) => w.includes('c02-security-chip') && w.includes('นอกหนังสือ')), warnings.join('\n'));
+  assert.ok(warnings.some((w) => w.includes('c04-security-chip') && w.includes('นอกหนังสือ')), warnings.join('\n'));
+});
+
+// --- Phase 1 cases (docs/phase1-cases.md) ---
+
+test('the five main cases keep the approved difficulty curve (shortest repair: 1, 1, 1–2, 1–2, 4–5 steps)', () => {
+  const files = real();
+  const lib = { problems: ProblemsSchema.parse(get(files, 'problems.json')), brands: [BrandSchema.parse(get(files, 'brands/classic.json'))] };
+  const expected: [string, number, number][] = [
+    ['c01-boot-order', 1, 1],
+    ['c02-rufus-scheme', 1, 1],
+    ['c03-red-text', 1, 2],
+    ['c04-security-chip', 1, 2],
+    ['c05-lab-upgrade', 4, 5],
+  ];
+  for (const [id, min, max] of expected) {
+    const c = CaseSchema.parse(get(files, `cases/${id}.json`));
+    for (let s = 0; s < 40; s++) {
+      const g = generateCase(c, lib, `curve${s}`);
+      const steps = solve(g.machine, g.brand, { keepData: c.customer.keepData })!.length;
+      assert.ok(steps >= min && steps <= max, `${id} seed curve${s}: ${steps} steps, expected ${min}–${max}`);
+    }
+  }
+});
+
+test('a case must name a customer from customers.json', () => {
+  const files = real();
+  get(files, 'cases/c01-boot-order.json').customer.id = 'nobody';
+  hasError(files, 'unknown customer nobody');
+});
+
+test('case questions are checked: answers in range and customer questions say what the customer asks', () => {
+  const files = real();
+  const c = get(files, 'cases/c02-rufus-scheme.json');
+  c.diagnosis.answer = 9;
+  delete c.customerQuestions[0].askTh;
+  hasError(files, 'c02-rufus-scheme.json diagnosis: answer 9 is out of range');
+  hasError(files, 'customerQuestions[0]: missing askTh');
 });

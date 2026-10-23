@@ -7,7 +7,7 @@ import { brandShows, generateCase, solve, type CaseLibrary } from '../core/cases
 import type { Machine } from '../core/machine';
 import { BLOCKER_TH, findBlockers, hardwareLimits } from '../core/requirements';
 import { SourceBadge } from './SourceBadge';
-import type { Case, Objectives } from '../content/schema';
+import type { Case, CaseQuestion, Customer, Objectives } from '../content/schema';
 import { LoTags } from './LoTags';
 
 const yesNo = (v: boolean) => (v ? 'ใช่' : 'ไม่');
@@ -32,13 +32,14 @@ const FIELDS: { key: keyof Machine; label: string; show: (m: Machine) => string 
 
 interface Props {
   template: Case;
+  customer?: Customer;
   lib: CaseLibrary;
   objectives: Objectives;
 }
 
 const randomSeed = () => Math.random().toString(36).slice(2, 8);
 
-export function CaseLab({ template, lib, objectives }: Props) {
+export function CaseLab({ template, customer, lib, objectives }: Props) {
   const [seed, setSeed] = useState('demo');
   const [detailSeed, setDetailSeed] = useState('');
 
@@ -57,7 +58,8 @@ export function CaseLab({ template, lib, objectives }: Props) {
       </header>
 
       <p class="v-quote">
-        <b>{template.customer.nameTh}:</b> “{template.customer.lineTh}”
+        <b>{customer?.nameTh ?? template.customer.id}:</b> “{template.customer.lineTh}”
+        {customer && <span class="v-dim v-who">{customer.roleTh} · {customer.personalityTh}</span>}
       </p>
       <dl class="v-meta">
         <dt>ไฟล์</dt>
@@ -84,6 +86,20 @@ export function CaseLab({ template, lib, objectives }: Props) {
         <dt>มินิเกม · เวลา</dt>
         <dd>{template.minigames.join(', ') || '-'} · {Math.round(template.timeLimitSec / 60)} นาที</dd>
       </dl>
+
+      <section class="v-qs">
+        <h4>คำถามในเคส</h4>
+        <Question title="เดาสาเหตุก่อนลงมือ" q={template.diagnosis} />
+        {template.customerQuestions.map((q, i) => (
+          <Question key={i} title={`ลูกค้าถาม: “${q.askTh}”`} q={q} />
+        ))}
+        {template.designNotesTh.length > 0 && (
+          <>
+            <h5>บันทึกสำหรับคนทำเกม</h5>
+            <ul class="v-list">{template.designNotesTh.map((n) => <li key={n}>{n}</li>)}</ul>
+          </>
+        )}
+      </section>
 
       <section class="v-lab">
         <h4>ลองสุ่มเครื่องของเคสนี้</h4>
@@ -171,5 +187,20 @@ export function CaseLab({ template, lib, objectives }: Props) {
         )}
       </section>
     </article>
+  );
+}
+
+/** A case question with its right answer marked, as the viewer shows it to designers and teachers. */
+function Question({ title, q }: { title: string; q: CaseQuestion }) {
+  return (
+    <div class="v-q">
+      <h5>{title}</h5>
+      <ol class="v-choices">
+        {q.choicesTh.map((c, k) => (
+          <li key={c} class={k === q.answer ? 'right' : ''}>{c}</li>
+        ))}
+      </ol>
+      <p class="v-dim">{q.explainTh}</p>
+    </div>
   );
 }

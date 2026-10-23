@@ -108,6 +108,18 @@ export function ContentViewer() {
                 <ul class="v-list warn">{report.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
               </>
             )}
+            <h2>ลูกค้า ({parsed.customers.length})</h2>
+            <ul class="v-list">
+              {parsed.customers.map((c) => {
+                const used = cases.filter((k) => k.customer.id === c.id).map((k) => k.order);
+                return (
+                  <li key={c.id}>
+                    <b>{c.nameTh}</b> — {c.roleTh} · <span class="v-dim">{c.personalityTh}</span>
+                    {used.length > 0 && <span class="v-badge">เคส {used.join(', ')}</span>}
+                  </li>
+                );
+              })}
+            </ul>
             <h2>ข้อกำหนดที่เกมใช้ตรวจ</h2>
             <table class="v-req">
               <thead><tr><th></th><th>Windows 10</th><th>Windows 11</th></tr></thead>
@@ -132,7 +144,7 @@ export function ContentViewer() {
         {tab === 'cases' && (
           <section class="v-stack">
             {cases.map((c) => (
-              <CaseLab key={c.id} template={c} lib={lib} objectives={objectives} />
+              <CaseLab key={c.id} template={c} customer={parsed.customers.find((x) => x.id === c.customer.id)} lib={lib} objectives={objectives} />
             ))}
           </section>
         )}

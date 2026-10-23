@@ -1,0 +1,60 @@
+{
+  "id": "c05-lab-upgrade",
+  "order": 5,
+  "difficulty": 4,
+  "titleTh": "อัปเครื่องแล็บเป็น Windows 11",
+  "lo": ["LO1", "LO2", "LO3", "LO4"],
+  "customer": {
+    "id": "wilai",
+    "lineTh": "เครื่องในห้องแล็บลง Windows 10 ไว้หลายปีแล้วค่ะ ครูอยากอัปเป็น 11 แต่ทำไม่ผ่านสักเครื่อง ช่วยทำให้ดูทีละขั้นได้ไหม ครูจะได้เอาไปสอนเด็กต่อ ข้อมูลในเครื่องไม่ต้องเก็บนะคะ",
+    "keepData": false
+  },
+  "diagnosis": {
+    "choicesTh": [
+      "เครื่องเก่าเกินไป ลง Windows 11 ไม่ได้",
+      "เครื่องตั้งค่าไว้สำหรับ Windows 10 แบบ Legacy ต้องเปลี่ยนเป็น UEFI",
+      "เครื่องติดไวรัส",
+      "แฟลชไดรฟ์เสีย"
+    ],
+    "answer": 1,
+    "explainTh": "CPU และ RAM ผ่าน แต่ BIOS เปิด CSM (Legacy) ไว้ ดิสก์และ USB จึงเป็นแบบ MBR และ Secure Boot ปิด ซึ่ง Windows 10 ใช้ได้แต่ Windows 11 ไม่ได้"
+  },
+  "customerQuestions": [
+    {
+      "askTh": "ทำไมต้องทำ USB ใหม่ด้วยคะ อันเดิมก็ใช้ลง Windows 10 ได้",
+      "choicesTh": [
+        "USB เดิมทำแบบ MBR สำหรับบูต Legacy พอเปลี่ยนเครื่องเป็น UEFI ต้องทำใหม่เป็น GPT",
+        "USB เก่าหมดอายุแล้ว",
+        "Windows 11 ต้องใช้แฟลชไดรฟ์ 64 GB ขึ้นไป"
+      ],
+      "answer": 0,
+      "explainTh": "Partition scheme ใน Rufus ต้องตรงกับโหมดบูตของเครื่อง (หนังสือ น.45–48)"
+    },
+    {
+      "askTh": "แล้วทำไมต้องลบพาร์ทิชันเดิมทิ้งคะ",
+      "choicesTh": [
+        "เพื่อให้เครื่องเร็วขึ้น",
+        "ดิสก์เดิมเป็น MBR เครื่อง UEFI ติดตั้งได้เฉพาะ GPT ลบแล้วตัวติดตั้งจะสร้างแบบ GPT ให้",
+        "เพราะ Windows 11 ไม่ชอบไฟล์เก่า"
+      ],
+      "answer": 1,
+      "explainTh": "ครูไม่ต้องเก็บข้อมูล จึงลบพาร์ทิชันเดิมแล้วให้ Setup สร้างใหม่เป็น GPT ได้เลย (หนังสือ น.55)"
+    }
+  ],
+  "designNotesTh": [
+    "เคสรวม: ทุกอย่างจากเคส 1–4 (BIOS, Rufus, พาร์ทิชัน, ข้อกำหนด Win 11) กลับมาครบ",
+    "ลำดับที่ดี: ปิด CSM → เปิด Secure Boot (และ TPM ถ้าสุ่มได้) → F10 → ทำ USB ใหม่เป็น GPT → ลบพาร์ทิชันแล้วติดตั้ง",
+    "ครูถามสองข้อ เป็นการทบทวน LO2 และ LO4"
+  ],
+  "targetOs": "win11",
+  "brands": ["classic"],
+  "machine": {
+    "ramGB": [8],
+    "storageGB": [256],
+    "cpu": ["Intel Core i5-8500", "Intel Core i3-8100"],
+    "diskHasData": true
+  },
+  "problems": { "fixed": ["legacy-mbr"], "pool": ["tpm-disabled", "no-product-key"], "extra": [0, 1] },
+  "minigames": ["win11-check", "partition"],
+  "timeLimitSec": 420
+}

@@ -1,0 +1,48 @@
+{
+  "id": "c04-security-chip",
+  "order": 4,
+  "difficulty": 3,
+  "titleTh": "เครื่องแรงแต่ลง 11 ไม่ผ่าน",
+  "lo": ["LO1", "LO3"],
+  "customer": {
+    "id": "ton",
+    "lineTh": "ผมซื้อคอมมือสองมาครับ i5 แรม 16 สเปกน่าจะเหลือๆ แต่ตัวติดตั้งบอกว่าเครื่องไม่ผ่านข้อกำหนด Windows 11 ผมโดนหลอกหรือเปล่า",
+    "keepData": false
+  },
+  "diagnosis": {
+    "choicesTh": [
+      "CPU เก่าเกินไป",
+      "RAM ไม่พอ",
+      "ฟีเจอร์ความปลอดภัยใน BIOS ถูกปิดไว้",
+      "เครื่องนี้ลงได้แค่ Windows 10"
+    ],
+    "answer": 2,
+    "explainTh": "CPU และ RAM ผ่านข้อกำหนด แต่ Windows 11 ต้องเปิด TPM 2.0 และ Secure Boot ด้วย ร้านเดิมอาจปิดไว้ใน BIOS"
+  },
+  "customerQuestions": [
+    {
+      "askTh": "แล้วทำไม Windows 10 ลงได้ แต่ 11 ไม่ได้ครับ",
+      "choicesTh": [
+        "Windows 11 ต้องใช้ RAM 32 GB",
+        "Windows 11 บังคับต้องมี TPM 2.0 และ Secure Boot ส่วน Windows 10 ไม่บังคับ เครื่องนี้มีครบแต่ถูกปิดไว้",
+        "Windows 10 ไม่ต้องใช้ฮาร์ดดิสก์"
+      ],
+      "answer": 1,
+      "explainTh": "ข้อกำหนดที่ Windows 11 เพิ่มจาก Windows 10 คือ UEFI + Secure Boot และ TPM 2.0"
+    }
+  ],
+  "designNotesTh": [
+    "มินิเกม 'เครื่องนี้ลงรุ่นไหนได้' เทียบสเปกกับข้อกำหนด Windows 10 และ 11 ก่อนเข้า BIOS",
+    "ถ้าสุ่มได้ secure-boot-off ต้องเปิดทั้งสองอย่าง แล้วกด F10"
+  ],
+  "targetOs": "win11",
+  "brands": ["classic"],
+  "machine": {
+    "ramGB": [16],
+    "storageGB": [512],
+    "cpu": ["Intel Core i5-10400", "AMD Ryzen 5 5600G"]
+  },
+  "problems": { "fixed": ["tpm-disabled"], "pool": ["secure-boot-off"], "extra": [0, 1] },
+  "minigames": ["win11-check"],
+  "timeLimitSec": 300
+}

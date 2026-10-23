@@ -71,6 +71,28 @@ export const ProblemsSchema = z.array(ProblemSchema);
 
 const range = z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]).refine(([a, b]) => a <= b, 'range must be [min, max]');
 
+/** A multiple-choice question inside a case (guess the cause, or explain to the customer). */
+const CaseQuestionSchema = z.object({
+  /** For customer questions: what the customer asks. Omitted for the "guess the cause" step. */
+  askTh: th.optional(),
+  choicesTh: z.array(th).min(2).max(5),
+  answer: z.number().int().nonnegative(),
+  /** Shown after answering, right or wrong. */
+  explainTh: th,
+});
+export type CaseQuestion = z.infer<typeof CaseQuestionSchema>;
+
+/** Recurring customers (customers.json); sprites are `<id>-<expression>.png`. */
+export const CustomersSchema = z.array(
+  z.object({
+    id,
+    nameTh: th,
+    roleTh: th,
+    personalityTh: th,
+  }),
+);
+export type Customer = z.infer<typeof CustomersSchema>[number];
+
 export const CaseSchema = z.object({
   id,
   order: z.number().int().positive(),
@@ -78,11 +100,18 @@ export const CaseSchema = z.object({
   titleTh: th,
   lo: z.array(loId).min(1),
   customer: z.object({
-    nameTh: th,
+    /** Id in customers.json. */
+    id,
     lineTh: th,
     /** The customer wants their files kept: destructive repairs lose points. */
     keepData: z.boolean(),
   }),
+  /** Step 2 of a case: the player guesses the cause before touching anything. */
+  diagnosis: CaseQuestionSchema,
+  /** Step 4: the customer asks "why?" and the player picks the right explanation. */
+  customerQuestions: z.array(CaseQuestionSchema).min(1),
+  /** Notes for whoever builds/plays the case (traps, what to watch); not shown to students. */
+  designNotesTh: z.array(th).default([]),
   /** Which Windows the customer wants installed. */
   targetOs: TargetOsSchema.default('win11'),
   brands: z.array(id).min(1),

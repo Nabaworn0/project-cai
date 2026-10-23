@@ -1,0 +1,74 @@
+{
+  "id": "adv-keep-my-files",
+  "order": 6,
+  "difficulty": 4,
+  "titleTh": "ห้ามลบงานหนู",
+  "lo": [
+    "LO4",
+    "LO6"
+  ],
+  "customer": {
+    "id": "mind",
+    "lineTh": "งานส่งครูอยู่ในเครื่องหมดเลย ยังไม่ได้สำรอง ช่วยลง 11 โดยไม่ให้ไฟล์หายได้ไหมคะ",
+    "keepData": true
+  },
+  "brands": [
+    "classic"
+  ],
+  "machine": {
+    "ramGB": [
+      8
+    ],
+    "storageGB": [
+      512
+    ],
+    "cpu": [
+      "Intel Core i5-9400"
+    ]
+  },
+  "problems": {
+    "fixed": [
+      "uefi-mbr"
+    ],
+    "pool": [
+      "raid-mode",
+      "missing-wifi-driver"
+    ],
+    "extra": [
+      0,
+      1
+    ]
+  },
+  "minigames": [
+    "mbr-gpt",
+    "partition"
+  ],
+  "timeLimitSec": 300,
+  "targetOs": "win11",
+  "diagnosis": {
+    "choicesTh": [
+      "ฮาร์ดดิสก์เสีย",
+      "ดิสก์เป็น MBR แต่เครื่องบูตแบบ UEFI",
+      "ต้องลง Windows 10 แทน",
+      "USB ทำผิด"
+    ],
+    "answer": 1,
+    "explainTh": "ข้อความสีแดงบอกว่าดิสก์เป็น MBR บนเครื่อง UEFI แต่น้องมายด์ยังไม่ได้สำรองงาน จึงลบพาร์ทิชันไม่ได้"
+  },
+  "customerQuestions": [
+    {
+      "askTh": "แล้วงานหนูจะหายไหมคะ",
+      "choicesTh": [
+        "หายแน่นอน ต้องลบดิสก์",
+        "ไม่หาย ใช้วิธีแปลงดิสก์เป็น GPT แบบไม่ลบข้อมูล (mbr2gpt) แต่ควรสำรองงานไว้ด้วยเสมอ",
+        "ไม่หาย เพราะ Windows เก็บไว้ให้เอง"
+      ],
+      "answer": 1,
+      "explainTh": "mbr2gpt แปลง MBR เป็น GPT ได้โดยไม่ลบข้อมูล เป็นเรื่องนอกหนังสือ (เคสขั้นสูง)"
+    }
+  ],
+  "designNotesTh": [
+    "เคสขั้นสูง: ต้องใช้ mbr2gpt ซึ่งหนังสือไม่ได้สอน",
+    "ถ้าใช้วิธีที่ลบข้อมูล เสียคะแนนหนักและลูกค้าไม่พอใจ"
+  ]
+}

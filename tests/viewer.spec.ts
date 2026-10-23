@@ -18,7 +18,7 @@ test.describe('content viewer (?view=content)', () => {
     await page.goto('/?view=content');
     const tab = (name: string) => page.getByRole('navigation', { name: 'หมวดเนื้อหา' }).getByRole('button', { name, exact: true });
     await tab('เคส').click();
-    await expect(page.locator('[data-testid^="case-"]')).toHaveCount(4);
+    await expect(page.locator('[data-testid^="case-"]')).toHaveCount(7);
     await tab('ปัญหา').click();
     await expect(page.getByRole('heading', { name: 'uefi-mbr', exact: true })).toBeVisible();
     await tab('BIOS').click();
@@ -33,14 +33,13 @@ test.describe('content viewer (?view=content)', () => {
 
   test('the machine lab rolls machines from a seed and shows how to fix them', async ({ page }) => {
     await page.goto('/?view=content#cases');
-    const case1 = page.getByTestId('case-c01-uefi-mbr');
-    await expect(case1.getByTestId('solution').locator('li')).toHaveCount(1);
+    const case1 = page.getByTestId('case-c03-red-text');
     await expect(case1).toContainText('MBR (ปกติ: GPT) ← ปัญหาซ่อน');
     // Files are backed up, so the shortest fix may wipe the disk, and it is flagged as such.
     await expect(case1.getByTestId('solution').locator('.v-badge.bad')).toHaveCount(1);
 
     // A keep-my-files customer: the solution never wipes the disk.
-    const case3 = page.getByTestId('case-c03-keep-my-files');
+    const case3 = page.getByTestId('case-adv-keep-my-files');
     for (const seed of ['a', 'b', 'c', 'd', 'e']) {
       await case3.getByLabel('seed เคส', { exact: true }).fill(seed);
       await expect(case3.getByTestId('solution')).toBeVisible();
@@ -58,7 +57,7 @@ test.describe('content viewer (?view=content)', () => {
 
 test('a Windows 10 case is labelled with its version and the end-of-support warning', async ({ page }) => {
   await page.goto('/?view=content#cases');
-  const c4 = page.getByTestId('case-c04-old-office-pc');
+  const c4 = page.getByTestId('case-adv-old-office-pc');
   await expect(c4).toContainText('Windows 10');
   await expect(c4).toContainText('หมดการอัปเดตความปลอดภัยแล้ว');
   await expect(c4.getByTestId('solution')).toContainText('Rufus');
@@ -74,4 +73,14 @@ test('the tab follows the #hash: shared links, editing the address, and Back all
   await expect(active).toHaveText('ปัญหา');
   await page.goBack();
   await expect(active).toHaveText('เคส');
+});
+
+test('each case shows its customer, the guess-the-cause question and the customer questions with answers marked', async ({ page }) => {
+  await page.goto('/?view=content#cases');
+  const c1 = page.getByTestId('case-c01-boot-order');
+  await expect(c1).toContainText('ป้าสมศรี');
+  await expect(c1).toContainText('ขายขนมออนไลน์');
+  await expect(c1.locator('.v-qs li.right').first()).toHaveText('เครื่องตั้งให้บูตจากฮาร์ดดิสก์ก่อน USB');
+  const c5 = page.getByTestId('case-c05-lab-upgrade');
+  await expect(c5.locator('.v-qs h5', { hasText: 'ลูกค้าถาม' })).toHaveCount(2);
 });

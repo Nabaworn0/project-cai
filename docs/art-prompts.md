@@ -65,18 +65,81 @@ Transparent background, PNG.
 
 บันทึกเป็น `art-source/tech-neutral.png`, `tech-happy.png`, `tech-thinking.png`, `tech-surprised.png`
 
-## 3. ลูกค้าคนแรก: ป้าสมศรี
+## 3. ลูกค้า 5 คนของรอบ 1 (รวม 19 ภาพ)
+
+รายละเอียดลูกค้าอยู่ใน [phase1-cases.md](phase1-cases.md) ข้อ 3 · ทุกคนเต็มตัว ยืนหน้าตรง ขนาดใกล้ป้าสมศรี (ประมาณ 34 × 77 พิกเซลอาร์ต)
+ทุกคนต้องมี 4 สีหน้า: `neutral` ปกติ · `worried` กังวล · `happy` พอใจ · `angry` ไม่พอใจ
+
+**วิธีทำต่อคน:** ภาพแรกใช้พรอมต์ของคนนั้น แล้วอีก 3 สีหน้า **แนบภาพแรกกลับไป** พร้อมพรอมต์ "แก้สีหน้า" ด้านล่าง
+บันทึกชื่อไฟล์ว่า `art-source/<ชื่อ>-<สีหน้า>.png` เช่น `beam-neutral.png`, `beam-worried.png`
+
+### พรอมต์แก้สีหน้า (ใช้กับทุกคน แนบภาพแรกไปด้วยทุกครั้ง)
 
 ```
-New sprite in the same style: "Auntie Somsri", a cheerful Thai woman about 60 years old.
-Short curly grey hair, round glasses, purple blouse with a small white flower pattern, holding a smartphone.
-Full body, front view, standing. About 24 x 48 art pixels.
-Expression: WORRIED — eyebrows tilted up, small frown.
-Transparent background, PNG, centered.
+Edit the attached image. Keep the sprite pixel-for-pixel identical: same hair, clothes, body, pose, size,
+position, canvas size and outline. Change only the face to: <EXPRESSION>.
+Transparent background, PNG.
 ```
 
-แล้วขอสีหน้า `neutral`, `happy`, `angry` ด้วยข้อความแบบข้อ 2 (Same sprite, pixel-for-pixel identical…)
-บันทึกเป็น `art-source/somsri-worried.png` ฯลฯ
+แทน `<EXPRESSION>` ด้วย:
+- `NEUTRAL — calm, relaxed eyebrows, small closed mouth`
+- `WORRIED — eyebrows tilted up in the middle, small frown`
+- `HAPPY — eyes in happy arcs, wide smile`
+- `ANGRY — eyebrows angled down toward the nose, frowning mouth`
+
+### ป้าสมศรี (`somsri`) · มีภาพ worried แล้ว ขาดอีก 3 ภาพ
+
+แนบ `somsri-worried.png` แล้วใช้พรอมต์แก้สีหน้าด้านบน 3 ครั้ง: NEUTRAL, HAPPY, ANGRY
+
+### น้องบีม (`beam`) · 4 ภาพ
+
+```
+New sprite in the same style: "Beam", a Thai high-school boy about 16 years old who loves games.
+Messy short black hair, oversized black hoodie with a small teal pixel-controller print (no text), jeans, sneakers,
+holding a USB flash drive up proudly in one hand. Full body, front view, standing, confident pose.
+Expression: NEUTRAL — calm, slight confident smile.
+About 34 x 77 art pixels. Transparent background, PNG, centered.
+```
+
+### ลุงชัย (`chai`) · 4 ภาพ
+
+```
+New sprite in the same style: "Uncle Chai", a Thai man about 55 years old who runs a photocopy shop.
+Short grey hair with a receding hairline, thin moustache, short-sleeved blue button-up shirt with a pen in the
+pocket, dark trousers, sandals, a wristwatch, one hand on his hip. Full body, front view, standing.
+Expression: NEUTRAL — calm but slightly impatient.
+About 34 x 77 art pixels. Transparent background, PNG, centered.
+```
+
+### พี่ต้น (`ton`) · 4 ภาพ
+
+```
+New sprite in the same style: "Ton", a Thai office worker about 28 years old.
+Neat short black hair, thin rectangular glasses, light yellow long-sleeved shirt with rolled-up sleeves,
+grey trousers, holding a small laptop bag. Full body, front view, standing, polite posture.
+Expression: NEUTRAL — calm, polite.
+About 34 x 77 art pixels. Transparent background, PNG, centered.
+```
+
+### ครูวิไล (`wilai`) · 4 ภาพ
+
+```
+New sprite in the same style: "Teacher Wilai", a Thai computer teacher about 40 years old.
+Shoulder-length black hair tied back, small pearl earrings, light teal blouse, navy knee-length skirt,
+a lanyard with a blank ID card (no text), holding a clipboard. Full body, front view, standing.
+Expression: NEUTRAL — calm, attentive.
+About 34 x 77 art pixels. Transparent background, PNG, centered.
+```
+
+### สรุปไฟล์ที่ต้องได้
+
+| ลูกค้า | ไฟล์ |
+|---|---|
+| ป้าสมศรี | `somsri-neutral` `somsri-happy` `somsri-angry` (มี `somsri-worried` แล้ว) |
+| น้องบีม | `beam-neutral` `beam-worried` `beam-happy` `beam-angry` |
+| ลุงชัย | `chai-neutral` `chai-worried` `chai-happy` `chai-angry` |
+| พี่ต้น | `ton-neutral` `ton-worried` `ton-happy` `ton-angry` |
+| ครูวิไล | `wilai-neutral` `wilai-worried` `wilai-happy` `wilai-angry` |
 
 ## 4. ของประกอบฉาก (ทีละภาพ)
 

@@ -12,12 +12,15 @@ import {
   BrandSchema,
   CardsSchema,
   CaseSchema,
+  CustomersSchema,
   ObjectivesSchema,
   ProblemsSchema,
   QuizSchema,
   type Brand,
   type Cards,
   type Case,
+  type CaseQuestion,
+  type Customer,
   type Objectives,
   type Problem,
   type Quiz,
@@ -42,6 +45,7 @@ export interface ParsedContent {
   problems: Problem[];
   brands: Brand[];
   cases: Case[];
+  customers: Customer[];
   quizzes: Quiz[];
   cards?: Cards;
 }
@@ -84,7 +88,7 @@ export function validateContent(files: readonly ContentFile[], opts: { seedsPerC
 
 /** Schema-parses every file (applying defaults); problems go into `errors`. */
 export function parseAll(files: readonly ContentFile[], errors: string[]): ParsedContent {
-  const out: ParsedContent = { problems: [], brands: [], cases: [], quizzes: [] };
+  const out: ParsedContent = { problems: [], brands: [], cases: [], customers: [], quizzes: [] };
   const parse = <S extends z.ZodType>(schema: S, f: ContentFile): z.infer<S> | undefined => {
     const r = schema.safeParse(f.data);
     if (r.success) return r.data;
@@ -95,10 +99,11 @@ export function parseAll(files: readonly ContentFile[], errors: string[]): Parse
     if (f.path === 'objectives.json') out.objectives = parse(ObjectivesSchema, f);
     else if (f.path === 'problems.json') out.problems = parse(ProblemsSchema, f) ?? [];
     else if (f.path === 'cards.json') out.cards = parse(CardsSchema, f);
+    else if (f.path === 'customers.json') out.customers = parse(CustomersSchema, f) ?? [];
     else if (f.path.startsWith('brands/')) push(out.brands, parse(BrandSchema, f), f.path, errors);
     else if (f.path.startsWith('cases/')) push(out.cases, parse(CaseSchema, f), f.path, errors);
     else if (f.path.startsWith('quizzes/')) push(out.quizzes, parse(QuizSchema, f), f.path, errors);
-    else errors.push(`${f.path}: not a known content file (expected objectives, problems, cards, brands/, cases/, quizzes/)`);
+    else errors.push(`${f.path}: not a known content file (expected objectives, problems, customers, cards, brands/, cases/, quizzes/)`);
   }
   return out;
 }
@@ -169,11 +174,19 @@ function checkCases(
   dupes(parsed.cases.map((c) => String(c.order)), 'cases: duplicate order', errors);
   const brandIds = new Set(parsed.brands.map((b) => b.id));
   const problemIds = new Set(parsed.problems.map((p) => p.id));
+  const customerIds = new Set(parsed.customers.map((c) => c.id));
+  dupes(parsed.customers.map((c) => c.id), 'customers.json: duplicate customer', errors);
   let checked = 0;
 
   for (const c of [...parsed.cases].sort((a, b) => a.order - b.order)) {
     const where = `cases/${c.id}.json`;
     checkLo(where, c.lo);
+    if (!customerIds.has(c.customer.id)) errors.push(`${where}: unknown customer ${c.customer.id} (add it to customers.json)`);
+    checkQuestion(`${where} diagnosis`, c.diagnosis, errors);
+    c.customerQuestions.forEach((q, i) => {
+      checkQuestion(`${where} customerQuestions[${i}]`, q, errors);
+      if (!q.askTh) errors.push(`${where} customerQuestions[${i}]: missing askTh (what the customer asks)`);
+    });
     let refsOk = true;
     for (const b of c.brands) if (!brandIds.has(b)) (errors.push(`${where}: unknown brand ${b}`), (refsOk = false));
     for (const pid of [...c.problems.fixed, ...c.problems.pool]) {
@@ -225,6 +238,11 @@ function checkCases(
     for (const [msg, at] of failures) errors.push(`${where}: ${msg} [${at}]`);
   }
   return checked;
+}
+
+function checkQuestion(where: string, q: CaseQuestion, errors: string[]): void {
+  if (q.answer >= q.choicesTh.length) errors.push(`${where}: answer ${q.answer} is out of range`);
+  dupes(q.choicesTh, `${where}: duplicate choice`, errors);
 }
 
 function checkQuizzes(quizzes: readonly Quiz[], checkLo: (w: string, l: readonly string[]) => void, errors: string[], warnings: string[]): void {

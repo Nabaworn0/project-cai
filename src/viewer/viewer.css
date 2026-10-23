@@ -103,3 +103,8 @@ html.viewer-page #ui { position: static; pointer-events: auto; }
 .v-req { border-collapse: collapse; font-size: 14px; background: #fff; width: 100%; max-width: 560px; }
 .v-req th, .v-req td { border: 1px solid #dce3e0; padding: 6px 10px; text-align: left; }
 .v-req thead th { background: var(--navy); color: #fff; }
+
+.v-who { display: block; margin-top: 4px; }
+.v-qs { margin-top: 14px; border-top: 3px dashed #dce3e0; padding-top: 12px; }
+.v-qs h4 { font-family: var(--f-head); margin: 0 0 4px; }
+.v-qs .v-q h5 { font-size: 14px; margin: 10px 0 4px; }

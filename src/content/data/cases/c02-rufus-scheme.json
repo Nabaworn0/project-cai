@@ -1,0 +1,48 @@
+{
+  "id": "c02-rufus-scheme",
+  "order": 2,
+  "difficulty": 2,
+  "titleTh": "USB ไม่ขึ้นในเมนูบูต",
+  "lo": ["LO2"],
+  "customer": {
+    "id": "beam",
+    "lineTh": "ผมทำ USB เองครับพี่ ทำตามคลิปเป๊ะเลย แต่กด Boot Menu แล้วไม่มี USB ให้เลือก สงสัยแฟลชไดรฟ์ปลอม",
+    "keepData": false
+  },
+  "diagnosis": {
+    "choicesTh": [
+      "แฟลชไดรฟ์ปลอม",
+      "ไฟล์ ISO เสีย",
+      "USB ทำแบบ MBR แต่เครื่องบูตแบบ UEFI",
+      "ต้องเปิด Secure Boot ก่อน"
+    ],
+    "answer": 2,
+    "explainTh": "ใน Rufus ต้องเลือก Partition scheme ให้ตรงกับเครื่อง เครื่อง UEFI ใช้ GPT ถ้าทำแบบ MBR เมนูบูตแบบ UEFI จะไม่เห็น USB (หนังสือ น.45–48)"
+  },
+  "customerQuestions": [
+    {
+      "askTh": "แล้วคลิปที่ผมดูผิดเหรอครับ",
+      "choicesTh": [
+        "คลิปทำสำหรับเครื่องเก่าที่บูตแบบ BIOS เครื่องนี้บูตแบบ UEFI ต้องเลือก GPT ให้ตรงกับเครื่อง",
+        "คลิปถูกแล้ว แต่ต้องใช้แฟลชไดรฟ์ยี่ห้อแพงกว่านี้",
+        "ต้องทำ USB จากเครื่องที่จะลงเท่านั้น"
+      ],
+      "answer": 0,
+      "explainTh": "MBR ใช้กับเครื่องที่บูตแบบ BIOS (Legacy) ส่วน GPT ใช้กับ UEFI ต้องเลือกให้ตรงกับเครื่องที่จะลง"
+    }
+  ],
+  "designNotesTh": [
+    "กับดัก: เลือก MBR ซ้ำ หรือเลือก ISO ผิดไฟล์ (ในโฟลเดอร์มีไฟล์ Windows 10 และ Ubuntu ปนอยู่ ให้เลือก Windows 11)",
+    "มินิเกมจับคู่ MBR/GPT กับโหมดบูตเล่นก่อนเปิด Rufus"
+  ],
+  "targetOs": "win11",
+  "brands": ["classic"],
+  "machine": {
+    "ramGB": [16, 32],
+    "storageGB": [512, 1000],
+    "cpu": ["AMD Ryzen 5 5600", "Intel Core i5-12400F"]
+  },
+  "problems": { "fixed": ["usb-wrong-scheme"] },
+  "minigames": ["mbr-gpt"],
+  "timeLimitSec": 300
+}
