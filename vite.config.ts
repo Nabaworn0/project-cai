@@ -1,0 +1,42 @@
+import { defineConfig } from 'vite';
+import preact from '@preact/preset-vite';
+import { VitePWA } from 'vite-plugin-pwa';
+
+// BASE_PATH lets the same build serve from a sub-folder (e.g. GitHub Pages: /repo-name/).
+const base = process.env.BASE_PATH ?? '/';
+
+export default defineConfig({
+  base,
+  plugins: [
+    preact(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: false,
+      includeAssets: ['favicon.svg', 'apple-touch-icon-180x180.png'],
+      manifest: {
+        name: 'ร้านซ่อมคอม',
+        short_name: 'ร้านซ่อมคอม',
+        description: 'เกมฝึกติดตั้งระบบปฏิบัติการ Windows (โหมดจำลอง)',
+        lang: 'th',
+        start_url: '.',
+        scope: '.',
+        display: 'standalone',
+        orientation: 'any',
+        background_color: '#1b2a4a',
+        theme_color: '#1b2a4a',
+        icons: [
+          { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
+      workbox: {
+        // Thai + Latin font subsets only; other subsets are never used by the game.
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,json}', '**/*-{thai,latin}-*.woff2'],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+      },
+    }),
+  ],
+  build: { target: 'es2022', chunkSizeWarningLimit: 1600 },
+});

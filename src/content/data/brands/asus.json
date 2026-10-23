@@ -1,0 +1,39 @@
+{
+  "id": "asus",
+  "name": "ASUS",
+  "verified": false,
+  "phase": "mvp",
+  "style": "graphical",
+  "keys": { "setup": ["F2", "Delete"], "bootMenu": ["F8"] },
+  "quirks": { "hasAdvancedMode": true },
+  "pages": [
+    {
+      "id": "ez",
+      "label": "EZ Mode",
+      "items": [
+        { "label": "Boot Priority", "setting": "bootOrder", "helpTh": "ลากอุปกรณ์เพื่อเรียงลำดับบูต" }
+      ]
+    },
+    {
+      "id": "advanced",
+      "label": "Advanced",
+      "items": [
+        { "label": "PCH Storage Configuration > SATA Mode Selection", "setting": "sataMode", "advancedOnly": true },
+        { "label": "PCH-FW Configuration > PTT", "setting": "tpm", "advancedOnly": true, "helpTh": "TPM ในตัว CPU (Intel PTT / AMD fTPM)" }
+      ]
+    },
+    {
+      "id": "boot",
+      "label": "Boot",
+      "items": [
+        { "label": "CSM (Compatibility Support Module) > Launch CSM", "setting": "bootMode", "advancedOnly": true, "helpTh": "Launch CSM = Enabled คือโหมด Legacy" },
+        { "label": "Secure Boot > OS Type", "setting": "secureBoot", "advancedOnly": true, "helpTh": "Windows UEFI mode = เปิด Secure Boot" },
+        { "label": "Boot Option Priorities", "setting": "bootOrder", "advancedOnly": true }
+      ]
+    }
+  ],
+  "notesTh": [
+    "หน้าแรกเป็น EZ Mode กด F7 เพื่อเข้า Advanced Mode เมนูส่วนใหญ่ซ่อนอยู่ในนั้น",
+    "เดสก์ท็อปใช้ F8 เปิด Boot Menu ส่วนโน้ตบุ๊กมักใช้ Esc"
+  ]
+}

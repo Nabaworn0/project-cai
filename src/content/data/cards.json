@@ -1,0 +1,13 @@
+{
+  "draft": true,
+  "sets": [
+    { "id": "boot", "nameTh": "ชุดบูต" },
+    { "id": "disk", "nameTh": "ชุดดิสก์" }
+  ],
+  "cards": [
+    { "id": "gpt-guardian", "set": "disk", "nameTh": "ผู้พิทักษ์ GPT", "rarity": "common", "linkedProblems": ["uefi-mbr"], "textTh": "GPT รองรับดิสก์ใหญ่กว่า 2 TB และพาร์ทิชันได้ถึง 128 ส่วน" },
+    { "id": "mbr2gpt-magic", "set": "disk", "nameTh": "เวทมนตร์ mbr2gpt", "rarity": "rare", "linkedProblems": ["uefi-mbr"], "textTh": "แปลง MBR เป็น GPT ได้โดยไม่ลบข้อมูล ถ้าดิสก์ผ่านการตรวจ /validate" },
+    { "id": "secure-boot-shield", "set": "boot", "nameTh": "โล่ Secure Boot", "rarity": "common", "linkedProblems": ["secure-boot-off"], "textTh": "Secure Boot ยอมให้บูตเฉพาะโปรแกรมที่มีลายเซ็นถูกต้อง" },
+    { "id": "tpm-chip", "set": "boot", "nameTh": "ชิป TPM", "rarity": "rare", "linkedProblems": ["tpm-disabled"], "textTh": "TPM เก็บกุญแจเข้ารหัส ใช้กับ BitLocker และ Windows Hello" }
+  ]
+}

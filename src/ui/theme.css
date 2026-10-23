@@ -1,0 +1,130 @@
+/* Game shell in the 16-bit pixel palette (docs/style-guide.md), same in light and dark OS themes.
+   Panels use notched "pixel box" corners made from box-shadows; text stays a smooth Thai font for
+   legibility. The simulated monitor keeps its own "real screen" look under .screen. */
+:root {
+  --navy: #1b2a4a;
+  --navy-mid: #2c3e66;
+  --yellow: #ffd23f;
+  --teal: #2ec4b6;
+  --teal-shade: #1f8f86;
+  --coral: #ff6b6b;
+  --cream: #fff4e0;
+  --wall: #ffe3b3;
+  --ink: #1b2a4a;
+  --px: 3px; /* one "UI pixel" for borders and shadows */
+  --f-head: 'Chakra Petch', 'Noto Sans Thai', system-ui, sans-serif;
+  --f-body: 'Noto Sans Thai', system-ui, sans-serif;
+  --f-win: 'Segoe UI Variable Text', 'Segoe UI', 'Noto Sans Thai', system-ui, sans-serif;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
+body { background: var(--navy); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.6; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: var(--px) solid var(--coral); outline-offset: var(--px); }
+
+/* The canvas is a whole number of device pixels per art pixel; the sliver it leaves is wall-coloured. */
+#game { position: fixed; inset: 0; touch-action: none; background: var(--wall); }
+#game canvas { display: block; image-rendering: pixelated; }
+#ui { position: fixed; inset: 0; pointer-events: none; }
+/* Only the overlay's own panels take taps; everything else falls through to the canvas. */
+#ui > :not(.hud, .sign-label), .hud > * { pointer-events: auto; }
+
+/* Notched pixel box: a 1-UI-pixel outline with cut corners, plus a hard drop shadow. */
+.pixel-box, .chip, .narration, .btn, .monitor {
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--navy),
+    0 var(--px) 0 0 var(--navy),
+    calc(-1 * var(--px)) 0 0 0 var(--navy),
+    var(--px) 0 0 0 var(--navy),
+    0 calc(2 * var(--px)) 0 0 rgba(27, 42, 74, 0.35);
+}
+
+.sign-label {
+  position: absolute; pointer-events: none;
+  display: grid; place-items: center;
+  font-family: var(--f-head); font-weight: 700; line-height: 1; color: var(--yellow);
+  white-space: nowrap; overflow: hidden;
+}
+
+.hud {
+  position: absolute; left: 0; right: 0; top: 0; pointer-events: none;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+  padding: calc(12px + var(--safe-t)) max(16px, var(--safe-r)) 0 max(16px, var(--safe-l));
+}
+.chip {
+  margin: 0;
+  font-family: var(--f-head); font-weight: 700; font-size: 14px; line-height: 1.2;
+  padding: 6px 10px; background: #fff;
+}
+/* Chakra Petch's square zero reads like a missing-glyph box at small sizes, so small print uses Noto. */
+.chip small { font-family: var(--f-body); font-weight: 400; opacity: 0.7; margin-left: 4px; }
+.sim-badge { background: var(--yellow); }
+
+.narration {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + var(--safe-b)); width: min(640px, calc(100% - 32px));
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  background: var(--cream); padding: 10px 14px;
+}
+.narration p { margin: 0; flex: 1 1 240px; font-size: 15px; }
+
+.btn {
+  font-family: var(--f-head); font-weight: 700; letter-spacing: 0.02em;
+  background: var(--teal); color: var(--navy);
+  padding: 8px 16px; min-height: 48px;
+  /* darker bottom edge, like a 16-bit menu button */
+  border-bottom: var(--px) solid var(--teal-shade);
+}
+.btn:active { transform: translateY(var(--px)); border-bottom-width: 0; margin-bottom: var(--px); }
+.btn.ghost { background: #fff; border-bottom-color: #c9d0dc; }
+.btn.small { min-height: 40px; padding: 4px 12px; font-size: 14px; }
+
+/* Simulated monitor */
+.sim-backdrop {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  background: rgba(27, 42, 74, 0.6);
+  padding: calc(12px + var(--safe-t)) max(12px, var(--safe-r)) calc(12px + var(--safe-b)) max(12px, var(--safe-l));
+}
+.monitor {
+  width: min(900px, 100%); max-height: 100%; display: flex; flex-direction: column;
+  background: var(--navy-mid); padding: 10px 12px 14px;
+}
+.monitor-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0 2px 8px; }
+.sim-tag { font-family: var(--f-head); font-size: 13px; color: var(--yellow); }
+
+.screen {
+  --ws-win: #f3f3f3; --ws-ink: #1b1b1b; --ws-sub: #5d5d5d; --ws-line: #d6d6d6; --ws-row: #cce4f7;
+  background: linear-gradient(160deg, #1c4f9c, #0a1f45); border-radius: 6px; padding: 16px;
+  overflow: auto; min-height: 0;
+}
+.win { background: var(--ws-win); color: var(--ws-ink); font-family: var(--f-win); border-radius: 8px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
+.win-title { font-size: 12px; padding: 8px 12px; border-bottom: 1px solid var(--ws-line); color: var(--ws-sub); }
+.win-body { padding: 16px 18px 20px; }
+.win-body h2 { font-weight: 400; font-size: 20px; margin: 0 0 12px; color: #1a4c8b; }
+.parts { width: 100%; border-collapse: collapse; font-size: 13px; }
+.parts th { text-align: left; font-weight: 400; color: var(--ws-sub); padding: 4px 8px; border-bottom: 1px solid var(--ws-line); }
+.parts td { padding: 8px; }
+.parts tbody tr { cursor: pointer; }
+.parts tr.sel { background: var(--ws-row); }
+.type-test { display: grid; gap: 4px; margin-top: 16px; font-family: var(--f-body); font-size: 14px; }
+.type-test input { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #8a8a8a; border-radius: 4px; }
+.echo { font-family: var(--f-body); min-height: 1.6em; margin: 6px 0 0; color: var(--ws-sub); overflow-wrap: anywhere; }
+
+@media (max-width: 520px) {
+  .parts th:nth-child(3), .parts td:nth-child(3) { display: none; }
+  .win-body h2 { font-size: 17px; }
+  .screen { padding: 8px; }
+}
+
+/* Boot splash shown until fonts and the first scene are ready */
+.splash { position: fixed; inset: 0; display: grid; place-items: center; background: var(--navy); color: var(--yellow); font-family: var(--f-head); font-size: 22px; transition: opacity 0.3s; }
+.splash.gone { opacity: 0; pointer-events: none; }

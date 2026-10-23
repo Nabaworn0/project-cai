@@ -1,0 +1,198 @@
+[
+  {
+    "id": "usb-not-first",
+    "lo": [
+      "LO3"
+    ],
+    "blocker": "usb-not-first",
+    "patch": {
+      "usbFirst": false
+    },
+    "fixes": [
+      "set-usb-first"
+    ],
+    "symptomTh": "เสียบแฟลชไดรฟ์แล้วเปิดเครื่อง แต่เครื่องบูตเข้า Windows ตัวเก่าทุกครั้ง",
+    "explainTh": "เครื่องบูตจากฮาร์ดดิสก์ก่อน ต้องเลื่อน USB ขึ้นเป็นอันดับแรก หรือกดปุ่มเมนูบูตเลือก USB ครั้งเดียว",
+    "hintsTh": [
+      "ลองดูว่าเครื่องเลือกบูตจากอุปกรณ์ไหนก่อน",
+      "ใช้ปุ่มเมนูบูต (Boot Menu) ของยี่ห้อนี้ หรือแก้ Boot Priority ใน BIOS"
+    ]
+  },
+  {
+    "id": "uefi-mbr",
+    "lo": [
+      "LO4",
+      "LO6"
+    ],
+    "blocker": "uefi-mbr",
+    "requires": {
+      "bootMode": "uefi"
+    },
+    "patch": {
+      "diskStyle": "mbr"
+    },
+    "fixes": [
+      "setup-delete-all",
+      "diskpart-clean-convert-gpt",
+      "mbr2gpt"
+    ],
+    "symptomTh": "ถึงหน้าเลือกที่ติดตั้งแล้วขึ้นตัวหนังสือสีแดง กด Next ไม่ได้",
+    "screenText": "Windows can't be installed to this disk. The selected disk has an MBR partition table. On EFI systems, Windows can only be installed to GPT disks.",
+    "explainTh": "เครื่องบูตแบบ UEFI ติดตั้ง Windows ได้เฉพาะดิสก์แบบ GPT ต้องแปลงดิสก์เป็น GPT",
+    "hintsTh": [
+      "ดูข้อความสีแดงว่าพูดถึงตารางพาร์ทิชันแบบไหน",
+      "แปลงดิสก์เป็น GPT: ลบพาร์ทิชันทั้งหมด, diskpart convert gpt หรือ mbr2gpt ถ้าต้องเก็บข้อมูล"
+    ]
+  },
+  {
+    "id": "legacy-mbr",
+    "lo": [
+      "LO3",
+      "LO4"
+    ],
+    "blocker": "legacy-boot",
+    "patch": {
+      "bootMode": "legacy",
+      "secureBoot": false,
+      "diskStyle": "mbr"
+    },
+    "fixes": [
+      "set-boot-uefi"
+    ],
+    "symptomTh": "ตัวติดตั้งบอกว่าเครื่องนี้ไม่ผ่านข้อกำหนดของ Windows 11",
+    "screenText": "This PC doesn't currently meet Windows 11 system requirements.",
+    "explainTh": "เครื่องตั้งไว้เป็นโหมด Legacy/CSM แต่ Windows 11 ต้องบูตแบบ UEFI พร้อม Secure Boot และดิสก์ GPT",
+    "hintsTh": [
+      "Windows 11 ต้องการโหมดบูตแบบไหน",
+      "เปลี่ยนเป็น UEFI แล้วอย่าลืมว่าดิสก์เดิมยังเป็น MBR และ Secure Boot ยังปิดอยู่"
+    ]
+  },
+  {
+    "id": "secure-boot-off",
+    "lo": [
+      "LO2",
+      "LO3"
+    ],
+    "blocker": "secure-boot-off",
+    "requires": {
+      "bootMode": "uefi"
+    },
+    "patch": {
+      "secureBoot": false
+    },
+    "fixes": [
+      "enable-secure-boot"
+    ],
+    "symptomTh": "ตัวติดตั้งบอกว่าเครื่องไม่ผ่านข้อกำหนด ทั้งที่เครื่องค่อนข้างใหม่",
+    "screenText": "This PC must support Secure Boot.",
+    "explainTh": "Windows 11 ต้องเปิด Secure Boot ใน UEFI บางยี่ห้อต้องตั้งรหัสผ่านผู้ดูแล BIOS ก่อนจึงจะเปลี่ยนค่าได้",
+    "hintsTh": [
+      "ข้อกำหนดข้อไหนของ Windows 11 ที่ยังไม่ผ่าน",
+      "เปิด Secure Boot ในแท็บ Boot หรือ Security ของ BIOS"
+    ]
+  },
+  {
+    "id": "tpm-disabled",
+    "lo": [
+      "LO2",
+      "LO3"
+    ],
+    "blocker": "tpm-disabled",
+    "patch": {
+      "tpmEnabled": false
+    },
+    "fixes": [
+      "enable-tpm"
+    ],
+    "symptomTh": "ตัวติดตั้งบอกว่าเครื่องไม่ผ่านข้อกำหนด เรื่องชิปความปลอดภัย",
+    "screenText": "This PC must support TPM 2.0.",
+    "explainTh": "เครื่องมีชิป TPM 2.0 (หรือ fTPM/PTT ใน CPU) แต่ปิดไว้ใน BIOS ต้องเปิดก่อนติดตั้ง",
+    "hintsTh": [
+      "ชิปความปลอดภัยที่ Windows 11 ต้องการชื่ออะไร",
+      "หาเมนู TPM, PTT หรือ fTPM ใน BIOS แล้วเปิดใช้งาน"
+    ]
+  },
+  {
+    "id": "raid-mode",
+    "lo": [
+      "LO5",
+      "LO6"
+    ],
+    "blocker": "raid-no-driver",
+    "patch": {
+      "sataMode": "raid"
+    },
+    "fixes": [
+      "load-raid-driver",
+      "set-ahci"
+    ],
+    "symptomTh": "ถึงหน้าเลือกที่ติดตั้งแล้วไม่เห็นฮาร์ดดิสก์เลยสักลูก",
+    "screenText": "We couldn't find any drives. To get a storage driver, click Load driver.",
+    "explainTh": "ตัวควบคุมดิสก์ตั้งเป็น RAID/Intel RST ตัวติดตั้งจึงมองไม่เห็นดิสก์ ต้องโหลดไดรเวอร์ หรือเปลี่ยนเป็น AHCI ถ้าดิสก์ว่าง",
+    "hintsTh": [
+      "ทำไมตัวติดตั้งถึงไม่เห็นดิสก์เลย",
+      "กด Load driver ใส่ไดรเวอร์ RST หรือเปลี่ยน SATA Mode เป็น AHCI (เฉพาะดิสก์ที่ไม่มี Windows เดิม)"
+    ]
+  },
+  {
+    "id": "ram-low",
+    "lo": [
+      "LO2"
+    ],
+    "blocker": "ram-low",
+    "patch": {
+      "ramGB": 2
+    },
+    "fixes": [
+      "upgrade-ram"
+    ],
+    "symptomTh": "ตัวติดตั้งบอกว่าหน่วยความจำไม่พอ",
+    "screenText": "The PC must have at least 4 GB of memory.",
+    "explainTh": "Windows 11 ต้องมี RAM อย่างน้อย 4 GB ต้องเพิ่มแรมก่อน",
+    "hintsTh": [
+      "ดูสเปกในตั๋วเครื่อง RAM เท่าไหร่",
+      "เบิกแรมจากร้านอะไหล่มาใส่เพิ่ม"
+    ]
+  },
+  {
+    "id": "storage-low",
+    "lo": [
+      "LO2"
+    ],
+    "blocker": "storage-low",
+    "patch": {
+      "storageGB": 32
+    },
+    "fixes": [
+      "replace-ssd"
+    ],
+    "symptomTh": "ตัวติดตั้งบอกว่าพื้นที่ดิสก์ไม่พอ",
+    "screenText": "The PC must have at least 64 GB of storage.",
+    "explainTh": "Windows 11 ต้องมีพื้นที่ดิสก์อย่างน้อย 64 GB ต้องเปลี่ยนเป็น SSD ที่ใหญ่ขึ้น",
+    "hintsTh": [
+      "ดูขนาดดิสก์ในตั๋วเครื่อง",
+      "เปลี่ยน SSD ลูกใหม่ (ข้อมูลเดิมต้องสำรองก่อน)"
+    ]
+  },
+  {
+    "id": "missing-wifi-driver",
+    "lo": [
+      "LO5"
+    ],
+    "blocker": "drivers-missing",
+    "patch": {
+      "missingDrivers": [
+        "wifi"
+      ]
+    },
+    "fixes": [
+      "install-drivers"
+    ],
+    "symptomTh": "ติดตั้งเสร็จแล้วแต่ไม่มีไอคอน Wi‑Fi และใน Device Manager มีเครื่องหมายตกใจสีเหลือง",
+    "explainTh": "Windows ยังไม่มีไดรเวอร์การ์ดไร้สายรุ่นนี้ ต้องติดตั้งไดรเวอร์จากเว็บผู้ผลิต",
+    "hintsTh": [
+      "เปิด Device Manager ดูอุปกรณ์ที่มีเครื่องหมายผิดปกติ",
+      "ติดตั้งไดรเวอร์ Wi‑Fi จากแฟลชไดรฟ์ไดรเวอร์ของร้าน"
+    ]
+  }
+]

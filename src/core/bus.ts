@@ -1,0 +1,34 @@
+// Typed event bus between the Phaser scenes and the HTML/Preact overlay.
+
+import type { Expression } from '../game/art/technician';
+import type { ShopLayout } from '../game/scenes/ShopScene';
+
+export interface GameEvents {
+  'scene:ready': { scene: string };
+  'layout:shop': ShopLayout;
+  'character:tap': { expression: Expression };
+  'ui:open-sim': Record<string, never>;
+  'ui:close-sim': Record<string, never>;
+}
+
+type Handler<K extends keyof GameEvents> = (payload: GameEvents[K]) => void;
+
+const handlers = new Map<keyof GameEvents, Set<Handler<never>>>();
+const lastPayload = new Map<keyof GameEvents, unknown>();
+
+export const bus = {
+  on<K extends keyof GameEvents>(event: K, fn: Handler<K>): () => void {
+    let set = handlers.get(event);
+    if (!set) handlers.set(event, (set = new Set()));
+    set.add(fn as Handler<never>);
+    return () => set.delete(fn as Handler<never>);
+  },
+  emit<K extends keyof GameEvents>(event: K, payload: GameEvents[K]): void {
+    lastPayload.set(event, payload);
+    handlers.get(event)?.forEach((fn) => (fn as Handler<K>)(payload));
+  },
+  /** The most recent payload of an event, for listeners that subscribe after it fired. */
+  last<K extends keyof GameEvents>(event: K): GameEvents[K] | undefined {
+    return lastPayload.get(event) as GameEvents[K] | undefined;
+  },
+};

@@ -1,0 +1,193 @@
+// The shop counter in 16-bit pixel art: wall, window, parts shelf, sign board, the technician behind
+// the counter, and the customer's PC. Laid out in art pixels from the current canvas size, so phones
+// (portrait) and PCs (landscape) both fit. All coordinates stay whole numbers to keep pixels square.
+
+import Phaser from 'phaser';
+import { bus } from '../../core/bus';
+import { hex, PALETTE as P } from '../art/palette';
+import { paintRows, type PixelRows } from '../art/pixels';
+import { MONITOR } from '../art/props';
+import { spriteSet } from '../art/sprites';
+import { EXPRESSIONS, technicianRows, TECH_FACE, type Expression } from '../art/technician';
+
+/** HUD chip footprint in CSS px (see .hud in theme.css); the sign must not sit under the chips. */
+const HUD_CHIP = { width: 170, height: 56 };
+
+export interface ShopLayout {
+  /** Sign board rectangle in CSS px, for the HTML shop name drawn over it. */
+  sign: { x: number; y: number; w: number; h: number };
+}
+
+export class ShopScene extends Phaser.Scene {
+  private bg!: Phaser.GameObjects.Graphics;
+  private front!: Phaser.GameObjects.Graphics;
+  private tech!: Phaser.GameObjects.Image;
+  private monitor!: Phaser.GameObjects.Image;
+  private expression: Expression = 'neutral';
+  private techBaseY = 0;
+  /** Real pixelized sprites for the technician, when all expressions exist. */
+  private techSprites = spriteSet(EXPRESSIONS.map((e) => `tech-${e}`));
+
+  constructor() {
+    super('shop');
+  }
+
+  preload(): void {
+    this.techSprites?.forEach((url, key) => this.load.image(key, url));
+  }
+
+  create(): void {
+    if (!this.techSprites) for (const e of EXPRESSIONS) this.addPixelTexture(`tech-${e}`, technicianRows(e));
+    this.addPixelTexture('monitor', MONITOR);
+
+    this.bg = this.add.graphics();
+    this.tech = this.add.image(0, 0, 'tech-neutral').setOrigin(0, 0);
+    this.tech.setInteractive({ useHandCursor: true, pixelPerfect: true });
+    this.tech.on('pointerdown', () => this.react());
+    this.front = this.add.graphics();
+    this.monitor = this.add.image(0, 0, 'monitor').setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    this.monitor.on('pointerdown', () => bus.emit('ui:open-sim', {}));
+
+    // Idle: a one-pixel breath every 0.7 s.
+    this.time.addEvent({
+      delay: 700,
+      loop: true,
+      callback: () => {
+        if (!this.tweens.isTweening(this.tech)) this.tech.y = this.tech.y === this.techBaseY ? this.techBaseY - 1 : this.techBaseY;
+      },
+    });
+
+    this.scale.on('resize', this.layout, this);
+    this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
+    this.layout();
+
+    this.setExpression('neutral');
+    document.body.dataset.scene = 'shop';
+    bus.emit('scene:ready', { scene: 'shop' });
+  }
+
+  private addPixelTexture(key: string, rows: PixelRows): void {
+    if (this.textures.exists(key)) this.textures.remove(key);
+    const tex = this.textures.createCanvas(key, rows[0]!.length, rows.length)!;
+    paintRows(tex.getContext(), rows);
+    tex.refresh();
+  }
+
+  /** Tap reaction: next expression plus a little hop. */
+  private react(): void {
+    const next = EXPRESSIONS[(EXPRESSIONS.indexOf(this.expression) + 1) % EXPRESSIONS.length]!;
+    this.setExpression(next);
+    this.tweens.killTweensOf(this.tech);
+    this.tech.y = this.techBaseY;
+    this.tweens.add({ targets: this.tech, y: this.techBaseY - 4, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
+    bus.emit('character:tap', { expression: next });
+  }
+
+  private setExpression(e: Expression): void {
+    this.expression = e;
+    this.tech.setTexture(`tech-${e}`);
+    document.body.dataset.expression = e;
+  }
+
+  private layout(): void {
+    const W = this.scale.gameSize.width;
+    const H = this.scale.gameSize.height;
+    const zoom = this.scale.zoom; // CSS px per art px
+    this.cameras.main.setSize(W, H);
+    const portrait = H > W;
+    const floorY = Math.round(H * (portrait ? 0.74 : 0.8));
+    const counterTop = floorY - (portrait ? 28 : 24);
+
+    // Wall: stripes, then a wainscot rail; floor planks with staggered seams.
+    const g = this.bg.clear();
+    g.fillStyle(hex(P.wall)).fillRect(0, 0, W, floorY);
+    g.fillStyle(hex(P.wallStripe));
+    for (let x = 2; x < W; x += 12) g.fillRect(x, 0, 4, floorY);
+    g.fillStyle(hex(P.wood)).fillRect(0, floorY - 3, W, 2);
+    g.fillStyle(hex(P.woodDark)).fillRect(0, floorY - 1, W, 1);
+    g.fillStyle(hex(P.floor)).fillRect(0, floorY, W, H - floorY);
+    g.fillStyle(hex(P.floorDark));
+    for (let y = floorY + 6, row = 0; y < H; y += 6, row++) {
+      g.fillRect(0, y, W, 1);
+      for (let x = (row % 2) * 16; x < W; x += 32) g.fillRect(x, y - 5, 1, 5);
+    }
+
+    // Sign board, kept clear of the HUD chips (which are HTML, sized in CSS px).
+    const signW = Math.min(W - 16, 96);
+    const signH = 16;
+    const sideRoom = (W - signW) / 2;
+    const signY = sideRoom * zoom < HUD_CHIP.width ? Math.ceil(HUD_CHIP.height / zoom) + 2 : 6;
+    const signX = Math.floor((W - signW) / 2);
+    g.fillStyle(hex(P.navy)).fillRect(signX, signY, signW, signH);
+    g.fillStyle(hex(P.yellow)).fillRect(signX + 2, signY + 2, signW - 4, 1).fillRect(signX + 2, signY + signH - 3, signW - 4, 1);
+    g.fillRect(signX + 2, signY + 2, 1, signH - 4).fillRect(signX + signW - 3, signY + 2, 1, signH - 4);
+    g.fillStyle(hex(P.navyMid)).fillRect(signX + 4, signY + signH, 2, 3).fillRect(signX + signW - 6, signY + signH, 2, 3);
+
+    // Window and parts shelf on the wall, when there is room beside the counter area.
+    if (W >= 150) {
+      const wx = Math.max(8, Math.floor(W * 0.06));
+      const wy = signY + signH + 10;
+      this.drawWindow(g, wx, wy, 32, 24);
+      this.drawShelf(g, W - wx - 36, wy, 36);
+    } else {
+      this.drawShelf(g, W - 44, signY + signH + 14, 36);
+    }
+
+    // Technician behind the counter: the counter front hides everything below their hands.
+    const techW = this.tech.width;
+    const techH = this.tech.height;
+    const techX = Math.round(W * (portrait ? 0.38 : 0.42) - techW / 2);
+    this.techBaseY = counterTop - techH + Math.round(techH * 0.1);
+    this.tech.setPosition(techX, this.techBaseY);
+
+    // Counter (drawn over the technician).
+    const f = this.front.clear();
+    const cx = 6;
+    const cw = W - 12;
+    f.fillStyle(hex(P.navy)).fillRect(cx, counterTop + 4, cw, floorY - counterTop);
+    f.fillStyle(hex(P.navyMid)).fillRect(cx + 2, counterTop + 6, cw - 4, floorY - counterTop - 6);
+    f.fillStyle(hex(P.teal)).fillRect(cx + 2, counterTop + 12, cw - 4, 2);
+    f.fillStyle(hex(P.tealShade)).fillRect(cx + 2, counterTop + 14, cw - 4, 1);
+    f.fillStyle(hex(P.navy)).fillRect(cx - 2, counterTop, cw + 4, 5);
+    f.fillStyle(hex(P.yellow)).fillRect(cx - 1, counterTop + 1, cw + 2, 3);
+    f.fillStyle(hex(P.white)).fillRect(cx, counterTop + 1, cw, 1);
+
+    // Customer's PC sits on the counter to the technician's right.
+    const mx = Math.min(techX + techW + 10, W - this.monitor.width - 6);
+    this.monitor.setPosition(mx, counterTop - this.monitor.height + 1);
+
+    // Positions in CSS px: tap targets for the Playwright tests, and the sign rectangle for the HTML label.
+    const css = (v: number) => Math.round(v * zoom);
+    const face = this.techSprites ? { x: Math.round(techW / 2), y: Math.round(techH * 0.3) } : TECH_FACE;
+    document.body.dataset.techAt = `${css(techX + face.x)},${css(this.techBaseY + face.y)}`;
+    document.body.dataset.pcAt = `${css(mx + this.monitor.width / 2)},${css(this.monitor.y + 6)}`;
+    const layout: ShopLayout = { sign: { x: css(signX), y: css(signY), w: css(signW), h: css(signH) } };
+    bus.emit('layout:shop', layout);
+  }
+
+  private drawWindow(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number): void {
+    g.fillStyle(hex(P.navy)).fillRect(x, y, w, h);
+    g.fillStyle(hex(P.wood)).fillRect(x + 1, y + 1, w - 2, h - 2);
+    g.fillStyle(hex(P.sky)).fillRect(x + 3, y + 3, w - 6, h - 6);
+    g.fillStyle(hex(P.skyShade)).fillRect(x + 3, y + h - 6, w - 6, 3);
+    g.fillStyle(hex(P.white)).fillRect(x + 6, y + 7, 5, 2).fillRect(x + 5, y + 8, 8, 2);
+    g.fillRect(x + w - 13, y + 11, 4, 1).fillRect(x + w - 14, y + 12, 7, 2);
+    g.fillStyle(hex(P.wood)).fillRect(x + Math.floor(w / 2) - 1, y + 1, 2, h - 2);
+    g.fillStyle(hex(P.woodDark)).fillRect(x - 1, y + h, w + 2, 2);
+  }
+
+  private drawShelf(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number): void {
+    const boxes = [P.teal, P.coral, P.yellow, P.purple, P.navyMid, P.green];
+    for (let i = 0; i < 3; i++) {
+      const sy = y + 10 + i * 14;
+      for (let b = 0; b < 3; b++) {
+        const bx = x + 3 + b * 11;
+        g.fillStyle(hex(P.navy)).fillRect(bx, sy - 9, 9, 9);
+        g.fillStyle(hex(boxes[(i * 2 + b) % boxes.length]!)).fillRect(bx + 1, sy - 8, 7, 8);
+        g.fillStyle(hex(P.white)).fillRect(bx + 2, sy - 7, 2, 1);
+      }
+      g.fillStyle(hex(P.wood)).fillRect(x, sy, w, 2);
+      g.fillStyle(hex(P.woodDark)).fillRect(x, sy + 2, w, 1);
+    }
+  }
+}

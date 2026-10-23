@@ -1,0 +1,503 @@
+<title>ร้านซ่อมคอม เคสแรก</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Noto+Sans+Thai:wght@400;500;700&display=swap">
+<style>
+/* Layout: workbench column (customer / simulated monitor) + side ticket panel; collapses to one column on phones.
+   Shell uses a PCB-green workshop palette; the simulated monitor keeps its own fixed "screen" colours. */
+:root{
+  --bg:#e6ebe9; --surface:#f6f8f7; --surface-2:#dce3e0; --ink:#12201d; --muted:#4a5c58; --line:#bcc8c4;
+  --accent:#137a52; --accent-ink:#ffffff; --star:#b87d00; --bad:#b3261e; --good:#137a52; --bad-bg:#fbe6e4; --good-bg:#def3ea;
+  --bezel:#0c1112;
+  --ws-wall1:#1c4f9c; --ws-wall2:#0a1f45; --ws-win:#f3f3f3; --ws-ink:#1b1b1b; --ws-sub:#5d5d5d; --ws-line:#d6d6d6; --ws-blue:#0067c0; --ws-row:#cce4f7; --ws-dis:#c9c9c9; --ws-err:#c42b1c;
+  --cmd-bg:#0c0c0c; --cmd-ink:#cccccc;
+  --f-head:"Chakra Petch","Noto Sans Thai",system-ui,sans-serif;
+  --f-body:"Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace;
+  --f-win:"Segoe UI Variable Text","Segoe UI","Noto Sans Thai",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1513; --surface:#162220; --surface-2:#1f2f2c; --ink:#e5efec; --muted:#9db1ab; --line:#2f4440;
+  --accent:#46d19a; --accent-ink:#06261a; --star:#f0b429; --bad:#ff8a80; --good:#46d19a; --bad-bg:#3a1c1a; --good-bg:#143427;
+  --bezel:#050808; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1513; --surface:#162220; --surface-2:#1f2f2c; --ink:#e5efec; --muted:#9db1ab; --line:#2f4440;
+  --accent:#46d19a; --accent-ink:#06261a; --star:#f0b429; --bad:#ff8a80; --good:#46d19a; --bad-bg:#3a1c1a; --good-bg:#143427;
+  --bezel:#050808; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.65;margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.brand{display:flex;gap:12px;align-items:center;min-width:0}
+.brand-mark{width:34px;height:34px;border-radius:6px;background:var(--accent);position:relative;flex:none}
+.brand-mark::before,.brand-mark::after{content:"";position:absolute;background:var(--accent-ink);border-radius:1px}
+.brand-mark::before{left:7px;right:7px;top:16px;height:2px}
+.brand-mark::after{top:7px;bottom:7px;left:16px;width:2px}
+.brand b{font-family:var(--f-head);font-size:20px;letter-spacing:.02em;display:block;line-height:1.2}
+.brand small{color:var(--muted);font-size:13px}
+.steps{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0;padding:0;font-family:var(--f-head);font-size:13px}
+.steps li{padding:3px 10px;border:1px solid var(--line);border-radius:3px;color:var(--muted)}
+.steps li.done{color:var(--ink);background:var(--surface-2)}
+.steps li[aria-current="step"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.meters{display:flex;gap:18px;align-items:center;font-size:13px;color:var(--muted)}
+.bar{width:110px;height:8px;border-radius:2px;background:var(--surface-2);display:inline-block;vertical-align:middle;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.play{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:22px;align-items:start}
+@media (max-width:900px){.play{grid-template-columns:minmax(0,1fr)}}
+.col{min-width:0;display:flex;flex-direction:column;gap:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px}
+.panel h2,.panel h3{font-family:var(--f-head);margin:0 0 8px;line-height:1.3;text-wrap:balance}
+.panel h2{font-size:22px}.panel h3{font-size:16px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
+.panel p{margin:0 0 10px}
+.scene{display:flex;gap:16px;align-items:flex-start}
+.avatar{flex:none;width:72px;height:72px;border-radius:50%;background:var(--surface-2);overflow:hidden}
+.bubble{background:var(--surface-2);border-radius:4px 14px 14px 14px;padding:12px 16px;min-width:0}
+.bubble b{font-family:var(--f-head);display:block;font-size:13px;color:var(--muted);letter-spacing:.03em}
+.photo{margin-top:14px;border:1px dashed var(--line);border-radius:6px;padding:12px 14px;background:var(--bezel);color:#e8e8e8;font-family:var(--f-win);font-size:14px;line-height:1.5}
+.photo small{display:block;font-family:var(--f-body);color:#9aa9a5;font-size:12px;margin-bottom:6px}
+.photo .red{color:#ff8a80}
+.opts{display:grid;gap:10px;margin-top:12px}
+.opt{text-align:left;padding:12px 14px;border:1.5px solid var(--line);background:var(--surface);border-radius:6px;min-height:48px}
+.opt:hover{border-color:var(--accent)}
+.opt.ok{border-color:var(--good);background:var(--good-bg)}
+.opt.no{border-color:var(--bad);background:var(--bad-bg)}
+.opt[disabled]{cursor:default}
+.btn{font-family:var(--f-head);font-weight:700;letter-spacing:.02em;background:var(--accent);color:var(--accent-ink);border:0;border-radius:5px;padding:11px 20px;min-height:46px}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn[disabled]{opacity:.5;cursor:default}
+.note{padding:12px 14px;border-radius:6px;background:var(--surface-2);font-size:14px}
+.note.good{background:var(--good-bg)}.note.bad{background:var(--bad-bg)}
+dl.spec{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:14px}
+dl.spec dt{color:var(--muted)}dl.spec dd{margin:0;font-variant-numeric:tabular-nums}
+.tag{font-family:var(--f-head);font-size:11px;border:1px solid var(--line);border-radius:3px;padding:0 6px;color:var(--muted);margin-right:6px;white-space:nowrap}
+.log{list-style:none;margin:0;padding:0;font-size:13px;display:grid;gap:6px;max-height:240px;overflow:auto}
+.log li{color:var(--muted)}
+/* monitor */
+.monitor{background:var(--bezel);border-radius:14px;padding:10px 10px 14px}
+.monitor-label{font-family:var(--f-head);font-size:12px;letter-spacing:.06em;color:#8fa39d;text-align:center;padding-top:8px;text-transform:uppercase}
+.screen{container-type:inline-size;position:relative;min-height:440px;border-radius:4px;overflow:hidden;color:var(--ws-ink);font-family:var(--f-win);
+  background:radial-gradient(120% 90% at 20% 10%,var(--ws-wall1),transparent 60%),radial-gradient(90% 80% at 90% 100%,#2a6bd0,transparent 55%),var(--ws-wall2);padding:22px 16px;display:flex}
+.ws{margin:auto;width:100%;max-width:780px;background:var(--ws-win);border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.45);overflow:hidden}
+.ws-title{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;font-size:12px;color:var(--ws-sub);border-bottom:1px solid var(--ws-line)}
+.ws-body{padding:20px 24px 12px}
+.ws-body h4{font-size:22px;font-weight:600;margin:0 0 14px;line-height:1.25}
+.pt{border:1px solid var(--ws-line);background:#fff;border-radius:4px;overflow:hidden}
+.pt-h,.pt-r{display:grid;grid-template-columns:minmax(0,3.2fr) 1.1fr 1.1fr 1.2fr;gap:8px;padding:8px 12px;font-size:13px;align-items:center}
+.pt-h{background:#f7f7f7;color:var(--ws-sub);border-bottom:1px solid var(--ws-line)}
+.pt-r{cursor:default;border-bottom:1px solid #eee;min-height:36px;font-variant-numeric:tabular-nums}
+.pt-r[aria-selected="true"]{background:var(--ws-row)}
+.pt-r span{min-width:0;overflow-wrap:anywhere}
+@container (max-width:560px){.pt-h,.pt-r{grid-template-columns:minmax(0,2.4fr) 1fr 1fr}.pt-h span:nth-child(3),.pt-r span:nth-child(3){display:none}.ws-body{padding:16px 14px 10px}}
+.tools{display:flex;flex-wrap:wrap;gap:4px 14px;margin:10px 0 4px}
+.tl{background:none;border:0;color:var(--ws-blue);font-size:13px;padding:6px 2px;min-height:34px;font-family:var(--f-win)}
+.tl[disabled]{color:var(--ws-dis);cursor:default}
+.ws-warn{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin-top:8px;padding:8px 2px;color:var(--ws-ink)}
+.ws-warn i{flex:none;width:18px;height:18px;border-radius:50%;background:var(--ws-err);color:#fff;font:700 12px/18px var(--f-win);text-align:center;font-style:normal}
+.ws-warn details{min-width:0}.ws-warn summary{cursor:pointer;color:var(--ws-blue)}
+.ws-foot{display:flex;justify-content:flex-end;padding:12px 24px 18px}
+.wbtn{background:var(--ws-blue);color:#fff;border:1px solid var(--ws-blue);border-radius:4px;padding:7px 34px;font-size:14px;font-family:var(--f-win);min-height:36px}
+.wbtn.sec{background:#fbfbfb;color:var(--ws-ink);border-color:#c8c8c8;padding:7px 20px}
+.wbtn[disabled]{background:#e5e5e5;color:#9b9b9b;border-color:#e0e0e0;cursor:default}
+.prog{height:6px;background:#dcdcdc;border-radius:3px;overflow:hidden;margin:16px 0 14px}.prog i{display:block;height:100%;width:0;background:var(--ws-blue);transition:width .4s}
+.inst-l{list-style:none;margin:0;padding:0;font-size:14px;display:grid;gap:6px;color:var(--ws-sub)}.inst-l li.on{color:var(--ws-ink);font-weight:600}
+.dlg-back{position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}
+.dlg{background:var(--ws-win);color:var(--ws-ink);width:min(440px,100%);border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.5);padding:18px 20px;font-size:14px}
+.dlg h5{margin:0 0 8px;font-size:15px;font-weight:600}.dlg p{margin:0 0 14px}
+.dlg .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.dlg input{width:120px;padding:5px 8px;border:1px solid #aaa;border-radius:3px;font:inherit;background:#fff;color:#111}
+.cmd{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(660px,calc(100% - 20px));height:min(340px,calc(100% - 20px));background:var(--cmd-bg);color:var(--cmd-ink);display:flex;flex-direction:column;z-index:6;box-shadow:0 14px 44px rgba(0,0,0,.6);border:1px solid #444;font-family:var(--f-mono);font-size:13px}
+.cmd-t{display:flex;justify-content:space-between;align-items:center;background:#1f1f1f;color:#ddd;padding:3px 4px 3px 10px;font-family:var(--f-win);font-size:12px;gap:8px;min-width:0}
+.cmd-t span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmd-t button{background:none;border:0;color:#ddd;width:36px;min-height:26px}
+.cmd-o{flex:1;overflow:auto;padding:8px 10px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45}
+.cmd-o .bad{color:#ff7b72}.cmd-o .sys{color:#7ee0b0}
+.cmd-i{display:flex;gap:6px;padding:0 10px 8px;align-items:center}
+.cmd-i span{white-space:nowrap}
+.cmd-i input{flex:1;min-width:0;background:transparent;border:0;color:#fff;font:inherit;outline:0;padding:4px 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{font-family:var(--f-mono);font-size:12.5px;padding:7px 10px;min-height:38px;border:1px solid var(--line);background:var(--surface);border-radius:5px}
+.chip:hover{border-color:var(--accent)}
+.coach{margin-top:14px;min-height:48px}
+.stars{font-family:var(--f-head);font-size:44px;letter-spacing:.1em;color:var(--star);line-height:1}
+.stars s{text-decoration:none;color:var(--line)}
+.card{border:2px solid var(--accent);border-radius:10px;padding:16px;background:var(--surface);max-width:360px}
+.card .rar{font-family:var(--f-head);font-size:12px;letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
+.card h3{text-transform:none;color:var(--ink);font-size:20px;letter-spacing:0;margin:4px 0 8px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.sim{font-family:var(--f-head);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9fb3ad}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><div><b>ร้านซ่อมคอม</b><small>ต้นแบบ เคสที่ 1 · Windows 11</small></div></div>
+    <ol class="steps" id="steps" aria-label="ขั้นตอนของเคส"></ol>
+    <div class="meters"><span>ความพอใจลูกค้า <span class="bar" aria-hidden="true"><i id="satBar" style="width:100%"></i></span> <span id="satTxt">100</span></span><span id="hintMeter"></span></div>
+  </header>
+  <main id="main" class="play"></main>
+</div>
+
+<script>
+(function(){
+"use strict";
+var TOTAL=488000;
+function $(s,r){return (r||document).querySelector(s)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function fmt(mb){return mb>=1024?(mb/1024).toFixed(1)+' GB':mb.toFixed(1)+' MB'}
+function clone(o){return JSON.parse(JSON.stringify(o))}
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+var STEPS=[['intro','รับเคส'],['guess','เดาสาเหตุ'],['fix','ซ่อม'],['reason','ถามเหตุผล'],['done','สรุป']];
+var GUESS=[
+ {t:'แฟลชไดรฟ์ตัวติดตั้งเสีย',why:'ถ้าแฟลชไดรฟ์เสีย เครื่องจะบูตหรืออ่านไฟล์ติดตั้งไม่ได้ตั้งแต่ต้น แต่เคสนี้ Setup เปิดขึ้นมาแล้วและเห็นดิสก์ จึงไม่ใช่สาเหตุ'},
+ {t:'เครื่องบูตแบบ UEFI แต่ดิสก์เป็น MBR ซึ่ง UEFI ต้องใช้ GPT',ok:true,why:'ข้อความบอกตรงๆ ว่า "On EFI systems, Windows can only be installed to GPT disks" และ "the selected disk has an MBR partition table"'},
+ {t:'RAM 8 GB ไม่พอสำหรับ Windows 11',why:'ถ้าสเปกไม่ผ่าน จะขึ้นหน้า "This PC can\'t run Windows 11" ก่อนถึงหน้าเลือกดิสก์ และ RAM ขั้นต่ำคือ 4 GB'},
+ {t:'เครื่องไม่มี TPM 2.0',why:'ตั๋วเครื่องระบุว่าพบ TPM 2.0 และถ้าไม่ผ่านก็จะไม่เห็นหน้าเลือกดิสก์เลย'}
+];
+var REASON=[
+ {t:'UEFI บูตระบบจากดิสก์แบบ GPT (มีพาร์ทิชัน EFI) ส่วน MBR เป็นคู่ของ Legacy BIOS',ok:true,why:'ถูกต้อง เฟิร์มแวร์โหมด UEFI หาตัวโหลดระบบในพาร์ทิชัน EFI ของดิสก์ GPT ส่วน MBR ใช้กับ BIOS แบบเก่า (Legacy/CSM)'},
+ {t:'GPT อ่านเขียนเร็วกว่า MBR ทุกกรณี จึงจำเป็นสำหรับ Windows 11',why:'ความเร็วขึ้นกับตัวดิสก์ ไม่ใช่รูปแบบพาร์ทิชัน เหตุผลจริงคือรูปแบบดิสก์ต้องตรงกับโหมดบูตของเฟิร์มแวร์'},
+ {t:'MBR เก็บข้อมูลได้ไม่เกิน 100 GB จึงใช้กับ SSD 512 GB ไม่ได้',why:'MBR รองรับดิสก์ได้ราว 2 TB ไม่ใช่ 100 GB ข้อจำกัดนี้ไม่ใช่เหตุผลของเคสนี้'}
+];
+
+var S;
+function freshDisk(){return {style:'MBR',parts:[
+ {mb:500,free:72,type:'System',label:'System Reserved'},
+ {mb:204800,free:62771,type:'Primary'},
+ {mb:282700,free:202900,type:'Primary'}]}}
+function reset(){
+  S={stage:'intro',guess:null,hints:0,hintText:'',mistakes:0,disk:freshDisk(),shown:null,stale:false,sel:null,
+     cmd:{open:false,mode:'sh',dsel:null},cleaned:false,m2g:false,reasonPick:null,log:[],coach:null,newOpen:false};
+  S.shown=clone(S.disk);
+}
+function log(t,lo){S.log.push({t:t,lo:lo||''})}
+function sat(){return Math.max(0,100-S.mistakes*15-S.hints*5)}
+function guessOk(){return S.guess!==null&&!!GUESS[S.guess].ok}
+function reasonOk(){return S.reasonPick!==null&&!!REASON[S.reasonPick].ok}
+function stars(){var s=3;if(!guessOk())s--;if(S.mistakes>1)s--;if(!reasonOk())s--;return Math.max(1,s)}
+
+/* ---------- shell ---------- */
+function paintShell(){
+  var idx=STEPS.map(function(s){return s[0]}).indexOf(S.stage==='install'?'fix':S.stage);
+  $('#steps').innerHTML=STEPS.map(function(s,i){return '<li'+(i===idx?' aria-current="step"':'')+(i<idx?' class="done"':'')+'>'+s[1]+'</li>'}).join('');
+  $('#satBar').style.width=sat()+'%'; $('#satTxt').textContent=sat();
+  $('#hintMeter').textContent='คำใบ้เหลือ '+(2-S.hints)+'/2';
+}
+function paintSide(){
+  var el=$('#side'); if(!el)return;
+  var hintBtn=(S.stage==='guess'||S.stage==='fix')?'<button class="btn ghost" data-act="hint" '+(S.hints>=2?'disabled':'')+'>ขอคำใบ้ ('+(2-S.hints)+')</button>':'';
+  el.innerHTML=
+   '<div class="panel"><h3>ตั๋วเครื่อง</h3><dl class="spec">'+
+   '<dt>เครื่อง</dt><dd>โน้ตบุ๊ก 15.6" ของลูกค้า</dd><dt>สเปก</dt><dd>Core i5 รุ่น 10 · RAM 8 GB · SSD 512 GB</dd>'+
+   '<dt>เฟิร์มแวร์</dt><dd>UEFI · Secure Boot เปิด · พบ TPM 2.0</dd><dt>งาน</dt><dd>ลง Windows 11 จากแฟลชไดรฟ์ 16 GB</dd>'+
+   '<dt>ของเดิม</dt><dd>Windows 10 · ลูกค้าสำรองข้อมูลแล้ว</dd></dl></div>'+
+   '<div class="panel"><h3>คำใบ้</h3><p class="note" aria-live="polite">'+(S.hintText?esc(S.hintText):'ยังไม่ได้ใช้คำใบ้ ใช้ได้ 2 ครั้งต่อเครื่อง ใช้แล้วจะลดคะแนนความพอใจเล็กน้อย')+'</p>'+hintBtn+'</div>'+
+   '<div class="panel"><h3>บันทึกของช่าง</h3><ul class="log">'+(S.log.length?S.log.map(function(l){return '<li>'+(l.lo?'<span class="tag">'+l.lo+'</span>':'')+esc(l.t)+'</li>'}).join(''):'<li>ยังไม่มีบันทึก</li>')+'</ul></div>';
+  var lg=el.querySelector('.log'); if(lg)lg.scrollTop=lg.scrollHeight;
+}
+function hintFor(){
+  var d=S.disk,real=d.parts.some(function(p){return !p.un});
+  if(S.stage==='guess')return 'อ่านประโยคสุดท้ายของข้อความสีแดง: "On EFI systems…" EFI หรือ UEFI คู่กับดิสก์แบบไหน?';
+  if(S.cmd.open){
+    if(S.cmd.mode==='sh')return (!S.cleaned&&!S.m2g)?'พิมพ์ diskpart เพื่อเข้าโปรแกรมจัดการดิสก์ หรือถ้าไม่อยากพิมพ์ ปิดหน้าต่างนี้แล้วลบพาร์ทิชันใน Setup ก็ได้':'พิมพ์ exit เพื่อปิดคอนโซล แล้วกด Refresh ในหน้า Setup';
+    if(S.cmd.dsel===null)return 'ดูก่อนว่ามีดิสก์อะไรบ้างด้วย list disk ดิสก์ขนาด 14 GB คือแฟลชไดรฟ์ตัวติดตั้ง ห้ามแตะ จากนั้นเลือกดิสก์ 477 GB';
+    if(S.cmd.dsel===0&&real&&d.style==='MBR')return 'ต้องล้างดิสก์ให้ว่างก่อนแปลง: clean แล้วตามด้วย convert gpt (ระวัง clean ลบข้อมูลทั้งดิสก์)';
+    if(d.style!=='GPT')return 'ดิสก์ว่างแล้ว พิมพ์ convert gpt';
+    return 'เสร็จแล้ว พิมพ์ exit สองครั้งเพื่อกลับ Setup แล้วกด Refresh';
+  }
+  if(S.stale)return 'รายการในหน้า Setup เป็นของเก่า กด Refresh เพื่ออ่านดิสก์ใหม่';
+  if(d.style==='MBR'&&real)return 'มีสองทางหลัก: ลบพาร์ทิชันทุกอันใน Setup แล้วให้ Setup แปลงเป็น GPT ให้เอง หรือกด Shift+F10 เปิดคอนโซลแล้วใช้ diskpart';
+  return 'เลือกพื้นที่ที่จะลง แล้วกด Next';
+}
+
+/* ---------- stages ---------- */
+function go(st){S.stage=st;paintShell();render()}
+function render(){
+  var m=$('#main');
+  if(S.stage==='intro')m.innerHTML=
+   '<div class="col"><div class="panel"><h3>เคสแรกของวัน</h3><div class="scene"><div class="avatar" aria-hidden="true"><svg viewBox="0 0 72 72" width="72" height="72"><rect width="72" height="72" fill="#c9d6d1"/><circle cx="36" cy="28" r="13" fill="#b9825f"/><path d="M22 26c0-10 8-16 15-16s14 6 14 16c-3-6-8-8-14-8s-12 2-15 8z" fill="#8c8c92"/><path d="M8 72c2-16 12-24 28-24s26 8 28 24z" fill="#137a52"/></svg></div>'+
+   '<div class="bubble"><b>ป้าสมศรี · ลูกค้า</b>สวัสดีค่ะ ป้าเปลี่ยนเครื่องจาก Windows 10 เป็น 11 ค่ะ แต่พอถึงตอนเลือกว่าจะลงตรงไหน มันขึ้นแดงๆ ลงต่อไม่ได้เลย รูปที่ป้าถ่ายไว้อยู่ข้างล่างนี้ ไฟล์ในเครื่องป้าสำรองลงฮาร์ดดิสก์ไว้แล้วค่ะ</div></div></div>'+
+   '<div class="panel"><h2>วิธีเล่นเคสนี้</h2><p>1) อ่านอาการแล้วเดาสาเหตุก่อนลงมือ 2) ซ่อมบนหน้าจอจำลองของตัวติดตั้ง Windows 11 3) ตอบคำถามเหตุผลของลูกค้า ได้ดาว 1–3 ตามความแม่นยำ</p><p class="note">หน้าจอในเกมเป็นภาพจำลองเพื่อการเรียนรู้ ไม่ใช่ตัวติดตั้งจริง และข้อความภาษาอังกฤษบนหน้าจอเขียนตามของจริงเพื่อให้ฝึกอ่าน</p><button class="btn" data-act="toGuess">รับเคสนี้</button></div></div><aside class="col" id="side"></aside>';
+  else if(S.stage==='guess')renderGuess();
+  else if(S.stage==='fix'||S.stage==='install')renderFix();
+  else if(S.stage==='reason')renderReason();
+  else if(S.stage==='done')renderDone();
+  paintSide();
+}
+function photoBlock(){return '<div class="photo"><small>รูปที่ลูกค้าถ่ายหน้าจอมา</small><span class="red">Windows can\'t be installed on Drive 0 Partition 2.</span><br>Windows can\'t be installed to this disk. The selected disk has an MBR partition table. On EFI systems, Windows can only be installed to GPT disks.</div>'}
+function renderGuess(){
+  var picked=S.guess!==null;
+  $('#main').innerHTML='<div class="col"><div class="panel"><h2>เดาก่อนลงมือ: สาเหตุคืออะไร</h2>'+photoBlock()+
+   '<div class="opts" role="group" aria-label="ตัวเลือกสาเหตุ">'+GUESS.map(function(g,i){
+     var cls='opt'+(picked?(g.ok?' ok':(S.guess===i?' no':'')):'');
+     return '<button class="'+cls+'" data-act="pick" data-i="'+i+'" '+(picked?'disabled':'')+'>'+esc(g.t)+'</button>'}).join('')+'</div>'+
+   (picked?'<p class="note '+(guessOk()?'good':'bad')+'" style="margin-top:12px">'+(guessOk()?'ถูกต้อง ':'ยังไม่ใช่ ')+esc(GUESS[S.guess].why)+(guessOk()?'':' คำตอบที่ถูกคือ "'+esc(GUESS[1].t)+'" '+esc(GUESS[1].why))+'</p><p><button class="btn" data-act="toFix">ไปซ่อมที่หน้าจอเครื่อง</button></p>':'')+
+   '</div></div><aside class="col" id="side"></aside>';
+}
+function renderFix(){
+  $('#main').innerHTML='<div class="col"><div class="panel" style="padding:12px"><div class="monitor"><div class="screen" id="screen"><div class="ws" id="ws"></div>'+
+   '<div class="dlg-back" id="dlg" hidden></div>'+
+   '<div class="cmd" id="cmd" hidden role="dialog" aria-label="Command Prompt"><div class="cmd-t"><span>Administrator: X:\\windows\\system32\\cmd.exe</span><button data-act="cmdclose" aria-label="ปิดหน้าต่างคอนโซล">✕</button></div><div class="cmd-o" id="cmdOut" tabindex="0"></div><form class="cmd-i" id="cmdForm"><span id="cmdPrompt"></span><input id="cmdIn" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="พิมพ์คำสั่ง"><button class="btn" style="min-height:32px;padding:4px 12px" type="submit">รัน</button></form></div>'+
+   '</div><div class="monitor-label">โหมดจำลอง · ไม่ใช่ตัวติดตั้งจริง</div></div>'+
+   '<div class="coach note" id="coach" aria-live="polite">ลองดูหน้าจอ แล้วเลือกพาร์ทิชันที่จะติดตั้ง</div>'+
+   '<div id="cmdTools"><h3 style="font-family:var(--f-head);font-size:13px;letter-spacing:.04em;color:var(--muted);margin:14px 0 0">เครื่องมือ</h3><div class="chips"><button class="chip" style="font-family:var(--f-head)" data-act="shiftf10">เปิดคอนโซล (Shift+F10)</button></div>'+
+   '<div class="chips" id="chips" hidden aria-label="คีย์ลัดคำสั่งสำหรับมือถือ"></div></div></div></div><aside class="col" id="side"></aside>';
+  var cmds=['diskpart','list disk','select disk 0','select disk 1','clean','convert gpt','mbr2gpt /validate /disk:0','mbr2gpt /convert /disk:0','exit'];
+  $('#chips').innerHTML=cmds.map(function(c){return '<button class="chip" data-act="chip" data-c="'+c+'">'+c+'</button>'}).join('');
+  $('#cmdForm').addEventListener('submit',function(e){e.preventDefault();var i=$('#cmdIn');var v=i.value;i.value='';runCmd(v)});
+  paintSetup();
+  if(S.cmd.open)openCmd(true);
+  setCoach(S.coach);
+}
+function setCoach(c){S.coach=c;var el=$('#coach');if(!el)return;if(!c)return;el.className='coach note '+(c.k||'');el.textContent=c.t}
+function slip(msg){S.mistakes++;paintShell();setCoach({t:msg,k:'bad'})}
+
+/* ---------- Setup screen ---------- */
+function rowsOf(list){var n=0;return list.map(function(p){
+  if(p.un)return {un:true,name:'Drive 0 Unallocated Space',size:fmt(p.mb),free:fmt(p.mb),type:''};
+  n++;return {un:false,name:'Drive 0 Partition '+n+(p.label?': '+p.label:''),size:fmt(p.mb),free:fmt(p.free),type:p.type}})}
+function selRow(){return S.sel===null?null:S.shown.parts[S.sel]}
+function paintSetup(){
+  var ws=$('#ws'); if(!ws)return;
+  if(S.stage==='install'){return}
+  var rows=rowsOf(S.shown.parts), sr=selRow();
+  var warn=sr&&!sr.un&&S.shown.style==='MBR';
+  var nextOff=(sr===null)||warn;
+  ws.innerHTML='<div class="ws-title"><span>Windows Setup</span><span aria-hidden="true">✕</span></div><div class="ws-body"><h4>Where do you want to install Windows 11?</h4>'+
+   '<div class="pt" role="listbox" aria-label="Drive 0 partitions"><div class="pt-h"><span>Name</span><span>Total size</span><span>Free space</span><span>Type</span></div>'+
+   rows.map(function(r,i){return '<div class="pt-r" role="option" tabindex="0" data-row="'+i+'" aria-selected="'+(S.sel===i)+'"><span>'+esc(r.name)+'</span><span>'+r.size+'</span><span>'+r.free+'</span><span>'+esc(r.type)+'</span></div>'}).join('')+'</div>'+
+   '<div class="tools"><button class="tl" data-act="refresh">Refresh</button><button class="tl" data-act="del" '+((sr&&!sr.un)?'':'disabled')+'>Delete</button><button class="tl" data-act="fmt" '+((sr&&!sr.un)?'':'disabled')+'>Format</button><button class="tl" data-act="new" '+((sr&&sr.un)?'':'disabled')+'>New</button><button class="tl" data-act="loaddrv">Load driver</button><button class="tl" disabled>Extend</button></div>'+
+   (warn?'<div class="ws-warn" role="alert"><i aria-hidden="true">!</i><details open><summary>Windows can\'t be installed on Drive 0 Partition '+(partNo(S.sel))+'. (Show details)</summary><div>Windows can\'t be installed to this disk. The selected disk has an MBR partition table. On EFI systems, Windows can only be installed to GPT disks.</div></details></div>':'')+
+   (S.stale?'<div class="ws-warn"><i aria-hidden="true" style="background:#9d5d00">?</i><div>The list may be out of date. Click Refresh to read the disk again.</div></div>':'')+
+   '</div><div class="ws-foot"><button class="wbtn" data-act="next" '+(nextOff?'disabled':'')+'>Next</button></div>';
+  var nw=$('#newBox');
+}
+function partNo(i){var n=0;for(var k=0;k<=i;k++)if(!S.shown.parts[k].un)n++;return n}
+function dlg(title,body,btns){
+  var d=$('#dlg'); d.hidden=false;
+  d.innerHTML='<div class="dlg" role="alertdialog" aria-label="'+esc(title)+'"><h5>'+esc(title)+'</h5>'+body+'<div class="row">'+btns.map(function(b,i){return '<button class="wbtn'+(b.sec?' sec':'')+'" data-dl="'+i+'">'+esc(b.l)+'</button>'}).join('')+'</div></div>';
+  d._btns=btns; var f=d.querySelector('button'); if(f)f.focus();
+}
+function closeDlg(){var d=$('#dlg');d.hidden=true;d.innerHTML=''}
+function mergeUn(p){for(var i=p.length-2;i>=0;i--){if(p[i].un&&p[i+1].un){p[i].mb+=p[i+1].mb;p[i].free=p[i].mb;p.splice(i+1,1)}}}
+function sync(){S.shown=clone(S.disk);S.sel=null}
+function staleGuard(){
+  if(!S.stale)return false;
+  dlg('Windows Setup','<p>Setup could not find the selected partition because the disk changed. Click Refresh to read the disk again.</p>',[{l:'OK',fn:closeDlg}]);
+  log('กดคำสั่งใน Setup ขณะรายการยังเป็นของเก่า (ต้อง Refresh)','LO4');
+  setCoach({t:'ลิสต์ยังเป็นภาพเก่าจาก diskpart กด Refresh ก่อน',k:'bad'});
+  return true;
+}
+function doDelete(){
+  if(staleGuard())return;
+  var r=selRow(); if(!r||r.un)return;
+  dlg('Windows Setup','<p>Deleting this partition will delete all data stored on it. Do you want to continue?</p>',[{l:'OK',fn:function(){
+    S.disk.parts[S.sel]={un:true,mb:S.disk.parts[S.sel].mb,free:S.disk.parts[S.sel].mb};mergeUn(S.disk.parts);sync();closeDlg();paintSetup();
+    log('ลบพาร์ทิชันใน Setup (ลูกค้าสำรองข้อมูลแล้ว)','LO4');
+    var left=S.disk.parts.filter(function(p){return !p.un}).length;
+    setCoach({t:left?'ลบแล้ว ยังเหลือพาร์ทิชันอีก '+left+' อัน':'ดิสก์ว่างแล้ว เลือก Unallocated Space แล้วกด Next ให้ Setup จัดการต่อ',k:left?'':'good'});
+  }},{l:'Cancel',sec:true,fn:closeDlg}]);
+}
+function doFormat(){
+  if(staleGuard())return;
+  var r=selRow(); if(!r||r.un)return;
+  dlg('Windows Setup','<p>If you format this partition, any data stored on it will be lost. Do you want to continue?</p>',[{l:'OK',fn:function(){
+    var p=S.disk.parts[S.sel];p.free=Math.round(p.mb*0.98);sync();closeDlg();paintSetup();
+    if(S.disk.style==='MBR'){log('Format พาร์ทิชันแล้วยังลงไม่ได้ (Format ไม่เปลี่ยนรูปแบบดิสก์)','LO4');slip('Format เปลี่ยนระบบไฟล์ แต่ไม่ได้เปลี่ยนดิสก์จาก MBR เป็น GPT ข้อความแดงยังอยู่')}
+    else setCoach({t:'Format แล้ว'});
+  }},{l:'Cancel',sec:true,fn:closeDlg}]);
+}
+function gptLayout(sizeMb){
+  var total=S.disk.parts.reduce(function(a,p){return a+p.mb},0),parts=[
+   {mb:100,free:78,type:'System'},{mb:16,free:16,type:'MSR (Reserved)'},{mb:sizeMb-116,free:Math.round((sizeMb-116)*0.99),type:'Primary'}];
+  if(total-sizeMb>0)parts.push({un:true,mb:total-sizeMb,free:total-sizeMb});
+  return parts;
+}
+function doNew(){
+  if(staleGuard())return;
+  var r=selRow(); if(!r||!r.un)return;
+  var mb=S.disk.parts[S.sel].mb;
+  dlg('Windows Setup','<p><label for="nsz">Size</label> <input id="nsz" type="number" min="1024" max="'+mb+'" value="'+mb+'"> MB</p>',[{l:'Apply',fn:function(){
+    var v=parseInt($('#nsz').value,10); if(!(v>=1024))v=1024; if(v>mb)v=mb;
+    createIn(S.sel,v);closeDlg();paintSetup();
+  }},{l:'Cancel',sec:true,fn:closeDlg}]);
+}
+function createIn(idx,mb){
+  var whole=S.disk.parts.every(function(p){return p.un});
+  if(whole){
+    if(S.disk.style!=='GPT'){log('Setup แปลงดิสก์ที่ว่างเป็น GPT ให้เองเพราะเครื่องบูตแบบ UEFI','LO3')}
+    S.disk.style='GPT';S.disk.parts=gptLayout(mb);
+  }else{
+    var gap=S.disk.parts[idx],np=[{mb:mb,free:Math.round(mb*0.99),type:'Primary'}];
+    if(gap.mb-mb>0)np.push({un:true,mb:gap.mb-mb,free:gap.mb-mb});
+    S.disk.parts.splice.apply(S.disk.parts,[idx,1].concat(np));
+  }
+  sync();
+  var first=S.disk.parts.findIndex(function(p){return !p.un&&p.type==='Primary'}); S.sel=first<0?null:first;
+  log('สร้างพาร์ทิชันใหม่'+(S.disk.style==='GPT'?' (GPT: System + MSR + Primary)':' (ยังเป็นดิสก์ MBR)'),'LO4');
+  if(S.disk.style==='MBR')setCoach({t:'ดิสก์ยังเป็น MBR อยู่ เลือกพาร์ทิชันนั้นจะเจอข้อความแดงเหมือนเดิม',k:'bad'});
+  else setCoach({t:'ดิสก์เป็น GPT แล้ว เลือกพาร์ทิชัน Primary แล้วกด Next',k:'good'});
+}
+function doNext(){
+  if(staleGuard())return;
+  var r=selRow(); if(!r)return;
+  if(r.un){
+    var whole=S.disk.parts.every(function(p){return p.un});
+    if(whole){createIn(S.sel,S.disk.parts[S.sel].mb);paintSetup();startInstall();return}
+    createIn(S.sel,r.free?S.disk.parts[S.sel].mb:0);paintSetup();return;
+  }
+  if(S.shown.style==='MBR')return;
+  startInstall();
+}
+function doRefresh(){
+  sync();S.stale=false;paintSetup();
+  log('Refresh: อ่านรายการดิสก์ใหม่','LO4');
+  setCoach({t:S.disk.parts.every(function(p){return p.un})?'ดิสก์ว่าง เหลือ Unallocated Space เลือกแล้วกด Next':'อ่านดิสก์ใหม่แล้ว '+(S.disk.style==='GPT'?'ดิสก์เป็น GPT แล้ว เลือกพาร์ทิชัน Primary แล้วกด Next':'')});
+  if(S.disk.style==='GPT'&&!S.disk.parts.every(function(p){return p.un})){var i=S.disk.parts.findIndex(function(p){return p.type==='Primary'});S.sel=i<0?null:i;paintSetup()}
+}
+function doLoadDriver(){
+  dlg('Load driver','<p>To install the driver for your storage device, insert the installation media containing the driver files and click OK.</p>',[{l:'OK',fn:function(){
+    closeDlg();log('เปิด Load driver โดยไม่จำเป็น (Setup เห็นดิสก์อยู่แล้ว)','LO6');slip('ดิสก์ขึ้นในรายการแล้ว แปลว่าไม่ต้องโหลดไดรเวอร์ปัญหาอยู่ที่รูปแบบพาร์ทิชัน');
+  }},{l:'Cancel',sec:true,fn:closeDlg}]);
+}
+function startInstall(){
+  S.stage='install';paintShell();
+  var path=S.m2g?'mbr2gpt':(S.cleaned?'diskpart':'delete'); S.path=path;
+  var steps=['Copying Windows files','Getting files ready for installation','Installing features','Installing updates','Finishing up'];
+  var ws=$('#ws');
+  ws.innerHTML='<div class="ws-title"><span>Windows Setup</span><span aria-hidden="true">✕</span></div><div class="ws-body"><h4>Installing Windows 11</h4><div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i id="pr"></i></div><ul class="inst-l" id="il">'+steps.map(function(s){return '<li>'+s+'</li>'}).join('')+'</ul></div><div class="ws-foot"></div>';
+  $('#tools')&&0;
+  var n=0,li=ws.querySelectorAll('#il li');
+  function tick(){
+    var pct=Math.min(100,(n+1)*20);$('#pr').style.width=pct+'%';$('#pr').parentNode.setAttribute('aria-valuenow',pct);
+    for(var i=0;i<li.length;i++)li[i].className=i<=n?'on':'';
+    n++; if(n>=steps.length){setTimeout(function(){log('ติดตั้งสำเร็จ ('+({delete:'ลบพาร์ทิชันแล้วให้ Setup แปลง',diskpart:'diskpart clean + convert gpt',mbr2gpt:'mbr2gpt แปลงโดยไม่ลบพาร์ทิชัน'}[path])+')','LO3');go('reason')},reduce?0:700)} else setTimeout(tick,reduce?0:650);
+  }
+  tick();
+}
+
+/* ---------- Command Prompt ---------- */
+var BANNER='(โหมดจำลอง) Command Prompt ของ Windows PE\nพิมพ์คำสั่งหรือกดปุ่มคีย์ลัดด้านล่าง แล้วกดรัน\n\n';
+function prompt_(){return S.cmd.mode==='dp'?'DISKPART>':'X:\\sources>'}
+function out(t,c){var o=$('#cmdOut');var d=document.createElement('span');if(c)d.className=c;d.textContent=t;o.appendChild(d);o.scrollTop=o.scrollHeight}
+function openCmd(keep){
+  S.cmd.open=true;$('#cmd').hidden=false;$('#chips').hidden=false;
+  var o=$('#cmdOut'); if(!o.childNodes.length){out(BANNER);}
+  $('#cmdPrompt').textContent=prompt_();$('#cmdIn').focus();
+  if(!keep){log('เปิด Command Prompt ด้วย Shift+F10','LO6')}
+}
+function closeCmd(){S.cmd.open=false;$('#cmd').hidden=true;var b=$('#chips');if(b)b.hidden=true;S.cmd.mode='sh';S.cmd.dsel=null}
+function diskFree(){return S.disk.parts.filter(function(p){return p.un}).reduce(function(a,p){return a+p.mb},0)}
+function sz(mb){if(mb<=0)return '0 B';if(mb>=1024)return Math.round(mb/1024)+' GB';return Math.round(mb)+' MB'}
+function pad(s,n){s=String(s);while(s.length<n)s=' '+s;return s}
+function runCmd(raw){
+  var line=raw.replace(/\s+$/,''),l=line.trim().toLowerCase().replace(/\s+/g,' ');
+  out(prompt_()+line+'\n'); if(!l){$('#cmdPrompt').textContent=prompt_();return}
+  var m;
+  if(S.cmd.mode==='sh'){
+    if(l==='diskpart'){S.cmd.mode='dp';out('\nDISKPART (จำลอง) · On computer: MINWINPC\n\n');log('เปิด diskpart','LO6')}
+    else if(l==='exit'){closeCmd();log('ปิดคอนโซล','LO6');setCoach({t:S.stale?'กลับมาที่ Setup แล้ว กด Refresh เพื่ออ่านดิสก์ใหม่':'กลับมาที่ Setup แล้ว'})}
+    else if(l==='cls'){$('#cmdOut').textContent=''}
+    else if((m=l.match(/^mbr2gpt\s+\/(validate|convert)\s+\/disk:(\d+)(\s+\/allowfullos)?$/))){mbr2gpt(m[1],parseInt(m[2],10))}
+    else out("'"+line.trim().split(' ')[0]+"' is not recognized as an internal or external command,\noperable program or batch file.\n",'bad');
+  }else{
+    var d=S.disk,real=d.parts.some(function(p){return !p.un});
+    if(l==='list disk'){
+      out('\n  Disk ###  Status         Size     Free     Dyn  Gpt\n  --------  -------------  -------  -------  ---  ---\n');
+      out('  Disk 0    Online          '+pad(sz(TOTAL),6)+'  '+pad(sz(diskFree()),7)+'        '+(d.style==='GPT'?' * ':'   ')+'\n');
+      out('  Disk 1    Online           14 GB      0 B\n\n');
+    }else if((m=l.match(/^select disk (\d+)$/))){
+      var n=parseInt(m[1],10);
+      if(n===0||n===1){S.cmd.dsel=n;out('\nDisk '+n+' is now the selected disk.\n\n');log('เลือก Disk '+n+(n===1?' (แฟลชไดรฟ์ติดตั้ง!)':''),'LO6')}
+      else out('\nThe disk you specified is not valid.\nPlease select a valid disk and try again.\n\n','bad');
+    }else if(l==='clean'){
+      if(S.cmd.dsel===null)out('\nThere is no disk selected to clean.\nPlease select a disk and try again.\n\n','bad');
+      else if(S.cmd.dsel===1){
+        out('\nDiskPart succeeded in cleaning the disk.\n\n');
+        out('(จำลอง) คุณล้างแฟลชไดรฟ์ตัวติดตั้งทิ้ง! Setup ค้าง ระบบใช้ Snapshot ย้อนกลับให้ แต่เสียคะแนน\n\n','bad');
+        S.mistakes+=2;S.cmd.dsel=null;log('ล้าง Disk 1 ซึ่งเป็นแฟลชไดรฟ์ตัวติดตั้งโดยพลาด (ย้อนด้วย Snapshot)','LO6');paintShell();
+        setCoach({t:'ก่อน clean ให้ดู list disk เสมอ ดิสก์ 14 GB คือแฟลชไดรฟ์ตัวติดตั้ง',k:'bad'});
+      }else{
+        d.parts=[{un:true,mb:TOTAL,free:TOTAL}];d.style='RAW';S.stale=true;S.cleaned=true;
+        out('\nDiskPart succeeded in cleaning the disk.\n\n');log('clean Disk 0: ล้างทุกพาร์ทิชันและตารางพาร์ทิชัน','LO4');
+      }
+    }else if(l==='convert gpt'){
+      if(S.cmd.dsel===null)out('\nThere is no disk selected to convert.\nPlease select a disk and try again.\n\n','bad');
+      else if(S.cmd.dsel===1){out('\nVirtual Disk Service error:\nThe disk is not empty. Clean the disk before converting it.\n\n','bad');slip('ดิสก์ 1 คือแฟลชไดรฟ์ตัวติดตั้ง ไม่ใช่ดิสก์ที่ต้องแปลง')}
+      else if(real){out('\nVirtual Disk Service error:\nThe disk is not empty. Clean the disk before converting it.\n\n','bad');log('convert gpt ไม่ได้เพราะดิสก์ยังมีพาร์ทิชัน','LO4');setCoach({t:'convert gpt ต้องการดิสก์ที่ว่าง ต้อง clean ก่อน (ข้อมูลในดิสก์จะหายหมด)',k:'bad'})}
+      else if(d.style==='GPT')out('\nThe selected disk is already GPT.\n\n','bad');
+      else{d.style='GPT';out('\nDiskPart successfully converted the selected disk to GPT format.\n\n');log('convert gpt สำเร็จ ดิสก์ 0 เป็น GPT','LO3');setCoach({t:'ดิสก์เป็น GPT แล้ว พิมพ์ exit สองครั้งเพื่อกลับ Setup แล้วกด Refresh',k:'good'})}
+    }else if(l==='exit'){S.cmd.mode='sh';S.cmd.dsel=null;out('\nLeaving DiskPart...\n\n')}
+    else out('\nDiskPart ไม่รู้จักคำสั่งนี้ในต้นแบบ ลอง: list disk, select disk 0, clean, convert gpt, exit\n\n','bad');
+  }
+  $('#cmdPrompt').textContent=prompt_();paintSide();
+}
+function mbr2gpt(op,n){
+  var d=S.disk;
+  if(n!==0){out('MBR2GPT: Disk layout validation failed for disk '+n+'\n','bad');return}
+  if(d.style!=='MBR'||d.parts.some(function(p){return p.un})){out('MBR2GPT: Disk layout validation failed for disk 0\nMBR2GPT: Disk is not a valid MBR disk with partitions.\n','bad');return}
+  if(op==='validate'){out('MBR2GPT: Attempting to validate disk 0\nMBR2GPT: Retrieving layout of disk\nMBR2GPT: Validating layout, disk sector size is: 512 bytes\nMBR2GPT: Validation completed successfully\n');log('mbr2gpt /validate ผ่าน (ดิสก์พร้อมแปลงแบบไม่ลบข้อมูล)','LO4');return}
+  out('MBR2GPT will now attempt to convert disk 0.\nIf conversion is successful the disk can only be booted in GPT mode.\n\nMBR2GPT: Attempting to convert disk 0\nMBR2GPT: Retrieving layout of disk\nMBR2GPT: Validating layout, disk sector size is: 512 bytes\nMBR2GPT: Trying to shrink the system partition\nMBR2GPT: Creating the EFI system partition\nMBR2GPT: Installing the new boot files\nMBR2GPT: Performing the layout conversion\nMBR2GPT: Migrating default boot entry\nMBR2GPT: Conversion completed successfully\n');
+  d.style='GPT';d.parts[0].label='';d.parts[0].type='System';S.stale=true;S.m2g=true;
+  log('mbr2gpt /convert: แปลงเป็น GPT โดยพาร์ทิชันและข้อมูลยังอยู่','LO3');
+  setCoach({t:'แปลงสำเร็จโดยไม่ลบข้อมูล พิมพ์ exit เพื่อกลับ Setup แล้วกด Refresh',k:'good'});
+}
+
+/* ---------- reason / done ---------- */
+function renderReason(){
+  var p=S.reasonPick!==null;
+  $('#main').innerHTML='<div class="col"><div class="panel"><h2>ติดตั้งสำเร็จแล้ว ลูกค้าถามต่อ</h2><div class="scene"><div class="bubble"><b>ป้าสมศรี · ลูกค้า</b>ขอบคุณมากค่ะ ว่าแต่ทำไมต้องเปลี่ยนเป็น GPT ด้วยคะ ป้าไม่เข้าใจ</div></div>'+
+   '<p style="margin-top:14px">คุณตอบว่าอะไร</p><div class="opts">'+REASON.map(function(r,i){var cls='opt'+(p?(r.ok?' ok':(S.reasonPick===i?' no':'')):'');return '<button class="'+cls+'" data-act="rpick" data-i="'+i+'" '+(p?'disabled':'')+'>'+esc(r.t)+'</button>'}).join('')+'</div>'+
+   (p?'<p class="note '+(reasonOk()?'good':'bad')+'" style="margin-top:12px">'+esc(REASON[S.reasonPick].why)+(reasonOk()?'':' คำตอบที่ถูกคือข้อแรก: '+esc(REASON[0].why))+'</p><p><button class="btn" data-act="toDone">ดูสรุปเคส</button></p>':'')+
+   '</div></div><aside class="col" id="side"></aside>';
+}
+function renderDone(){
+  var st=stars(),coins=st*10+(S.hints===0?5:0);
+  var pathTxt={delete:'ลบพาร์ทิชันทั้งหมดแล้วให้ Setup แปลงเป็น GPT ให้เอง: ง่ายที่สุด แต่ข้อมูลหายหมด (เคสนี้ลูกค้าสำรองไว้แล้ว)',diskpart:'ใช้ diskpart (clean แล้ว convert gpt): ได้ผลเหมือนกัน ควบคุมได้แม่นกว่า แต่ต้องเลือกดิสก์ให้ถูกตัว',mbr2gpt:'ใช้ mbr2gpt แปลงโดยไม่ลบพาร์ทิชัน: เหมาะเมื่อลูกค้าไม่ได้สำรองข้อมูล'}[S.path];
+  $('#main').innerHTML='<div class="col"><div class="panel"><h2>สรุปเคส: ลูกค้ากลับบ้านอย่างพอใจ</h2><div class="stars" aria-label="ได้ '+st+' ดาวจาก 3">'+'★'.repeat(st)+'<s>'+'★'.repeat(3-st)+'</s></div>'+
+   '<p style="margin-top:10px">เหรียญเงิน +'+coins+' · ความพอใจลูกค้า '+sat()+'/100 · ทางที่เลือก: '+esc(pathTxt)+'</p>'+
+   '<ul style="margin:0 0 12px;padding-left:20px"><li>เดาสาเหตุ: '+(guessOk()?'ถูกตั้งแต่ครั้งแรก':'ยังไม่ตรง ดูเฉลยด้านบน')+'</li><li>ลงมือพลาด '+S.mistakes+' ครั้ง · ใช้คำใบ้ '+S.hints+' ครั้ง</li><li>ตอบเหตุผลลูกค้า: '+(reasonOk()?'ถูก':'ยังไม่ตรง')+'</li></ul>'+
+   '<p class="note">เกร็ดจากร้าน: ถ้าอยากเปลี่ยนเป็น GPT โดยไม่ลบข้อมูล มีเครื่องมือ mbr2gpt ให้ลองในเคสหน้า ส่วนข้อความ error ในเกมเป็นภาพจำลองที่เขียนตามของจริง ควรเทียบกับเครื่องจริงในห้องปฏิบัติการอีกครั้ง</p>'+
+   '<p><button class="btn" data-act="again">เล่นเคสนี้อีกครั้ง</button></p></div></div>'+
+   '<aside class="col"><div class="card"><div class="rar">การ์ดธรรมดา · ชุดดิสก์และพาร์ทิชัน</div><h3>UEFI ต้องคู่ GPT</h3><p>เครื่องที่บูตแบบ UEFI ลง Windows ได้เฉพาะดิสก์ GPT ส่วน MBR คู่กับ Legacy BIOS ก่อนลงให้เช็กโหมดบูตและรูปแบบดิสก์ทุกครั้ง</p></div>'+
+   '<div class="panel"><h3>บันทึกของช่าง</h3><ul class="log" style="max-height:none">'+S.log.map(function(l){return '<li>'+(l.lo?'<span class="tag">'+l.lo+'</span>':'')+esc(l.t)+'</li>'}).join('')+'</ul></div></aside>';
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',function(e){
+  var dl=e.target.closest('[data-dl]');
+  if(dl){var d=$('#dlg'),b=d&&d._btns&&d._btns[+dl.dataset.dl];if(b)b.fn();return}
+  var r=e.target.closest('[data-row]');
+  if(r){S.sel=+r.dataset.row;paintSetup();var s=selRow();if(s&&!s.un&&S.shown.style==='MBR'){log('เลือกพาร์ทิชันแล้วเจอข้อความแดง: MBR + EFI','LO3')}return}
+  var b=e.target.closest('[data-act]'); if(!b||b.disabled)return;
+  var a=b.dataset.act;
+  if(a==='toGuess')go('guess');
+  else if(a==='pick'){S.guess=+b.dataset.i;log('เดาสาเหตุ: '+GUESS[S.guess].t+(guessOk()?' (ถูก)':' (ไม่ตรง)'),'LO6');renderGuess();paintSide()}
+  else if(a==='toFix')go('fix');
+  else if(a==='hint'){if(S.hints<2){S.hints++;S.hintText=hintFor();paintShell();paintSide()}}
+  else if(a==='shiftf10')openCmdSafe();
+  else if(a==='cmdclose'){closeCmd();setCoach({t:'ปิดคอนโซลแล้ว'})}
+  else if(a==='chip'){var i=$('#cmdIn');i.value=b.dataset.c;i.focus()}
+  else if(a==='refresh')doRefresh();
+  else if(a==='del')doDelete();
+  else if(a==='fmt')doFormat();
+  else if(a==='new')doNew();
+  else if(a==='loaddrv')doLoadDriver();
+  else if(a==='next')doNext();
+  else if(a==='rpick'){S.reasonPick=+b.dataset.i;log('ตอบเหตุผลลูกค้า: '+(reasonOk()?'ถูก':'ยังไม่ตรง'),'LO3');renderReason();paintSide()}
+  else if(a==='toDone')go('done');
+  else if(a==='again'){reset();paintShell();render()}
+});
+function openCmdSafe(){if(S.stage!=='fix'||S.cmd.open)return;openCmd(false);paintSide()}
+document.addEventListener('keydown',function(e){
+  if(e.key==='F10'&&e.shiftKey){e.preventDefault();openCmdSafe();return}
+  var r=e.target.closest&&e.target.closest('[data-row]');
+  if(r&&(e.key==='Enter'||e.key===' ')){e.preventDefault();r.click()}
+});
+
+reset();paintShell();render();
+window.__shop={S:function(){return S}};
+})();
+</script>
