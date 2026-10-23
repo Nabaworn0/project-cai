@@ -63,3 +63,15 @@ test('a Windows 10 case is labelled with its version and the end-of-support warn
   await expect(c4).toContainText('หมดการอัปเดตความปลอดภัยแล้ว');
   await expect(c4.getByTestId('solution')).toContainText('Rufus');
 });
+
+test('the tab follows the #hash: shared links, editing the address, and Back all work', async ({ page }) => {
+  await page.goto('/?view=content#bios');
+  const active = page.locator('.v-tabs button.on');
+  await expect(active).toHaveText('BIOS');
+  await page.evaluate(() => { location.hash = 'cases'; });
+  await expect(active).toHaveText('เคส');
+  await page.getByRole('navigation', { name: 'หมวดเนื้อหา' }).getByRole('button', { name: 'ปัญหา', exact: true }).click();
+  await expect(active).toHaveText('ปัญหา');
+  await page.goBack();
+  await expect(active).toHaveText('เคส');
+});

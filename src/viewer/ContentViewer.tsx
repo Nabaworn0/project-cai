@@ -23,6 +23,7 @@ const TABS = [
 type Tab = (typeof TABS)[number][0];
 
 const actionLabel = (id: string) => ACTIONS.find((a) => a.id === id)?.labelTh ?? id;
+const tabFromHash = (): Tab => TABS.find(([t]) => `#${t}` === location.hash)?.[0] ?? 'overview';
 
 export function ContentViewer() {
   const files = useMemo(contentFiles, []);
@@ -31,7 +32,7 @@ export function ContentViewer() {
     return { parsed: parseAll(files, errors), parseErrors: errors };
   }, [files]);
   const [report, setReport] = useState<Report | null>(null);
-  const [tab, setTab] = useState<Tab>(() => (TABS.find(([t]) => `#${t}` === location.hash)?.[0] ?? 'overview'));
+  const [tab, setTab] = useState<Tab>(tabFromHash);
 
   // The validator rolls hundreds of machines; let the page paint first.
   useEffect(() => {
@@ -39,10 +40,19 @@ export function ContentViewer() {
     return () => clearTimeout(t);
   }, [files]);
 
+  // The tab lives in the #hash, so shared links open the right tab and Back/Forward move between tabs.
+  useEffect(() => {
+    const onHash = () => {
+      setTab(tabFromHash());
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
   const choose = (t: Tab) => {
-    setTab(t);
-    history.replaceState(null, '', `${location.search}#${t}`);
-    window.scrollTo(0, 0);
+    if (location.hash === `#${t}`) return;
+    location.hash = t;
   };
 
   const objectives = parsed.objectives ?? { draft: true, items: [] };
