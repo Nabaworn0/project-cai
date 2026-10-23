@@ -1,4 +1,8 @@
-// npm run pixelize -- <files or folders> [--height 39] [--out src/assets/sprites] [--no-preview]
+// npm run pixelize -- <files or folders> [--height 39] [--same-rows 0-16,40-] [--same-cols 0-5,33-]
+//                     [--out src/assets/sprites] [--no-preview]
+//   --same-rows / --same-cols: in a frame set, copy these art rows / columns from the *-neutral frame
+//                into the others (expressions only change the face; this removes AI noise elsewhere)
+//   Technician: npm run pixelize -- "art-source/tech-*.png" --same-rows 0-16,40- --same-cols 0-5,33-
 // npm run pixelize -- art-source/icons-sheet.png --grid 4x2 --names ram,ssd,usb,... [--prefix icon-]
 // npm run pixelize -- --export-palette
 //
@@ -37,6 +41,14 @@ const heightArg = flag('--height');
 const gridArg = flag('--grid');
 const namesArg = flag('--names');
 const prefixArg = flag('--prefix') ?? 'icon-';
+/** '0-16,40-' -> [[0,16],[40,Infinity]] */
+const ranges = (spec: string | undefined) =>
+  spec?.split(',').map((part) => {
+    const [a, b] = part.split('-');
+    return [Number(a), b === undefined ? Number(a) : b === '' ? Infinity : Number(b)] as const;
+  });
+const sameRows = ranges(flag('--same-rows'));
+const sameCols = ranges(flag('--same-cols'));
 const outDir = flag('--out') ?? 'src/assets/sprites';
 const preview = !has('--no-preview');
 const previewDir = 'art-source/preview';
@@ -134,8 +146,29 @@ for (const [group, files] of groups) {
   const targetH = heightArg ? Number(heightArg) : suggested;
   console.log(`${group}: ${files.length} file(s), subject ${box.w}x${box.h}px, looks like ~${cell}px per art pixel -> ${suggested} art px tall${heightArg ? ` (using --height ${targetH})` : ''}`);
 
+  const results = files.map((_, i) => pixelize(imgs[i]!, masks[i]!, box, targetH));
+  if ((sameRows || sameCols) && files.length > 1) {
+    // Hair, headset and body should be identical in every frame; AI noise there would shimmer when
+    // frames switch, so those pixels come from the neutral frame.
+    const baseIdx = Math.max(0, files.findIndex((f) => stem(f).endsWith('-neutral')));
+    const base = results[baseIdx]!;
+    const inRanges = (v: number, ranges: readonly (readonly [number, number])[] | undefined) => !!ranges?.some(([a, b]) => v >= a && v <= b);
+    for (const [i, r] of results.entries()) {
+      if (i === baseIdx) continue;
+      for (let y = 0; y < base.height; y++) {
+        for (let x = 0; x < base.width; x++) {
+          if (!inRanges(y, sameRows) && !inRanges(x, sameCols)) continue;
+          const o = (y * base.width + x) * 4;
+          r.data.set(base.data.subarray(o, o + 4), o);
+        }
+      }
+    }
+    const fmt = (rs: readonly (readonly [number, number])[]) => rs.map(([a, b]) => (b === Infinity ? `${a}+` : a === b ? `${a}` : `${a}-${b}`)).join(', ');
+    console.log(`  ${[sameRows && `rows ${fmt(sameRows)}`, sameCols && `columns ${fmt(sameCols)}`].filter(Boolean).join(' and ')} copied from ${stem(files[baseIdx]!)} into the other frames`);
+  }
+
   for (const [i, file] of files.entries()) {
-    const r = pixelize(imgs[i]!, masks[i]!, box, targetH);
+    const r = results[i]!;
     const name = `${stem(file)}.png`;
     await save(r, name);
     const warn = r.uncertain > 0.15 ? `  <- ${Math.round(r.uncertain * 100)}% of pixels were a close call; try another --height` : '';

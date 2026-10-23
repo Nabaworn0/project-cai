@@ -89,8 +89,13 @@
 5. ได้ PNG ขนาดจริงใน `src/assets/sprites/` และภาพขยาย 8 เท่าไว้ตรวจใน `art-source/preview/`
 
 ```
-npm run pixelize -- art-source/tech-neutral.png art-source/tech-happy.png art-source/tech-thinking.png art-source/tech-surprised.png
+npm run pixelize -- "art-source/tech-*.png" --same-rows 0-16,40- --same-cols 0-5,33-
 ```
+
+- `--same-rows` / `--same-cols` คัดลอกแถว/คอลัมน์ที่กำหนดจากภาพ neutral ไปใส่ภาพสีหน้าอื่น
+  ใช้กับส่วนที่ไม่ควรเปลี่ยน (ผม หูฟัง ตัว) เพราะ ChatGPT มักวาดส่วนนั้นต่างกันเล็กน้อยทุกภาพ ทำให้เวลาสลับสีหน้าแล้วเสื้อหรือผมกระพริบ
+  ตัวเลขข้างบนใช้กับช่างขนาด 40×63 (หน้าอยู่แถว 17–39 คอลัมน์ 6–32) ตัวละครอื่นต้องหาตำแหน่งหน้าใหม่
+- ไอคอนแผ่นรวม: `npm run pixelize -- art-source/icons-sheet.png --grid 4x2 --names ram,ssd,usb,screwdriver,cpu,motherboard,tpm,magnifier`
 
 ถ้าสคริปต์เตือนว่า "close call" มาก แปลว่าความสูงที่เดาไม่ตรง ให้ใส่เองด้วย `--height 40`
 
