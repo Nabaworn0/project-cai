@@ -1,4 +1,5 @@
 // npm run pixelize -- <files or folders> [--height 39] [--out src/assets/sprites] [--no-preview]
+// npm run pixelize -- art-source/icons-sheet.png --grid 4x2 --names ram,ssd,usb,... [--prefix icon-]
 // npm run pixelize -- --export-palette
 //
 // Cleans ChatGPT pixel-art images into game-ready sprites (see tools/pixelize-core.ts).
@@ -9,7 +10,7 @@ import { mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
 import sharp from 'sharp';
 import { PALETTE_KEYS } from '../src/game/art/palette';
-import { estimateArtHeight, pixelize, subjectBox, subjectMask, unionBox, type Rgba } from './pixelize-core';
+import { estimateArtHeight, estimateCellSize, pixelize, subjectBox, subjectMask, unionBox, type Rgba } from './pixelize-core';
 
 const args = process.argv.slice(2);
 const flag = (name: string) => {
@@ -33,6 +34,9 @@ if (has('--export-palette')) {
 }
 
 const heightArg = flag('--height');
+const gridArg = flag('--grid');
+const namesArg = flag('--names');
+const prefixArg = flag('--prefix') ?? 'icon-';
 const outDir = flag('--out') ?? 'src/assets/sprites';
 const preview = !has('--no-preview');
 const previewDir = 'art-source/preview';
@@ -69,6 +73,45 @@ async function load(file: string): Promise<Rgba> {
 }
 
 let problems = 0;
+
+async function save(r: { data: Uint8Array; width: number; height: number }, name: string): Promise<void> {
+  const raw = { raw: { width: r.width, height: r.height, channels: 4 as const } };
+  await sharp(Buffer.from(r.data), raw).png().toFile(join(outDir, name));
+  if (preview) await sharp(Buffer.from(r.data), raw).resize(r.width * 8, r.height * 8, { kernel: 'nearest' }).png().toFile(join(previewDir, name));
+}
+
+// Sheet mode: cut one image into a grid of separate sprites that share the sheet's pixel size,
+// so every icon comes out at the same pixel density.
+if (gridArg) {
+  const [cols, rows] = gridArg.split('x').map(Number) as [number, number];
+  if (inputs.length !== 1 || !cols || !rows) throw new Error('--grid needs exactly one image and a size like 4x2');
+  const names = namesArg?.split(',') ?? [];
+  const sheet = await load(inputs[0]!);
+  const mask = subjectMask(sheet);
+  const cell = estimateCellSize(sheet, mask, subjectBox(sheet, mask)!);
+  console.log(`${stem(inputs[0]!)}: ${cols}x${rows} sheet, ~${cell.toFixed(1)}px per art pixel`);
+  for (let r = 0; r < rows; r++) {
+    for (let col = 0; col < cols; col++) {
+      const k = r * cols + col;
+      const cw = Math.floor(sheet.width / cols), ch = Math.floor(sheet.height / rows);
+      const area = new Uint8Array(mask.length);
+      for (let y = r * ch; y < (r + 1) * ch; y++) for (let x = col * cw; x < (col + 1) * cw; x++) area[y * sheet.width + x] = mask[y * sheet.width + x]!;
+      const box = subjectBox(sheet, area);
+      const name = `${prefixArg}${names[k] ?? k + 1}.png`;
+      if (!box) {
+        console.log(`  ! ${name}: cell ${k + 1} is empty`);
+        problems++;
+        continue;
+      }
+      const out = pixelize(sheet, area, box, Math.max(1, Math.round(box.h / cell)));
+      await save(out, name);
+      console.log(`  ${name}: ${out.width}x${out.height}, ${out.colorsUsed} colours`);
+    }
+  }
+  console.log(`\nwrote ${outDir}/${problems ? ` — ${problems} warning(s) above` : ''}`);
+  process.exit(0);
+}
+
 for (const [group, files] of groups) {
   const imgs = await Promise.all(files.map(load));
   const sizes = new Set(imgs.map((i) => `${i.width}x${i.height}`));
@@ -84,7 +127,9 @@ for (const [group, files] of groups) {
     continue;
   }
   const box = unionBox(boxes as NonNullable<(typeof boxes)[number]>[]);
-  const suggested = estimateArtHeight(imgs[0]!, masks[0]!, box);
+  // Each image votes; the group shares the median so every frame gets the same grid.
+  const votes = imgs.map((img, i) => estimateArtHeight(img, masks[i]!, box)).sort((a, b) => a - b);
+  const suggested = votes[Math.floor(votes.length / 2)]!;
   const cell = (box.h / suggested).toFixed(1);
   const targetH = heightArg ? Number(heightArg) : suggested;
   console.log(`${group}: ${files.length} file(s), subject ${box.w}x${box.h}px, looks like ~${cell}px per art pixel -> ${suggested} art px tall${heightArg ? ` (using --height ${targetH})` : ''}`);
@@ -92,13 +137,7 @@ for (const [group, files] of groups) {
   for (const [i, file] of files.entries()) {
     const r = pixelize(imgs[i]!, masks[i]!, box, targetH);
     const name = `${stem(file)}.png`;
-    await sharp(Buffer.from(r.data), { raw: { width: r.width, height: r.height, channels: 4 } }).png().toFile(join(outDir, name));
-    if (preview) {
-      await sharp(Buffer.from(r.data), { raw: { width: r.width, height: r.height, channels: 4 } })
-        .resize(r.width * 8, r.height * 8, { kernel: 'nearest' })
-        .png()
-        .toFile(join(previewDir, name));
-    }
+    await save(r, name);
     const warn = r.uncertain > 0.15 ? `  <- ${Math.round(r.uncertain * 100)}% of pixels were a close call; try another --height` : '';
     if (warn) problems++;
     console.log(`  ${name}: ${r.width}x${r.height}, ${r.colorsUsed} colours${warn}`);

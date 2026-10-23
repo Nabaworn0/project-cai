@@ -10,13 +10,15 @@ export function spriteUrl(name: string): string | undefined {
   return byName.get(name);
 }
 
-/** URLs for a whole set (e.g. every expression), or null unless all of them exist: a mixed set would jump. */
-export function spriteSet(names: readonly string[]): Map<string, string> | null {
-  const urls = names.map((n) => [n, spriteUrl(n)] as const);
-  if (urls.some(([, u]) => !u)) {
-    const have = urls.filter(([, u]) => u).map(([n]) => n);
-    if (have.length) console.warn(`Sprite set incomplete (have ${have.join(', ')}); using placeholders until all ${names.length} exist.`);
-    return null;
-  }
-  return new Map(urls as [string, string][]);
+/**
+ * URLs for a set of frames (e.g. every expression). Frames that do not exist yet reuse `fallback`
+ * (e.g. the neutral face), so the character never switches to a differently drawn placeholder.
+ * Returns null when not even the fallback exists.
+ */
+export function spriteSet(names: readonly string[], fallback: string): Map<string, string> | null {
+  const base = spriteUrl(fallback);
+  if (!base) return null;
+  const missing = names.filter((n) => !spriteUrl(n));
+  if (missing.length) console.info(`Sprites not drawn yet, showing ${fallback} instead: ${missing.join(', ')}`);
+  return new Map(names.map((n) => [n, spriteUrl(n) ?? base]));
 }

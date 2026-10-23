@@ -7,7 +7,7 @@ import { bus } from '../../core/bus';
 import { hex, PALETTE as P } from '../art/palette';
 import { paintRows, type PixelRows } from '../art/pixels';
 import { MONITOR } from '../art/props';
-import { spriteSet } from '../art/sprites';
+import { spriteSet, spriteUrl } from '../art/sprites';
 import { EXPRESSIONS, technicianRows, TECH_FACE, type Expression } from '../art/technician';
 
 /** HUD chip footprint in CSS px (see .hud in theme.css); the sign must not sit under the chips. */
@@ -23,10 +23,14 @@ export class ShopScene extends Phaser.Scene {
   private front!: Phaser.GameObjects.Graphics;
   private tech!: Phaser.GameObjects.Image;
   private monitor!: Phaser.GameObjects.Image;
+  private windowImg?: Phaser.GameObjects.Image;
+  private shelfImg?: Phaser.GameObjects.Image;
   private expression: Expression = 'neutral';
   private techBaseY = 0;
-  /** Real pixelized sprites for the technician, when all expressions exist. */
-  private techSprites = spriteSet(EXPRESSIONS.map((e) => `tech-${e}`));
+  /** Real pixelized technician frames (missing expressions reuse neutral), or null for the placeholder. */
+  private techSprites = spriteSet(EXPRESSIONS.map((e) => `tech-${e}`), 'tech-neutral');
+  /** Pixelized props; each falls back to its code-drawn version when its file does not exist. */
+  private props = { monitor: spriteUrl('monitor'), window: spriteUrl('window'), shelf: spriteUrl('shelf') };
 
   constructor() {
     super('shop');
@@ -34,13 +38,16 @@ export class ShopScene extends Phaser.Scene {
 
   preload(): void {
     this.techSprites?.forEach((url, key) => this.load.image(key, url));
+    for (const [key, url] of Object.entries(this.props)) if (url) this.load.image(key, url);
   }
 
   create(): void {
     if (!this.techSprites) for (const e of EXPRESSIONS) this.addPixelTexture(`tech-${e}`, technicianRows(e));
-    this.addPixelTexture('monitor', MONITOR);
+    if (!this.props.monitor) this.addPixelTexture('monitor', MONITOR);
 
     this.bg = this.add.graphics();
+    if (this.props.window) this.windowImg = this.add.image(0, 0, 'window').setOrigin(0, 0);
+    if (this.props.shelf) this.shelfImg = this.add.image(0, 0, 'shelf').setOrigin(0, 0);
     this.tech = this.add.image(0, 0, 'tech-neutral').setOrigin(0, 0);
     this.tech.setInteractive({ useHandCursor: true, pixelPerfect: true });
     this.tech.on('pointerdown', () => this.react());
@@ -123,15 +130,16 @@ export class ShopScene extends Phaser.Scene {
     g.fillRect(signX + 2, signY + 2, 1, signH - 4).fillRect(signX + signW - 3, signY + 2, 1, signH - 4);
     g.fillStyle(hex(P.navyMid)).fillRect(signX + 4, signY + signH, 2, 3).fillRect(signX + signW - 6, signY + signH, 2, 3);
 
-    // Window and parts shelf on the wall, when there is room beside the counter area.
-    if (W >= 150) {
-      const wx = Math.max(8, Math.floor(W * 0.06));
-      const wy = signY + signH + 10;
-      this.drawWindow(g, wx, wy, 32, 24);
-      this.drawShelf(g, W - wx - 36, wy, 36);
-    } else {
-      this.drawShelf(g, W - 44, signY + signH + 14, 36);
-    }
+    // Window (left) and parts shelf (right) on the wall; the window is dropped when both do not fit.
+    const margin = Math.max(8, Math.floor(W * 0.06));
+    const wy = signY + signH + 10;
+    const winW = this.windowImg?.width ?? 32;
+    const shelfW = this.shelfImg?.width ?? 36;
+    const showWindow = W >= winW + shelfW + margin * 3;
+    if (this.windowImg) this.windowImg.setPosition(margin, wy).setVisible(showWindow);
+    else if (showWindow) this.drawWindow(g, margin, wy, 32, 24);
+    if (this.shelfImg) this.shelfImg.setPosition(W - margin - shelfW, wy);
+    else this.drawShelf(g, W - margin - shelfW, wy, 36);
 
     // Technician behind the counter: the counter front hides everything below their hands.
     const techW = this.tech.width;

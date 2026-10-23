@@ -2,8 +2,9 @@
 // (pixelize) recovers a sprite from a blurry, noisy, wrongly scaled, flat-background copy of it.
 
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { PALETTE_KEYS, type PaletteKey } from '../src/game/art/palette';
 import { checkRows, type PixelRows } from '../src/game/art/pixels';
@@ -113,3 +114,28 @@ for (const [name, rows, transparent, scale] of CASES) {
     assert.ok(out.colorsUsed <= Object.keys(PALETTE_KEYS).length);
   });
 }
+
+test('game sprites: frames of one set share a size, and every pixel is a palette colour', async () => {
+  const dir = new URL('../src/assets/sprites/', import.meta.url);
+  let files: string[] = [];
+  try {
+    files = readdirSync(dir).filter((f) => f.endsWith('.png'));
+  } catch {
+    return; // no pixelized art yet
+  }
+  const palette = new Set(Object.values(PALETTE_KEYS).map((c) => c.toLowerCase()));
+  const sizes = new Map<string, Set<string>>();
+  for (const f of files) {
+    const { data, info } = await sharp(fileURLToPath(new URL(f, dir))).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    for (let i = 0; i < info.width * info.height; i++) {
+      const a = data[i * 4 + 3]!;
+      assert.ok(a === 0 || a === 255, `${f}: semi-transparent pixel ${i}`);
+      if (a === 0) continue;
+      const hex = '#' + [0, 1, 2].map((k) => data[i * 4 + k]!.toString(16).padStart(2, '0')).join('');
+      assert.ok(palette.has(hex), `${f}: colour ${hex} is not in the palette`);
+    }
+    const set = f.includes('-') && !f.startsWith('icon-') ? f.slice(0, f.lastIndexOf('-')) : f;
+    sizes.set(set, (sizes.get(set) ?? new Set()).add(`${info.width}x${info.height}`));
+  }
+  for (const [set, s] of sizes) assert.equal(s.size, 1, `${set}-* frames differ in size (${[...s].join(', ')}), so the character would jump`);
+});

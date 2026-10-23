@@ -112,33 +112,41 @@ export function unionBox(boxes: readonly Box[]): Box {
 }
 
 /**
- * Guesses how many image pixels make one art pixel, from the lengths of same-colour runs along rows.
- * Used to suggest --height when the user does not know it.
+ * Guesses how many image pixels make one art pixel. Pixel art has edges on a regular grid, so the
+ * "edge strength" profile along each axis repeats with the cell size; its autocorrelation peaks at
+ * the cell size and at multiples of it. Real ChatGPT images are not perfectly regular, which is why
+ * this looks at the whole image's rhythm rather than individual runs.
  */
 export function estimateCellSize(img: Rgba, mask: Uint8Array, box: Box): number {
-  return coarseCellSize(runLengths(img, mask, box));
+  const ex = periodOf(edgeProfile(img, mask, box, 'x'));
+  const ey = periodOf(edgeProfile(img, mask, box, 'y'));
+  let cell: number;
+  if (!ex) cell = ey?.period ?? 1;
+  else if (!ey) cell = ex.period;
+  // Square pixels: the axes should agree. If they do, average; otherwise trust the clearer one.
+  else if (Math.abs(ex.period - ey.period) / Math.min(ex.period, ey.period) < 0.15) cell = (ex.period + ey.period) / 2;
+  else cell = ex.strength >= ey.strength ? ex.period : ey.period;
+  // Large flat sprites (a monitor) can make the rhythm repeat every 2 cells. If the run lengths say
+  // the cell is half that, believe them.
+  const half = runPeak(runLengths(img, mask, box));
+  if (half && Math.abs(half * 2 - cell) / cell < 0.1) cell = half;
+  return cell;
 }
 
 /**
- * Best guess of the sprite's height in art pixels. AI images rarely use a whole-number pixel size
- * (24.6 px is typical), so after the coarse guess this tries nearby heights and keeps the one whose
- * cell size makes the observed runs closest to whole multiples.
+ * Best guess of the sprite's height in art pixels (the suggested --height). The rough cell size comes
+ * from the edge rhythm; then each height within ±5 % is tried, and the one whose cells come out most
+ * uniform in colour wins: on the true grid every cell is one colour, on a wrong grid many straddle two.
+ * (AI images rarely use a whole-number cell, e.g. 24.6 px, so the rough size alone is often off by one row.)
  */
 export function estimateArtHeight(img: Rgba, mask: Uint8Array, box: Box): number {
-  const hist = runLengths(img, mask, box);
-  const s = coarseCellSize(hist);
-  let best = Math.max(1, Math.round(box.h / s));
-  let bestErr = Infinity;
-  for (let n = Math.max(1, Math.floor(box.h / (s + 1.5))); n <= Math.ceil(box.h / Math.max(1, s - 1.5)); n++) {
-    const c = box.h / n;
-    let err = 0;
-    let total = 0;
-    for (const [len, count] of hist) {
-      const k = Math.max(1, Math.round(len / c));
-      err += (count * Math.abs(len - k * c)) / c;
-      total += count;
-    }
-    if (total && err / total < bestErr) (bestErr = err / total), (best = n);
+  const s = estimateCellSize(img, mask, box);
+  const guess = box.h / s;
+  let best = Math.max(1, Math.round(guess));
+  let bestScore = Infinity;
+  for (let n = Math.max(1, Math.floor(guess * 0.95)); n <= Math.ceil(guess * 1.05); n++) {
+    const score = pixelize(img, mask, box, n).uncertain + Math.abs(n - guess) * 0.002;
+    if (score < bestScore) (bestScore = score), (best = n);
   }
   return best;
 }
@@ -175,25 +183,67 @@ function runLengths(img: Rgba, mask: Uint8Array, box: Box): Map<number, number> 
   return hist;
 }
 
-/**
- * Coarse cell size: the most common start-to-start distance. Pixel-art outlines are one art pixel
- * wide, so single-pixel runs dominate. A non-integer cell (13.4 px) splits that peak between 13 and
- * 14, so neighbouring distances are pooled and averaged.
- */
-function coarseCellSize(hist: Map<number, number>): number {
-  let best = 1;
+/** The most common start-to-start run distance (pooled with its neighbour for non-integer cells). */
+function runPeak(hist: Map<number, number>): number | null {
+  let best: number | null = null;
   let bestCount = 0;
   for (const [d] of hist) {
     if (d < 3) continue;
-    const pooled = (hist.get(d) ?? 0) + (hist.get(d + 1) ?? 0);
-    if (pooled > bestCount) {
-      bestCount = pooled;
-      const a = hist.get(d) ?? 0;
-      const b = hist.get(d + 1) ?? 0;
-      best = (d * a + (d + 1) * b) / (a + b);
-    }
+    const a = hist.get(d) ?? 0;
+    const b = hist.get(d + 1) ?? 0;
+    if (a + b > bestCount) (bestCount = a + b), (best = (d * a + (d + 1) * b) / (a + b));
   }
   return best;
+}
+
+/** Sum of colour/alpha change between neighbouring pixels, per column (x) or row (y) of the box. */
+function edgeProfile(img: Rgba, mask: Uint8Array, box: Box, axis: 'x' | 'y'): Float64Array {
+  const n = axis === 'x' ? box.w : box.h;
+  const m = axis === 'x' ? box.h : box.w;
+  const e = new Float64Array(n);
+  for (let a = 1; a < n; a++) {
+    let s = 0;
+    for (let b = 0; b < m; b += 2) {
+      const x = axis === 'x' ? box.x + a : box.x + b;
+      const y = axis === 'x' ? box.y + b : box.y + a;
+      const px = axis === 'x' ? x - 1 : x;
+      const py = axis === 'x' ? y : y - 1;
+      const i = at(img, x, y);
+      const j = at(img, px, py);
+      const ma = mask[y * img.width + x]! ? 255 : 0;
+      const mb = mask[py * img.width + px]! ? 255 : 0;
+      s += Math.abs(img.data[i]! - img.data[j]!) + Math.abs(img.data[i + 1]! - img.data[j + 1]!) + Math.abs(img.data[i + 2]! - img.data[j + 2]!) + Math.abs(ma - mb);
+    }
+    e[a] = s;
+  }
+  return e;
+}
+
+/**
+ * The fundamental period of a profile: the smallest autocorrelation peak that is nearly as strong as
+ * the strongest one (multiples of the period are peaks too), refined to a fraction of a pixel.
+ */
+function periodOf(e: Float64Array): { period: number; strength: number } | null {
+  const n = e.length;
+  if (n < 16) return null;
+  const mean = e.reduce((s, v) => s + v, 0) / n;
+  const maxP = Math.min(96, Math.floor(n / 3));
+  const r = new Float64Array(maxP + 2);
+  for (let p = 1; p <= maxP + 1; p++) {
+    let s = 0;
+    for (let a = 0; a + p < n; a++) s += (e[a]! - mean) * (e[a + p]! - mean);
+    r[p] = s / (n - p);
+  }
+  const peaks: number[] = [];
+  for (let p = 4; p <= maxP; p++) if (r[p]! > 0 && r[p]! >= r[p - 1]! && r[p]! >= r[p + 1]!) peaks.push(p);
+  if (!peaks.length) return null;
+  const strongest = Math.max(...peaks.map((p) => r[p]!));
+  const p = peaks.find((q) => r[q]! >= strongest * 0.5)!;
+  // Parabolic interpolation through the peak and its neighbours gives the fractional period.
+  const a = r[p - 1]!, b = r[p]!, c = r[p + 1]!;
+  const denom = a - 2 * b + c;
+  const offset = denom !== 0 ? Math.max(-0.5, Math.min(0.5, (a - c) / (2 * denom))) : 0;
+  return { period: p + offset, strength: b / (r[1]! || 1) };
 }
 
 export interface PixelizeResult extends Rgba {

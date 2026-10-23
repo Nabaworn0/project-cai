@@ -1,8 +1,8 @@
-// Pixel-art display: the game draws into a small canvas (short side ~140-180 art pixels) and the
+// Pixel-art display: the game draws into a small canvas (short side ~180-240 art pixels) and the
 // browser scales it up by a whole number of device pixels, so every art pixel stays a crisp square.
 
 /** Aim for about this many art pixels across the screen's short side. */
-export const TARGET_SHORT = 160;
+export const TARGET_SHORT = 210;
 
 export interface PixelView {
   /** Device pixels per art pixel (always a whole number). */

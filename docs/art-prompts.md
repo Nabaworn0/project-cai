@@ -41,21 +41,25 @@ About 32 x 40 art pixels. Transparent background, PNG, character centered with e
 
 ภาพที่ 2–4 (ส่งทีละข้อความ เปลี่ยนแค่หน้า):
 
+> **สำคัญ:** ทุกครั้งให้ **แนบภาพ neutral กลับไปด้วย** แล้วสั่งให้ "แก้ภาพนี้" ไม่ใช่วาดใหม่
+> ถ้าไม่แนบ ChatGPT มักวาดตัวละครใหม่ทั้งตัว (ทรงผม ขนาดหัว ตำแหน่งป้ายชื่อเปลี่ยน) ซึ่งใช้สลับสีหน้าในเกมไม่ได้
+> ถ้าใช้โหมดแก้ภาพได้ ให้ระบายเฉพาะบริเวณหน้าแล้วสั่งเปลี่ยนสีหน้า จะได้ผลตรงที่สุด
+
 ```
-Same sprite, pixel-for-pixel identical pose, size, position, framing, outline and clothing as the previous image.
-Change only the face: HAPPY — eyes closed in upside-down U arcs, wide open smile, coral blush pixels on the cheeks.
+Edit the attached image. Keep the sprite pixel-for-pixel identical: same hair, headset, head size, pose, framing,
+canvas size, outline, clothing and name badge position. Change only the face: HAPPY — eyes closed in upside-down U arcs, wide open smile, coral blush pixels on the cheeks.
 Transparent background, PNG.
 ```
 
 ```
-Same sprite, pixel-for-pixel identical pose, size, position, framing, outline and clothing as the previous image.
-Change only the face: THINKING — one eyebrow raised, eyes looking to the side, small sideways mouth.
+Edit the attached image. Keep the sprite pixel-for-pixel identical: same hair, headset, head size, pose, framing,
+canvas size, outline, clothing and name badge position. Change only the face: THINKING — one eyebrow raised, eyes looking to the side, small sideways mouth.
 Transparent background, PNG.
 ```
 
 ```
-Same sprite, pixel-for-pixel identical pose, size, position, framing, outline and clothing as the previous image.
-Change only the face: SURPRISED — eyebrows high, round white eyes with dark pupils, small round open mouth.
+Edit the attached image. Keep the sprite pixel-for-pixel identical: same hair, headset, head size, pose, framing,
+canvas size, outline, clothing and name badge position. Change only the face: SURPRISED — eyebrows high, round white eyes with dark pupils, small round open mouth.
 Transparent background, PNG.
 ```
 
