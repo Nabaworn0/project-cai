@@ -8,6 +8,8 @@ import { contentFiles } from '../content';
 import { parseAll, validateContent, type Report } from '../content/validate';
 import { CaseLab } from './CaseLab';
 import { LoTags } from './LoTags';
+import { SourceBadge } from './SourceBadge';
+import { REQUIREMENTS } from '../core/requirements';
 import './viewer.css';
 
 const TABS = [
@@ -96,6 +98,18 @@ export function ContentViewer() {
                 <ul class="v-list warn">{report.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
               </>
             )}
+            <h2>ข้อกำหนดที่เกมใช้ตรวจ</h2>
+            <table class="v-req">
+              <thead><tr><th></th><th>Windows 10</th><th>Windows 11</th></tr></thead>
+              <tbody>
+                <tr><th>RAM ขั้นต่ำ</th><td>{REQUIREMENTS.win10.ramGB} GB</td><td>{REQUIREMENTS.win11.ramGB} GB</td></tr>
+                <tr><th>ดิสก์ขั้นต่ำ</th><td>{REQUIREMENTS.win10.storageGB} GB</td><td>{REQUIREMENTS.win11.storageGB} GB</td></tr>
+                <tr><th>โหมดบูต</th><td>Legacy หรือ UEFI</td><td>UEFI อย่างเดียว</td></tr>
+                <tr><th>Secure Boot / TPM 2.0</th><td>ไม่บังคับ</td><td>บังคับ</td></tr>
+                <tr><th>CPU</th><td>ทั่วไป</td><td>ต้องอยู่ในรายชื่อที่รองรับ</td></tr>
+              </tbody>
+            </table>
+            <p class="v-dim">Windows 10 หมดการอัปเดตความปลอดภัยฟรีแล้ว (14 ต.ค. 2025) · รายละเอียด docs/book-alignment.md</p>
             <h2>วัตถุประสงค์การเรียนรู้ {objectives.draft && <span class="v-badge warn">ร่าง</span>}</h2>
             <ul class="v-list">
               {objectives.items.map((o) => (
@@ -121,6 +135,8 @@ export function ContentViewer() {
                 <header class="v-card-head">
                   <h3>{p.id}</h3>
                   <LoTags ids={p.lo} objectives={objectives} />
+                  <SourceBadge source={p.source} page={p.bookPage} />
+                  <span class="v-badge">{p.targets.map((t) => (t === 'win11' ? 'Win 11' : 'Win 10')).join(' / ')}</span>
                 </header>
                 <dl class="v-meta">
                   <dt>ลูกค้าเล่า</dt>

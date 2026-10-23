@@ -1,198 +1,168 @@
 [
   {
     "id": "usb-not-first",
-    "lo": [
-      "LO3"
-    ],
+    "lo": ["LO3"],
+    "source": "book",
+    "bookPage": "48–51",
     "blocker": "usb-not-first",
-    "patch": {
-      "usbFirst": false
-    },
-    "fixes": [
-      "set-usb-first"
-    ],
+    "patch": { "usbFirst": false },
+    "fixes": ["set-usb-first"],
     "symptomTh": "เสียบแฟลชไดรฟ์แล้วเปิดเครื่อง แต่เครื่องบูตเข้า Windows ตัวเก่าทุกครั้ง",
-    "explainTh": "เครื่องบูตจากฮาร์ดดิสก์ก่อน ต้องเลื่อน USB ขึ้นเป็นอันดับแรก หรือกดปุ่มเมนูบูตเลือก USB ครั้งเดียว",
-    "hintsTh": [
-      "ลองดูว่าเครื่องเลือกบูตจากอุปกรณ์ไหนก่อน",
-      "ใช้ปุ่มเมนูบูต (Boot Menu) ของยี่ห้อนี้ หรือแก้ Boot Priority ใน BIOS"
-    ]
+    "explainTh": "เครื่องบูตจากฮาร์ดดิสก์ก่อน ต้องเข้า BIOS ตั้ง Boot Device Priority ให้ USB เป็นอันดับแรกแล้วกด F10 บันทึก หรือกดปุ่ม Boot Menu เลือก USB ครั้งเดียว",
+    "hintsTh": ["ลองดูว่าเครื่องเลือกบูตจากอุปกรณ์ไหนก่อน", "เข้า BIOS → แท็บ Boot → Boot Device Priority แล้วเลื่อน USB ขึ้นเป็นอันดับแรก"]
+  },
+  {
+    "id": "bios-not-saved",
+    "lo": ["LO3"],
+    "source": "book",
+    "bookPage": "51",
+    "blocker": "usb-not-first",
+    "patch": { "usbFirst": false },
+    "fixes": ["set-usb-first"],
+    "symptomTh": "ลูกค้าบอกว่าเข้า BIOS ตั้งให้ USB ขึ้นก่อนแล้ว แต่เปิดเครื่องใหม่ก็ยังเข้า Windows เก่า",
+    "explainTh": "เปลี่ยนลำดับบูตแล้วแต่ออกจาก BIOS โดยไม่บันทึก ต้องกด F10 (Save and Exit) แล้วเลือก OK ค่าจึงจะถูกเก็บ",
+    "hintsTh": ["ตอนออกจาก BIOS ลูกค้ากดปุ่มอะไร", "ตั้งลำดับบูตใหม่ แล้วกด F10 เพื่อบันทึกและออก"]
+  },
+  {
+    "id": "usb-wrong-scheme",
+    "lo": ["LO2"],
+    "source": "book",
+    "bookPage": "45–48",
+    "blocker": "usb-scheme-mismatch",
+    "requires": { "bootMode": "uefi" },
+    "patch": { "usbScheme": "mbr" },
+    "fixes": ["remake-usb"],
+    "symptomTh": "เสียบ USB แล้วกด Boot Menu แต่ไม่มี USB ให้เลือกเลย ทั้งที่ไฟสว่าง",
+    "explainTh": "USB ถูกทำใน Rufus แบบ MBR (สำหรับ BIOS แบบเก่า) แต่เครื่องบูตแบบ UEFI ต้องทำ USB ใหม่โดยเลือก Partition scheme เป็น GPT",
+    "hintsTh": ["USB ทำมาด้วยค่าอะไรใน Rufus", "เครื่อง UEFI ต้องใช้ USB แบบ GPT ทำ USB ใหม่ใน Rufus"]
   },
   {
     "id": "uefi-mbr",
-    "lo": [
-      "LO4",
-      "LO6"
-    ],
+    "lo": ["LO4"],
+    "source": "book",
+    "bookPage": "47, 55",
     "blocker": "uefi-mbr",
-    "requires": {
-      "bootMode": "uefi"
-    },
-    "patch": {
-      "diskStyle": "mbr"
-    },
-    "fixes": [
-      "setup-delete-all",
-      "diskpart-clean-convert-gpt",
-      "mbr2gpt"
-    ],
+    "requires": { "bootMode": "uefi" },
+    "patch": { "diskStyle": "mbr" },
+    "fixes": ["setup-delete-all", "diskpart-clean-convert-gpt", "mbr2gpt"],
     "symptomTh": "ถึงหน้าเลือกที่ติดตั้งแล้วขึ้นตัวหนังสือสีแดง กด Next ไม่ได้",
     "screenText": "Windows can't be installed to this disk. The selected disk has an MBR partition table. On EFI systems, Windows can only be installed to GPT disks.",
-    "explainTh": "เครื่องบูตแบบ UEFI ติดตั้ง Windows ได้เฉพาะดิสก์แบบ GPT ต้องแปลงดิสก์เป็น GPT",
-    "hintsTh": [
-      "ดูข้อความสีแดงว่าพูดถึงตารางพาร์ทิชันแบบไหน",
-      "แปลงดิสก์เป็น GPT: ลบพาร์ทิชันทั้งหมด, diskpart convert gpt หรือ mbr2gpt ถ้าต้องเก็บข้อมูล"
-    ]
+    "explainTh": "เครื่องบูตแบบ UEFI ติดตั้ง Windows ได้เฉพาะดิสก์แบบ GPT ต้องลบพาร์ทิชันเดิมแล้วให้ Setup สร้างใหม่ (ข้อมูลหาย) หรือแปลงเป็น GPT",
+    "hintsTh": ["ดูข้อความสีแดงว่าพูดถึงตารางพาร์ทิชันแบบไหน", "ลบพาร์ทิชันเดิมในหน้านี้แล้วสร้างใหม่ Setup จะทำเป็น GPT ให้ (สำรองข้อมูลก่อน)"]
   },
   {
     "id": "legacy-mbr",
-    "lo": [
-      "LO3",
-      "LO4"
-    ],
+    "lo": ["LO3", "LO1"],
+    "source": "win11",
+    "targets": ["win11"],
     "blocker": "legacy-boot",
-    "patch": {
-      "bootMode": "legacy",
-      "secureBoot": false,
-      "diskStyle": "mbr"
-    },
-    "fixes": [
-      "set-boot-uefi"
-    ],
+    "patch": { "bootMode": "legacy", "secureBoot": false, "diskStyle": "mbr", "usbScheme": "mbr" },
+    "fixes": ["set-boot-uefi"],
     "symptomTh": "ตัวติดตั้งบอกว่าเครื่องนี้ไม่ผ่านข้อกำหนดของ Windows 11",
     "screenText": "This PC doesn't currently meet Windows 11 system requirements.",
-    "explainTh": "เครื่องตั้งไว้เป็นโหมด Legacy/CSM แต่ Windows 11 ต้องบูตแบบ UEFI พร้อม Secure Boot และดิสก์ GPT",
-    "hintsTh": [
-      "Windows 11 ต้องการโหมดบูตแบบไหน",
-      "เปลี่ยนเป็น UEFI แล้วอย่าลืมว่าดิสก์เดิมยังเป็น MBR และ Secure Boot ยังปิดอยู่"
-    ]
+    "explainTh": "เครื่องตั้งไว้เป็นโหมด Legacy/CSM (แบบที่ Windows 10 ใช้ได้) แต่ Windows 11 ต้องบูตแบบ UEFI พร้อม Secure Boot ดิสก์ GPT และ USB แบบ GPT",
+    "hintsTh": ["Windows 11 ต้องการโหมดบูตแบบไหน", "เปลี่ยนเป็น UEFI แล้วอย่าลืมว่าดิสก์ USB และ Secure Boot ยังเป็นค่าของแบบเก่าอยู่"]
   },
   {
     "id": "secure-boot-off",
-    "lo": [
-      "LO2",
-      "LO3"
-    ],
+    "lo": ["LO3", "LO1"],
+    "source": "win11",
+    "targets": ["win11"],
     "blocker": "secure-boot-off",
-    "requires": {
-      "bootMode": "uefi"
-    },
-    "patch": {
-      "secureBoot": false
-    },
-    "fixes": [
-      "enable-secure-boot"
-    ],
+    "requires": { "bootMode": "uefi" },
+    "patch": { "secureBoot": false },
+    "fixes": ["enable-secure-boot"],
     "symptomTh": "ตัวติดตั้งบอกว่าเครื่องไม่ผ่านข้อกำหนด ทั้งที่เครื่องค่อนข้างใหม่",
     "screenText": "This PC must support Secure Boot.",
-    "explainTh": "Windows 11 ต้องเปิด Secure Boot ใน UEFI บางยี่ห้อต้องตั้งรหัสผ่านผู้ดูแล BIOS ก่อนจึงจะเปลี่ยนค่าได้",
-    "hintsTh": [
-      "ข้อกำหนดข้อไหนของ Windows 11 ที่ยังไม่ผ่าน",
-      "เปิด Secure Boot ในแท็บ Boot หรือ Security ของ BIOS"
-    ]
+    "explainTh": "Windows 11 ต้องเปิด Secure Boot ใน UEFI (Windows 10 ไม่บังคับ) บางยี่ห้อต้องตั้งรหัสผ่านผู้ดูแล BIOS ก่อนจึงจะเปลี่ยนค่าได้",
+    "hintsTh": ["ข้อกำหนดข้อไหนของ Windows 11 ที่ยังไม่ผ่าน", "เปิด Secure Boot ในแท็บ Boot หรือ Security ของ BIOS"]
   },
   {
     "id": "tpm-disabled",
-    "lo": [
-      "LO2",
-      "LO3"
-    ],
+    "lo": ["LO3", "LO1"],
+    "source": "win11",
+    "targets": ["win11"],
     "blocker": "tpm-disabled",
-    "patch": {
-      "tpmEnabled": false
-    },
-    "fixes": [
-      "enable-tpm"
-    ],
+    "patch": { "tpmEnabled": false },
+    "fixes": ["enable-tpm"],
     "symptomTh": "ตัวติดตั้งบอกว่าเครื่องไม่ผ่านข้อกำหนด เรื่องชิปความปลอดภัย",
     "screenText": "This PC must support TPM 2.0.",
-    "explainTh": "เครื่องมีชิป TPM 2.0 (หรือ fTPM/PTT ใน CPU) แต่ปิดไว้ใน BIOS ต้องเปิดก่อนติดตั้ง",
-    "hintsTh": [
-      "ชิปความปลอดภัยที่ Windows 11 ต้องการชื่ออะไร",
-      "หาเมนู TPM, PTT หรือ fTPM ใน BIOS แล้วเปิดใช้งาน"
-    ]
+    "explainTh": "เครื่องมีชิป TPM 2.0 (หรือ fTPM/PTT ใน CPU) แต่ปิดไว้ใน BIOS Windows 11 บังคับต้องเปิด (Windows 10 ไม่บังคับ)",
+    "hintsTh": ["ชิปความปลอดภัยที่ Windows 11 ต้องการชื่ออะไร", "หาเมนู TPM, PTT หรือ fTPM ใน BIOS แล้วเปิดใช้งาน"]
   },
   {
     "id": "raid-mode",
-    "lo": [
-      "LO5",
-      "LO6"
-    ],
+    "lo": ["LO6", "LO4"],
+    "source": "extra",
     "blocker": "raid-no-driver",
-    "patch": {
-      "sataMode": "raid"
-    },
-    "fixes": [
-      "load-raid-driver",
-      "set-ahci"
-    ],
+    "patch": { "sataMode": "raid" },
+    "fixes": ["load-raid-driver", "set-ahci"],
     "symptomTh": "ถึงหน้าเลือกที่ติดตั้งแล้วไม่เห็นฮาร์ดดิสก์เลยสักลูก",
     "screenText": "We couldn't find any drives. To get a storage driver, click Load driver.",
-    "explainTh": "ตัวควบคุมดิสก์ตั้งเป็น RAID/Intel RST ตัวติดตั้งจึงมองไม่เห็นดิสก์ ต้องโหลดไดรเวอร์ หรือเปลี่ยนเป็น AHCI ถ้าดิสก์ว่าง",
-    "hintsTh": [
-      "ทำไมตัวติดตั้งถึงไม่เห็นดิสก์เลย",
-      "กด Load driver ใส่ไดรเวอร์ RST หรือเปลี่ยน SATA Mode เป็น AHCI (เฉพาะดิสก์ที่ไม่มี Windows เดิม)"
-    ]
+    "explainTh": "ตัวควบคุมดิสก์ตั้งเป็น RAID/Intel RST ตัวติดตั้งจึงมองไม่เห็นดิสก์ ต้องโหลดไดรเวอร์ หรือเปลี่ยนเป็น AHCI ถ้าดิสก์ว่าง (เรื่องนี้เกินหนังสือ เป็นเคสขั้นสูง)",
+    "hintsTh": ["ทำไมตัวติดตั้งถึงไม่เห็นดิสก์เลย", "กด Load driver ใส่ไดรเวอร์ RST หรือเปลี่ยน SATA Mode เป็น AHCI (เฉพาะดิสก์ที่ไม่มี Windows เดิม)"]
   },
   {
     "id": "ram-low",
-    "lo": [
-      "LO2"
-    ],
+    "lo": ["LO1"],
+    "source": "win11",
+    "targets": ["win11"],
     "blocker": "ram-low",
-    "patch": {
-      "ramGB": 2
-    },
-    "fixes": [
-      "upgrade-ram"
-    ],
+    "patch": { "ramGB": 2 },
+    "fixes": ["upgrade-ram"],
     "symptomTh": "ตัวติดตั้งบอกว่าหน่วยความจำไม่พอ",
     "screenText": "The PC must have at least 4 GB of memory.",
-    "explainTh": "Windows 11 ต้องมี RAM อย่างน้อย 4 GB ต้องเพิ่มแรมก่อน",
-    "hintsTh": [
-      "ดูสเปกในตั๋วเครื่อง RAM เท่าไหร่",
-      "เบิกแรมจากร้านอะไหล่มาใส่เพิ่ม"
-    ]
+    "explainTh": "Windows 11 ต้องมี RAM อย่างน้อย 4 GB (Windows 10 แบบ 64 บิตใช้ 2 GB) ต้องเพิ่มแรมก่อน",
+    "hintsTh": ["ดูสเปกในตั๋วเครื่อง RAM เท่าไหร่", "เบิกแรมจากร้านอะไหล่มาใส่เพิ่ม"]
   },
   {
     "id": "storage-low",
-    "lo": [
-      "LO2"
-    ],
+    "lo": ["LO1"],
+    "source": "win11",
+    "targets": ["win11"],
     "blocker": "storage-low",
-    "patch": {
-      "storageGB": 32
-    },
-    "fixes": [
-      "replace-ssd"
-    ],
+    "patch": { "storageGB": 32 },
+    "fixes": ["replace-ssd"],
     "symptomTh": "ตัวติดตั้งบอกว่าพื้นที่ดิสก์ไม่พอ",
     "screenText": "The PC must have at least 64 GB of storage.",
-    "explainTh": "Windows 11 ต้องมีพื้นที่ดิสก์อย่างน้อย 64 GB ต้องเปลี่ยนเป็น SSD ที่ใหญ่ขึ้น",
-    "hintsTh": [
-      "ดูขนาดดิสก์ในตั๋วเครื่อง",
-      "เปลี่ยน SSD ลูกใหม่ (ข้อมูลเดิมต้องสำรองก่อน)"
-    ]
+    "explainTh": "Windows 11 ต้องมีพื้นที่ดิสก์อย่างน้อย 64 GB (Windows 10 แบบ 64 บิตใช้ 32 GB) ต้องเปลี่ยนเป็น SSD ที่ใหญ่ขึ้น",
+    "hintsTh": ["ดูขนาดดิสก์ในตั๋วเครื่อง", "เปลี่ยน SSD ลูกใหม่ (ข้อมูลเดิมต้องสำรองก่อน)"]
+  },
+  {
+    "id": "no-product-key",
+    "lo": ["LO4"],
+    "source": "book",
+    "bookPage": "54",
+    "blocker": "no-product-key",
+    "patch": { "productKey": false },
+    "fixes": ["skip-product-key"],
+    "symptomTh": "ลูกค้าไม่ได้เอา Product Key มาด้วย ตัวติดตั้งถามหาคีย์",
+    "screenText": "Activate Windows",
+    "explainTh": "ไม่ต้องหยุดติดตั้ง กด \"I don't have a product key\" แล้วติดตั้งต่อได้ ค่อยใส่คีย์เพื่อ Activate ภายหลังใน Settings",
+    "hintsTh": ["ต้องมีคีย์ตอนนี้เลยไหม", "หาลิงก์ \"I don't have a product key\" ในหน้านี้"]
   },
   {
     "id": "missing-wifi-driver",
-    "lo": [
-      "LO5"
-    ],
+    "lo": ["LO6"],
+    "source": "book",
+    "bookPage": "72, 92–93",
     "blocker": "drivers-missing",
-    "patch": {
-      "missingDrivers": [
-        "wifi"
-      ]
-    },
-    "fixes": [
-      "install-drivers"
-    ],
+    "patch": { "missingDrivers": ["wifi"] },
+    "fixes": ["install-drivers"],
     "symptomTh": "ติดตั้งเสร็จแล้วแต่ไม่มีไอคอน Wi‑Fi และใน Device Manager มีเครื่องหมายตกใจสีเหลือง",
-    "explainTh": "Windows ยังไม่มีไดรเวอร์การ์ดไร้สายรุ่นนี้ ต้องติดตั้งไดรเวอร์จากเว็บผู้ผลิต",
-    "hintsTh": [
-      "เปิด Device Manager ดูอุปกรณ์ที่มีเครื่องหมายผิดปกติ",
-      "ติดตั้งไดรเวอร์ Wi‑Fi จากแฟลชไดรฟ์ไดรเวอร์ของร้าน"
-    ]
+    "explainTh": "Windows ยังไม่มีไดรเวอร์การ์ดไร้สายรุ่นนี้ ต้องติดตั้งไดรเวอร์จากเว็บผู้ผลิต หรือ Device Manager → Update driver",
+    "hintsTh": ["เปิด Device Manager ดูอุปกรณ์ที่มีเครื่องหมายผิดปกติ", "คลิกขวาที่อุปกรณ์ → Update driver หรือติดตั้งจากแฟลชไดรฟ์ไดรเวอร์ของร้าน"]
+  },
+  {
+    "id": "missing-display-driver",
+    "lo": ["LO6"],
+    "source": "book",
+    "bookPage": "81–83",
+    "blocker": "drivers-missing",
+    "patch": { "missingDrivers": ["display"] },
+    "fixes": ["install-drivers"],
+    "symptomTh": "ติดตั้งเสร็จแล้วจอภาพดูละเอียดน้อย ตัวหนังสือใหญ่ ลากหน้าต่างแล้วกระตุก",
+    "explainTh": "ยังไม่มีไดรเวอร์การ์ดจอ ใช้ dxdiag (แท็บ Display) ดูรุ่นการ์ดจอ แล้วดาวน์โหลดไดรเวอร์จากเว็บผู้ผลิตมาติดตั้ง",
+    "hintsTh": ["โปรแกรมไหนบอกรุ่นการ์ดจอได้", "กด Windows + R พิมพ์ dxdiag ดูชื่อการ์ดจอในแท็บ Display แล้วโหลดไดรเวอร์จากผู้ผลิต"]
   }
 ]

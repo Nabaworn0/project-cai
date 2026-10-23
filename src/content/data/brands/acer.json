@@ -2,34 +2,68 @@
   "id": "acer",
   "name": "Acer",
   "verified": false,
-  "phase": "mvp",
+  "phase": "next",
   "style": "classic-blue",
-  "keys": { "setup": ["F2"], "bootMenu": ["F12"] },
-  "quirks": { "secureBootNeedsSupervisorPassword": true, "bootMenuMustBeEnabled": true },
+  "keys": {
+    "setup": [
+      "F2"
+    ],
+    "bootMenu": [
+      "F12"
+    ]
+  },
+  "quirks": {
+    "secureBootNeedsSupervisorPassword": true,
+    "bootMenuMustBeEnabled": true
+  },
   "pages": [
     {
       "id": "main",
       "label": "Main",
       "items": [
-        { "label": "F12 Boot Menu", "setting": "bootOrder", "helpTh": "ต้องเปิด (Enabled) ก่อน ปุ่ม F12 ถึงจะใช้ได้" },
-        { "label": "SATA Mode", "setting": "sataMode" }
+        {
+          "label": "F12 Boot Menu",
+          "setting": "bootOrder",
+          "helpTh": "ต้องเปิด (Enabled) ก่อน ปุ่ม F12 ถึงจะใช้ได้"
+        },
+        {
+          "label": "SATA Mode",
+          "setting": "sataMode"
+        }
       ]
     },
     {
       "id": "security",
       "label": "Security",
       "items": [
-        { "label": "Set Supervisor Password", "setting": "supervisorPassword", "helpTh": "ต้องตั้งก่อนจึงจะเปลี่ยน Secure Boot ได้" },
-        { "label": "TPM Support", "setting": "tpm" }
+        {
+          "label": "Set Supervisor Password",
+          "setting": "supervisorPassword",
+          "helpTh": "ต้องตั้งก่อนจึงจะเปลี่ยน Secure Boot ได้"
+        },
+        {
+          "label": "TPM Support",
+          "setting": "tpm"
+        }
       ]
     },
     {
       "id": "boot",
       "label": "Boot",
       "items": [
-        { "label": "Boot Mode", "setting": "bootMode" },
-        { "label": "Secure Boot", "setting": "secureBoot", "helpTh": "เป็นสีเทาเปลี่ยนไม่ได้จนกว่าจะตั้ง Supervisor Password" },
-        { "label": "Boot priority order", "setting": "bootOrder" }
+        {
+          "label": "Boot Mode",
+          "setting": "bootMode"
+        },
+        {
+          "label": "Secure Boot",
+          "setting": "secureBoot",
+          "helpTh": "เป็นสีเทาเปลี่ยนไม่ได้จนกว่าจะตั้ง Supervisor Password"
+        },
+        {
+          "label": "Boot priority order",
+          "setting": "bootOrder"
+        }
       ]
     }
   ],

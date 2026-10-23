@@ -99,3 +99,7 @@ html.viewer-page #ui { position: static; pointer-events: auto; }
 .v-gamecard.rare { box-shadow: inset 0 0 0 3px #b07cd6; }
 .v-gamecard.epic { box-shadow: inset 0 0 0 3px var(--yellow); }
 .v-gamecard p { margin: 0; font-size: 14px; }
+
+.v-req { border-collapse: collapse; font-size: 14px; background: #fff; width: 100%; max-width: 560px; }
+.v-req th, .v-req td { border: 1px solid #dce3e0; padding: 6px 10px; text-align: left; }
+.v-req thead th { background: var(--navy); color: #fff; }

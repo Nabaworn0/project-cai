@@ -6,6 +6,8 @@ import { join, relative, sep } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { generateCase, solve } from '../src/core/cases';
+import { healthyMachine } from '../src/core/machine';
+import { findBlockers, hardwareLimits } from '../src/core/requirements';
 import { dailySeeds } from '../src/core/rng';
 import { BrandSchema, CaseSchema, ProblemsSchema } from '../src/content/schema';
 import { validateContent, type ContentFile } from '../src/content/validate';
@@ -64,7 +66,7 @@ test('a fix that does not repair its problem is rejected', () => {
 test('A/B quiz items must be parallel and test the same objective', () => {
   const files = real();
   get(files, 'quizzes/pre-b.json').items[1].lo = 'LO5';
-  hasError(files, 'tests LO2 in pre-a but LO5 in pre-b');
+  hasError(files, 'tests LO1 in pre-a but LO5 in pre-b');
 });
 
 test('unknown references are reported', () => {
@@ -84,14 +86,14 @@ test('Acer needs a supervisor password before Secure Boot can be turned on', () 
 
 test('the same seed always builds the same machine', () => {
   const files = real();
-  const lib = { problems: ProblemsSchema.parse(get(files, 'problems.json')), brands: [BrandSchema.parse(get(files, 'brands/asus.json'))] };
+  const lib = { problems: ProblemsSchema.parse(get(files, 'problems.json')), brands: [BrandSchema.parse(get(files, 'brands/classic.json'))] };
   const c = CaseSchema.parse(get(files, 'cases/c03-keep-my-files.json'));
   assert.deepEqual(generateCase(c, lib, 'abc').machine, generateCase(c, lib, 'abc').machine);
 });
 
 test('daily case: every player gets the same problems, but spec details vary between players', () => {
   const files = real();
-  const lib = { problems: ProblemsSchema.parse(get(files, 'problems.json')), brands: [BrandSchema.parse(get(files, 'brands/asus.json'))] };
+  const lib = { problems: ProblemsSchema.parse(get(files, 'problems.json')), brands: [BrandSchema.parse(get(files, 'brands/classic.json'))] };
   const c = CaseSchema.parse({ ...get(files, 'cases/c02-security-chip.json'), machine: { ramGB: [8, 16, 32], storageGB: [256, 512, 1024], cpu: ['A', 'B', 'C'] } });
   const players = Array.from({ length: 12 }, (_, i) => dailySeeds('2026-10-22', `student-${i}`));
   const built = players.map((p) => generateCase(c, lib, p.caseSeed, p.detailSeed));
@@ -103,7 +105,7 @@ test('daily case: every player gets the same problems, but spec details vary bet
 
 test('a customer with an old Windows on the disk can be fixed with mbr2gpt (prototype path 3)', () => {
   const files = real();
-  const lib = { problems: ProblemsSchema.parse(get(files, 'problems.json')), brands: [BrandSchema.parse(get(files, 'brands/asus.json'))] };
+  const lib = { problems: ProblemsSchema.parse(get(files, 'problems.json')), brands: [BrandSchema.parse(get(files, 'brands/classic.json'))] };
   const c = CaseSchema.parse(get(files, 'cases/c01-uefi-mbr.json'));
   const g = generateCase(c, lib, 'any');
   assert.equal(g.machine.diskHasData, true);
@@ -122,4 +124,52 @@ test('problems that need different values of the same field cannot be combined',
   problems.push({ ...problems.find((p) => p.id === 'tpm-disabled')!, id: 'legacy-only', requires: { bootMode: 'legacy' } });
   get(files, 'cases/c02-security-chip.json').problems = { fixed: ['secure-boot-off', 'legacy-only'], pool: [], extra: [0, 0] };
   hasError(files, 'need different values of bootMode');
+});
+
+// --- Windows 10 / 11 (textbook alignment, docs/book-alignment.md) ---
+
+test('Windows 10 accepts a Legacy BIOS + MBR machine that Windows 11 rejects', () => {
+  const legacy = { ...healthyMachine('classic', 'win10'), bootMode: 'legacy' as const, secureBoot: false, diskStyle: 'mbr' as const, usbScheme: 'mbr' as const };
+  assert.deepEqual(findBlockers(legacy), []);
+  assert.deepEqual(findBlockers({ ...legacy, targetOs: 'win11' }), ['legacy-boot']);
+});
+
+test('Legacy boot with a GPT disk is a problem for Windows 10, and so is an MBR install USB on a UEFI machine', () => {
+  const w10 = healthyMachine('classic', 'win10');
+  assert.ok(findBlockers({ ...w10, bootMode: 'legacy', usbScheme: 'mbr' }).includes('legacy-gpt'));
+  assert.ok(findBlockers({ ...w10, usbScheme: 'mbr' }).includes('usb-scheme-mismatch'));
+});
+
+test('no TPM chip or an unlisted CPU only limits Windows 11', () => {
+  const old = { ...healthyMachine('classic', 'win10'), tpm: 'none' as const, cpuWin11: false };
+  assert.deepEqual(hardwareLimits(old), []);
+  assert.deepEqual(hardwareLimits({ ...old, targetOs: 'win11' }), ['tpm-missing', 'cpu-unsupported']);
+});
+
+test('the textbook problems are repaired the textbook way', () => {
+  const files = real();
+  const brand = BrandSchema.parse(get(files, 'brands/classic.json'));
+  const problems = ProblemsSchema.parse(get(files, 'problems.json'));
+  const fixWith = (problem: string, target: 'win10' | 'win11') => {
+    const template = CaseSchema.parse({ ...get(files, 'cases/c01-uefi-mbr.json'), targetOs: target, problems: { fixed: [problem] } });
+    const g = generateCase(template, { problems, brands: [brand] }, 'x');
+    return solve(g.machine, brand, { keepData: false });
+  };
+  assert.deepEqual(fixWith('usb-wrong-scheme', 'win10'), ['remake-usb']);
+  assert.deepEqual(fixWith('bios-not-saved', 'win11'), ['set-usb-first']);
+  assert.deepEqual(fixWith('no-product-key', 'win11'), ['skip-product-key']);
+  assert.deepEqual(fixWith('missing-display-driver', 'win10'), ['install-drivers']);
+});
+
+test('a Windows 11-only problem in a Windows 10 case is rejected', () => {
+  const files = real();
+  get(files, 'cases/c04-old-office-pc.json').problems = { fixed: ['tpm-disabled'], pool: [], extra: [0, 0] };
+  hasError(files, 'problem tpm-disabled does not apply to win10');
+});
+
+test('the first five cases are warned when they use topics beyond the textbook', () => {
+  const files = real();
+  get(files, 'cases/c02-security-chip.json').problems = { fixed: ['raid-mode'], pool: [], extra: [0, 0] };
+  const { warnings } = run(files);
+  assert.ok(warnings.some((w) => w.includes('c02-security-chip') && w.includes('นอกหนังสือ')), warnings.join('\n'));
 });

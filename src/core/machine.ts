@@ -5,9 +5,13 @@ export type BootMode = 'uefi' | 'legacy';
 export type DiskStyle = 'mbr' | 'gpt';
 export type TpmVersion = 'none' | '1.2' | '2.0';
 export type SataMode = 'ahci' | 'raid';
+/** Which Windows the customer wants. Windows 11 is the main path; Windows 10 follows the textbook. */
+export type TargetOs = 'win10' | 'win11';
 
 export interface Machine {
   brand: string;
+  /** Set by the case, never by a problem. */
+  targetOs: TargetOs;
   bootMode: BootMode;
   secureBoot: boolean;
   supervisorPassword: boolean;
@@ -17,6 +21,8 @@ export interface Machine {
   raidDriverLoaded: boolean;
   /** USB installer boots first, via boot order or the one-time boot menu. */
   usbFirst: boolean;
+  /** Partition scheme the install USB was made with in Rufus (textbook p.47). */
+  usbScheme: DiskStyle;
   cpu: string;
   cpuWin11: boolean;
   ramGB: number;
@@ -24,15 +30,20 @@ export interface Machine {
   diskStyle: DiskStyle;
   /** The disk holds the customer's old Windows and files. */
   diskHasData: boolean;
+  /** The customer brought a product key (textbook p.54). */
+  productKey: boolean;
+  /** Setup was told "I don't have a product key"; Windows is activated later. */
+  activateLater: boolean;
   missingDrivers: string[];
 }
 
-export type MachinePatch = Partial<Omit<Machine, 'brand'>>;
+export type MachinePatch = Partial<Omit<Machine, 'brand' | 'targetOs'>>;
 
-/** A machine with nothing wrong: Windows 11 installs on it straight away. */
-export function healthyMachine(brand: string): Machine {
+/** A machine with nothing wrong: the target Windows installs on it straight away. */
+export function healthyMachine(brand: string, targetOs: TargetOs = 'win11'): Machine {
   return {
     brand,
+    targetOs,
     bootMode: 'uefi',
     secureBoot: true,
     supervisorPassword: false,
@@ -41,12 +52,15 @@ export function healthyMachine(brand: string): Machine {
     sataMode: 'ahci',
     raidDriverLoaded: false,
     usbFirst: true,
+    usbScheme: 'gpt',
     cpu: 'Generic 8th-gen 4-core',
     cpuWin11: true,
     ramGB: 8,
     storageGB: 256,
     diskStyle: 'gpt',
     diskHasData: false,
+    productKey: true,
+    activateLater: false,
     missingDrivers: [],
   };
 }

@@ -1,0 +1,50 @@
+{
+  "id": "classic",
+  "name": "BIOS คลาสสิก (AMI)",
+  "verified": false,
+  "phase": "mvp",
+  "style": "classic-blue",
+  "keys": { "setup": ["F2", "Delete"], "bootMenu": ["F8"] },
+  "quirks": {},
+  "pages": [
+    {
+      "id": "main",
+      "label": "Main",
+      "items": []
+    },
+    {
+      "id": "advanced",
+      "label": "Advanced",
+      "items": [
+        { "label": "SATA Configuration > SATA Mode", "setting": "sataMode" },
+        { "label": "Trusted Computing > Security Device Support", "setting": "tpm", "helpTh": "เปิด TPM (Windows 11 ต้องใช้)" }
+      ]
+    },
+    {
+      "id": "boot",
+      "label": "Boot",
+      "items": [
+        { "label": "Boot Device Priority > 1st Boot Device", "setting": "bootOrder", "helpTh": "หนังสือหน้า 49–51: เลือก USB เป็นอันดับแรก แล้วกด F10" },
+        { "label": "Hard Disk Drives > 1st Drive", "setting": "bootOrder", "helpTh": "ถ้ามีหลายไดรฟ์ ให้เลือก USB เป็น 1st Drive ก่อน" },
+        { "label": "CSM Support", "setting": "bootMode", "helpTh": "Enabled = บูตแบบ Legacy ได้ · Disabled = UEFI อย่างเดียว (Windows 11)" }
+      ]
+    },
+    {
+      "id": "security",
+      "label": "Security",
+      "items": [
+        { "label": "Secure Boot > Secure Boot", "setting": "secureBoot", "helpTh": "Windows 11 ต้องเปิด" }
+      ]
+    },
+    {
+      "id": "exit",
+      "label": "Exit",
+      "items": []
+    }
+  ],
+  "notesTh": [
+    "หน้าตาแบบหนังสือหน้า 49–51: แถบเมนูด้านบน Main / Advanced / Power / Boot / Security / Exit พื้นเทาตัวหนังสือน้ำเงิน",
+    "ใช้ลูกศรเลือกเมนู Enter เข้าเมนูย่อย F10 บันทึกและออก (Save and Exit) Esc ออกไม่บันทึก",
+    "เมนู CSM / Secure Boot / TPM ไม่มีในภาพของหนังสือ (BIOS ปี 2008) แต่ BIOS รุ่นใหม่ที่ใช้กับ Windows 11 มี จึงเพิ่มไว้"
+  ]
+}

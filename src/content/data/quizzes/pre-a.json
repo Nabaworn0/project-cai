@@ -5,21 +5,45 @@
   "draft": true,
   "items": [
     {
-      "id": "pre-a-01", "pair": "uefi-disk", "lo": "LO4",
+      "id": "pre-a-01",
+      "pair": "uefi-disk",
+      "lo": "LO4",
       "stemTh": "เครื่องที่บูตแบบ UEFI ต้องติดตั้ง Windows 11 ลงดิสก์แบบใด",
-      "choicesTh": ["MBR", "GPT", "FAT32", "exFAT"], "answer": 1,
+      "choicesTh": [
+        "MBR",
+        "GPT",
+        "FAT32",
+        "exFAT"
+      ],
+      "answer": 1,
       "explainTh": "UEFI ติดตั้ง Windows ได้เฉพาะดิสก์แบบ GPT"
     },
     {
-      "id": "pre-a-02", "pair": "tpm", "lo": "LO2",
+      "id": "pre-a-02",
+      "pair": "tpm",
+      "lo": "LO1",
       "stemTh": "ข้อใดเป็นข้อกำหนดด้านความปลอดภัยของ Windows 11",
-      "choicesTh": ["TPM 2.0", "การ์ดจอแยก", "ไดรฟ์ DVD", "RAM 2 GB"], "answer": 0,
+      "choicesTh": [
+        "TPM 2.0",
+        "การ์ดจอแยก",
+        "ไดรฟ์ DVD",
+        "RAM 2 GB"
+      ],
+      "answer": 0,
       "explainTh": "Windows 11 ต้องมี TPM 2.0 และ Secure Boot"
     },
     {
-      "id": "pre-a-03", "pair": "boot-usb", "lo": "LO3",
+      "id": "pre-a-03",
+      "pair": "boot-usb",
+      "lo": "LO3",
       "stemTh": "เสียบ USB ตัวติดตั้งแล้วเครื่องยังเข้า Windows เดิม ควรทำอะไรก่อน",
-      "choicesTh": ["ฟอร์แมตดิสก์", "เลือกบูตจาก USB ผ่าน Boot Menu", "ถอด RAM", "ติดตั้งไดรเวอร์"], "answer": 1,
+      "choicesTh": [
+        "ฟอร์แมตดิสก์",
+        "เลือกบูตจาก USB ผ่าน Boot Menu",
+        "ถอด RAM",
+        "ติดตั้งไดรเวอร์"
+      ],
+      "answer": 1,
       "explainTh": "ต้องให้เครื่องบูตจาก USB ก่อน ผ่าน Boot Menu หรือลำดับบูตใน BIOS"
     }
   ]

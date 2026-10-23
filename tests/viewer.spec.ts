@@ -18,7 +18,7 @@ test.describe('content viewer (?view=content)', () => {
     await page.goto('/?view=content');
     const tab = (name: string) => page.getByRole('navigation', { name: 'หมวดเนื้อหา' }).getByRole('button', { name, exact: true });
     await tab('เคส').click();
-    await expect(page.locator('[data-testid^="case-"]')).toHaveCount(3);
+    await expect(page.locator('[data-testid^="case-"]')).toHaveCount(4);
     await tab('ปัญหา').click();
     await expect(page.getByRole('heading', { name: 'uefi-mbr', exact: true })).toBeVisible();
     await tab('BIOS').click();
@@ -54,4 +54,12 @@ test.describe('content viewer (?view=content)', () => {
     await case3.getByLabel('seed เคส', { exact: true }).fill('repeat');
     expect(await case3.locator('.v-ticket').innerText()).toBe(first);
   });
+});
+
+test('a Windows 10 case is labelled with its version and the end-of-support warning', async ({ page }) => {
+  await page.goto('/?view=content#cases');
+  const c4 = page.getByTestId('case-c04-old-office-pc');
+  await expect(c4).toContainText('Windows 10');
+  await expect(c4).toContainText('หมดการอัปเดตความปลอดภัยแล้ว');
+  await expect(c4.getByTestId('solution')).toContainText('Rufus');
 });

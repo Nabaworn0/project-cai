@@ -4,7 +4,7 @@
 import { ACTIONS, type Action } from './actions';
 import { applyPatch, healthyMachine, machineKey, matches, type Machine } from './machine';
 import { createRng } from './rng';
-import { findBlockers } from './win11';
+import { findBlockers } from './requirements';
 import type { Brand, Case, Problem } from '../content/schema';
 
 export interface GeneratedCase {
@@ -58,7 +58,7 @@ export function generateCase(template: Case, lib: CaseLibrary, seed: string, det
   if (!brand) throw new Error(`Case ${template.id}: unknown brand ${brandId}`);
 
   const base: Machine = {
-    ...healthyMachine(brand.id),
+    ...healthyMachine(brand.id, template.targetOs),
     ramGB: detail.pick(template.machine.ramGB),
     storageGB: detail.pick(template.machine.storageGB),
     cpu: detail.pick(template.machine.cpu),
@@ -75,7 +75,7 @@ export function generateCase(template: Case, lib: CaseLibrary, seed: string, det
   for (const pid of rng.shuffle(template.problems.pool)) {
     if (problems.length - template.problems.fixed.length >= want) break;
     const p = byId(pid);
-    if (problems.includes(p) || conflicts(problems, p) || !matches(base, p.requires)) continue;
+    if (problems.includes(p) || !p.targets.includes(template.targetOs) || conflicts(problems, p) || !matches(base, p.requires)) continue;
     problems.push(p);
   }
 

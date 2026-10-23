@@ -5,7 +5,8 @@ import { useMemo, useState } from 'preact/hooks';
 import { ACTIONS, getAction } from '../core/actions';
 import { brandShows, generateCase, solve, type CaseLibrary } from '../core/cases';
 import type { Machine } from '../core/machine';
-import { findBlockers } from '../core/win11';
+import { BLOCKER_TH, findBlockers, hardwareLimits } from '../core/requirements';
+import { SourceBadge } from './SourceBadge';
 import type { Case, Objectives } from '../content/schema';
 import { LoTags } from './LoTags';
 
@@ -24,6 +25,8 @@ const FIELDS: { key: keyof Machine; label: string; show: (m: Machine) => string 
   { key: 'tpmEnabled', label: 'TPM', show: (m) => `${m.tpm} (${onOff(m.tpmEnabled)})` },
   { key: 'sataMode', label: 'SATA Mode', show: (m) => m.sataMode.toUpperCase() },
   { key: 'usbFirst', label: 'บูต USB ก่อน', show: (m) => yesNo(m.usbFirst) },
+  { key: 'usbScheme', label: 'USB ทำแบบ (Rufus)', show: (m) => m.usbScheme.toUpperCase() },
+  { key: 'productKey', label: 'มี Product Key', show: (m) => yesNo(m.productKey) + (m.activateLater ? ' (Activate ภายหลัง)' : '') },
   { key: 'missingDrivers', label: 'ไดรเวอร์ที่ขาด', show: (m) => (m.missingDrivers.length ? m.missingDrivers.join(', ') : '-') },
 ];
 
@@ -42,6 +45,8 @@ export function CaseLab({ template, lib, objectives }: Props) {
   const g = useMemo(() => generateCase(template, lib, seed, detailSeed || seed), [template, lib, seed, detailSeed]);
   const path = useMemo(() => solve(g.machine, g.brand, { keepData: template.customer.keepData }), [g, template]);
   const blockers = findBlockers(g.machine);
+  const limits = hardwareLimits(g.machine);
+  const osName = template.targetOs === 'win11' ? 'Windows 11' : 'Windows 10';
 
   return (
     <article class="v-card" data-testid={`case-${template.id}`}>
@@ -61,6 +66,11 @@ export function CaseLab({ template, lib, objectives }: Props) {
         <dd><LoTags ids={template.lo} objectives={objectives} /></dd>
         <dt>เก็บไฟล์ลูกค้า</dt>
         <dd>{template.customer.keepData ? 'ต้องเก็บ (ห้ามใช้วิธีที่ลบข้อมูล)' : 'ไม่ต้อง (สำรองแล้ว)'}</dd>
+        <dt>ลูกค้าต้องการ</dt>
+        <dd>
+          <b>{osName}</b>
+          {template.targetOs === 'win10' && <span class="v-badge warn">หมดการอัปเดตความปลอดภัยแล้ว</span>}
+        </dd>
         <dt>ยี่ห้อที่สุ่มได้</dt>
         <dd>{template.brands.join(', ')}</dd>
         <dt>ปัญหาตายตัว</dt>
@@ -94,7 +104,7 @@ export function CaseLab({ template, lib, objectives }: Props) {
 
         <div class="v-ticket">
           <div class="v-ticket-head">
-            ตั๋วเครื่อง · <b>{g.brand.name}</b>
+            ตั๋วเครื่อง · <b>{g.brand.name}</b> · ลง <b>{osName}</b>
             {!g.brand.verified && <span class="v-badge warn">BIOS ยังไม่เทียบเครื่องจริง</span>}
           </div>
           <table class="v-machine">
@@ -119,7 +129,7 @@ export function CaseLab({ template, lib, objectives }: Props) {
         <ol class="v-problems">
           {g.problems.map((p) => (
             <li key={p.id}>
-              <b>{p.id}</b> — {p.symptomTh}
+              <b>{p.id}</b> <SourceBadge source={p.source} page={p.bookPage} /> — {p.symptomTh}
               {p.screenText && <div class="v-screen">{p.screenText}</div>}
               <div class="v-fixes">
                 ทางแก้ที่กำหนด:{' '}
@@ -139,14 +149,19 @@ export function CaseLab({ template, lib, objectives }: Props) {
         </ol>
 
         <h5>สิ่งที่ตัวติดตั้งบ่นตอนนี้</h5>
-        <p>{blockers.length ? blockers.join(', ') : 'ไม่มี (ติดตั้งได้เลย)'}</p>
+        {blockers.length ? (
+          <ul class="v-list">{blockers.map((b) => <li key={b}>{BLOCKER_TH[b]} <code class="v-dim">{b}</code></li>)}</ul>
+        ) : (
+          <p>ไม่มี (ติดตั้งได้เลย)</p>
+        )}
+        {limits.length > 0 && <p class="v-bad">ข้อจำกัดฮาร์ดแวร์: {limits.join(', ')}</p>}
 
         <h5>วิธีซ่อมที่สั้นที่สุด (ระบบหาให้)</h5>
         {path ? (
           <ol class="v-steps" data-testid="solution">
             {path.map((id, i) => (
               <li key={i}>
-                {getAction(id).labelTh}
+                {getAction(id).labelTh} <SourceBadge source={getAction(id).source} page={getAction(id).bookPage} />
                 {getAction(id).destructive && <span class="v-badge bad">ลบข้อมูล</span>}
               </li>
             ))}

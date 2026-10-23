@@ -3,15 +3,39 @@
   "order": 1,
   "difficulty": 1,
   "titleTh": "ลงตรงไหนก็ขึ้นแดง",
-  "lo": ["LO4", "LO6"],
+  "lo": [
+    "LO4"
+  ],
   "customer": {
     "nameTh": "ป้าสมศรี",
     "lineTh": "ป้าเปลี่ยนจาก Windows 10 เป็น 11 แต่ถึงตอนเลือกที่ลง มันขึ้นแดงๆ ลงต่อไม่ได้เลย ไฟล์ป้าสำรองไว้แล้วค่ะ",
     "keepData": false
   },
-  "brands": ["asus"],
-  "machine": { "ramGB": [8], "storageGB": [256, 512], "cpu": ["Intel Core i5-8400", "AMD Ryzen 5 3600"] },
-  "problems": { "fixed": ["uefi-mbr"] },
-  "minigames": ["mbr-gpt"],
-  "timeLimitSec": 300
+  "brands": [
+    "classic"
+  ],
+  "machine": {
+    "ramGB": [
+      8
+    ],
+    "storageGB": [
+      256,
+      512
+    ],
+    "cpu": [
+      "Intel Core i5-8400",
+      "AMD Ryzen 5 3600"
+    ]
+  },
+  "problems": {
+    "fixed": [
+      "uefi-mbr"
+    ]
+  },
+  "minigames": [
+    "mbr-gpt",
+    "partition"
+  ],
+  "timeLimitSec": 300,
+  "targetOs": "win11"
 }

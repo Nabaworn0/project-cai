@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { ACTIONS, ACTION_IDS } from '../core/actions';
 import { brandShows, conflicts, generateCase, solve } from '../core/cases';
 import { applyPatch, healthyMachine, matches, type Machine, type MachinePatch } from '../core/machine';
-import { BLOCKER_IDS, findBlockers, hardwareLimits } from '../core/win11';
+import { BLOCKER_IDS, findBlockers, hardwareLimits } from '../core/requirements';
 import {
   BIOS_SETTINGS,
   BrandSchema,
@@ -146,12 +146,12 @@ function checkProblems(parsed: ParsedContent, checkLo: (w: string, l: readonly s
     // It may reveal a follow-up blocker (legacy -> UEFI exposes an MBR disk); whole cases are solved separately.
     for (const f of p.fixes.filter((x) => ACTION_IDS.includes(x))) {
       const works = parsed.brands.some((brand) =>
-        [false, true].some((hasData) => {
-          const start = applyPatch(applyPatch({ ...healthyMachine(brand.id), diskHasData: hasData }, p.requires), p.patch);
+        p.targets.some((target) => [false, true].some((hasData) => {
+          const start = applyPatch(applyPatch({ ...healthyMachine(brand.id, target), diskHasData: hasData }, p.requires), p.patch);
           if (!findBlockers(start).includes(p.blocker as never)) return false;
           const cleared = (m: Machine) => !findBlockers(m).includes(p.blocker as never);
           return solve(start, brand, { keepData: false, allowed: new Set([...prep, f]), maxDepth: 3, until: cleared }) !== null;
-        }),
+        })),
       );
       if (!works) errors.push(`${where}: fix "${f}" does not clear blocker ${p.blocker} on any brand`);
     }
@@ -189,6 +189,12 @@ function checkCases(
     if (!refsOk) continue;
 
     const fixed = c.problems.fixed.map((id) => parsed.problems.find((p) => p.id === id)!);
+    for (const p of fixed) if (!p.targets.includes(c.targetOs)) errors.push(`${where}: problem ${p.id} does not apply to ${c.targetOs} (targets: ${p.targets.join(', ')})`);
+    const pool = c.problems.pool.map((id) => parsed.problems.find((p) => p.id === id)!);
+    if (c.problems.extra[1] > 0 && !pool.some((p) => p.targets.includes(c.targetOs))) errors.push(`${where}: no pool problem applies to ${c.targetOs}`);
+    // The first five cases are the textbook part of the game: topics beyond the book belong in later cases.
+    const beyond = [...fixed, ...pool].filter((p) => p.source === 'extra').map((p) => p.id);
+    if (c.order <= 5 && beyond.length) warnings.push(`${where}: เคสช่วงต้นใช้เรื่องนอกหนังสือ (${beyond.join(', ')}) ควรย้ายไปเคสขั้นสูง`);
     fixed.forEach((p, i) => {
       const why = conflicts(fixed.slice(0, i), p);
       if (why) errors.push(`${where}: fixed problems contradict each other: ${why}`);

@@ -7,6 +7,9 @@ import { z } from 'zod';
 const id = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'ids are lowercase-kebab-case');
 const loId = z.string().regex(/^LO\d+$/, 'objective ids look like LO1');
 const th = z.string().min(1);
+/** Where a topic comes from: the textbook, what Windows 11 adds to it, or beyond the book (advanced). */
+export const SourceSchema = z.enum(['book', 'win11', 'extra']);
+export const TargetOsSchema = z.enum(['win10', 'win11']);
 
 export const BIOS_SETTINGS = ['bootOrder', 'bootMode', 'secureBoot', 'supervisorPassword', 'tpm', 'sataMode'] as const;
 export const BiosSetting = z.enum(BIOS_SETTINGS);
@@ -23,12 +26,15 @@ export const MachinePatchSchema = z
     sataMode: z.enum(['ahci', 'raid']),
     raidDriverLoaded: z.boolean(),
     usbFirst: z.boolean(),
+    usbScheme: z.enum(['mbr', 'gpt']),
     cpu: z.string(),
     cpuWin11: z.boolean(),
     ramGB: z.number().int().positive(),
     storageGB: z.number().int().positive(),
     diskStyle: z.enum(['mbr', 'gpt']),
     diskHasData: z.boolean(),
+    productKey: z.boolean(),
+    activateLater: z.boolean(),
     missingDrivers: z.array(z.string()),
   })
   .partial()
@@ -42,7 +48,12 @@ export const ObjectivesSchema = z.object({
 export const ProblemSchema = z.object({
   id,
   lo: z.array(loId).min(1),
-  /** Blocker from src/core/win11.ts that this problem must produce. */
+  source: SourceSchema,
+  /** Textbook page(s) that teach this. */
+  bookPage: z.string().optional(),
+  /** Windows versions this problem can appear in (default: both). */
+  targets: z.array(TargetOsSchema).min(1).default(['win10', 'win11']),
+  /** Blocker from src/core/requirements.ts that this problem must produce. */
   blocker: z.string(),
   /** Conditions on the machine for this problem to make sense. */
   requires: MachinePatchSchema.default({}),
@@ -72,6 +83,8 @@ export const CaseSchema = z.object({
     /** The customer wants their files kept: destructive repairs lose points. */
     keepData: z.boolean(),
   }),
+  /** Which Windows the customer wants installed. */
+  targetOs: TargetOsSchema.default('win11'),
   brands: z.array(id).min(1),
   machine: z
     .object({

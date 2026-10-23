@@ -2,32 +2,55 @@
   "id": "hp",
   "name": "HP",
   "verified": false,
-  "phase": "mvp",
+  "phase": "next",
   "style": "startup-menu",
-  "keys": { "setup": ["F10"], "bootMenu": ["F9"], "startupMenu": "Esc" },
+  "keys": {
+    "setup": [
+      "F10"
+    ],
+    "bootMenu": [
+      "F9"
+    ],
+    "startupMenu": "Esc"
+  },
   "quirks": {},
   "pages": [
     {
       "id": "main",
       "label": "Main",
       "items": [
-        { "label": "SATA Emulation", "setting": "sataMode" }
+        {
+          "label": "SATA Emulation",
+          "setting": "sataMode"
+        }
       ]
     },
     {
       "id": "security",
       "label": "Security",
       "items": [
-        { "label": "TPM Embedded Security > TPM State", "setting": "tpm" }
+        {
+          "label": "TPM Embedded Security > TPM State",
+          "setting": "tpm"
+        }
       ]
     },
     {
       "id": "advanced",
       "label": "Advanced",
       "items": [
-        { "label": "Boot Options > UEFI Boot Order", "setting": "bootOrder" },
-        { "label": "Secure Boot Configuration > Configure Legacy Support and Secure Boot", "setting": "bootMode" },
-        { "label": "Secure Boot Configuration > Secure Boot", "setting": "secureBoot" }
+        {
+          "label": "Boot Options > UEFI Boot Order",
+          "setting": "bootOrder"
+        },
+        {
+          "label": "Secure Boot Configuration > Configure Legacy Support and Secure Boot",
+          "setting": "bootMode"
+        },
+        {
+          "label": "Secure Boot Configuration > Secure Boot",
+          "setting": "secureBoot"
+        }
       ]
     }
   ],

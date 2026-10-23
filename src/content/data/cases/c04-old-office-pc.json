@@ -1,0 +1,53 @@
+{
+  "id": "c04-old-office-pc",
+  "order": 4,
+  "difficulty": 2,
+  "titleTh": "USB ไม่ขึ้นในเมนูบูต",
+  "lo": [
+    "LO2",
+    "LO3"
+  ],
+  "customer": {
+    "nameTh": "พี่ณัฐ",
+    "lineTh": "ทำ USB ลง Windows 10 ไว้แล้วจากคอมที่บ้าน แต่เอามาเสียบเครื่องที่ออฟฟิศแล้วไม่ขึ้นให้เลือกเลยครับ",
+    "keepData": false
+  },
+  "targetOs": "win10",
+  "brands": [
+    "classic"
+  ],
+  "machine": {
+    "ramGB": [
+      4,
+      8
+    ],
+    "storageGB": [
+      256,
+      500
+    ],
+    "cpu": [
+      "Intel Core i3-6100",
+      "Intel Core i5-6500"
+    ],
+    "diskHasData": true
+  },
+  "problems": {
+    "fixed": [
+      "usb-wrong-scheme"
+    ],
+    "pool": [
+      "bios-not-saved",
+      "missing-display-driver",
+      "no-product-key"
+    ],
+    "extra": [
+      0,
+      1
+    ]
+  },
+  "minigames": [
+    "boot-order",
+    "usb-prep"
+  ],
+  "timeLimitSec": 300
+}
