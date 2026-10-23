@@ -82,7 +82,8 @@ export function validateContent(files: readonly ContentFile[], opts: { seedsPerC
   };
 }
 
-function parseAll(files: readonly ContentFile[], errors: string[]): ParsedContent {
+/** Schema-parses every file (applying defaults); problems go into `errors`. */
+export function parseAll(files: readonly ContentFile[], errors: string[]): ParsedContent {
   const out: ParsedContent = { problems: [], brands: [], cases: [], quizzes: [] };
   const parse = <S extends z.ZodType>(schema: S, f: ContentFile): z.infer<S> | undefined => {
     const r = schema.safeParse(f.data);

@@ -1,0 +1,101 @@
+/* Content viewer (?view=content). Unlike the game it is a normal scrolling page. */
+/* Only <html> scrolls: if body also had overflow:auto it would become a second, nested scroller. */
+html.viewer-page { overflow: auto; height: auto; }
+html.viewer-page body { overflow: visible; height: auto; overscroll-behavior: auto; }
+html.viewer-page body { background: var(--wall); }
+html.viewer-page #game, html.viewer-page #splash { display: none; }
+html.viewer-page #ui { position: static; pointer-events: auto; }
+
+.viewer { min-height: 100vh; }
+.v-top {
+  position: sticky; top: 0; z-index: 2; background: var(--navy); color: #fff;
+  padding: calc(10px + var(--safe-t)) max(16px, var(--safe-r)) 0 max(16px, var(--safe-l));
+}
+.v-title { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; max-width: 960px; margin: 0 auto; }
+.v-title h1 { font-family: var(--f-head); font-size: 20px; margin: 0; color: var(--yellow); }
+.v-title a { color: #fff; font-size: 14px; }
+.v-tabs { display: flex; gap: 4px; overflow-x: auto; max-width: 960px; margin: 8px auto 0; scrollbar-width: none; }
+.v-tabs button {
+  flex: none; font-family: var(--f-head); font-weight: 700; font-size: 15px; min-height: 44px;
+  padding: 6px 14px; border: 0; background: var(--navy-mid); color: #fff;
+}
+.v-tabs button.on { background: var(--wall); color: var(--navy); }
+
+.v-main { max-width: 960px; margin: 0 auto; padding: 16px max(16px, var(--safe-r)) calc(40px + var(--safe-b)) max(16px, var(--safe-l)); }
+.v-main h2 { font-family: var(--f-head); font-size: 18px; margin: 24px 0 8px; }
+.v-lead { margin: 0 0 12px; }
+.v-stack { display: grid; gap: 16px; }
+.v-main code { font-size: 13px; overflow-wrap: anywhere; }
+
+.v-status { padding: 12px 14px; background: var(--cream); font-weight: 700; }
+.v-status.ok { background: #def3ea; color: #0d5c3d; }
+.v-status.bad { background: #fbe6e4; color: #8f1d17; }
+.v-stats { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 12px 0 0; }
+.v-stats li { background: #fff; padding: 6px 12px; }
+.v-list { margin: 0; padding-left: 20px; }
+.v-list li { margin: 4px 0; overflow-wrap: anywhere; }
+.v-list.bad li { color: #8f1d17; }
+.v-list.warn li::marker { color: #b87d00; }
+
+.v-card { background: #fff; padding: 14px 16px; box-shadow: 0 0 0 3px var(--navy), 0 6px 0 3px rgba(27, 42, 74, 0.25); }
+.v-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 8px; }
+.v-card-head h3 { font-family: var(--f-head); font-size: 18px; margin: 0; }
+.v-order { background: var(--navy); color: var(--yellow); font-family: var(--f-head); font-weight: 700; padding: 2px 8px; font-size: 13px; }
+.v-stars { color: #b87d00; letter-spacing: 1px; }
+.v-quote { background: var(--cream); padding: 8px 12px; margin: 0 0 10px; }
+.v-meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 14px; }
+.v-meta dt { color: #4a5c58; }
+.v-meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.v-meta ol { margin: 0; padding-left: 18px; }
+@media (max-width: 520px) {
+  .v-meta { grid-template-columns: minmax(0, 1fr); }
+  .v-meta dt { margin-top: 6px; font-weight: 700; }
+}
+
+.v-tags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.v-tag { background: var(--teal); color: var(--navy); font-size: 12px; font-weight: 700; padding: 1px 6px; cursor: help; }
+.v-badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 6px; background: #dce3e0; margin-left: 4px; }
+.v-badge.warn { background: #ffe9b0; color: #6b4a00; }
+.v-badge.bad { background: #fbe6e4; color: #8f1d17; }
+.v-badge.ok { background: #def3ea; color: #0d5c3d; }
+.v-dim { color: #5d6b78; font-size: 13px; }
+.v-bad { color: #8f1d17; font-weight: 700; }
+.v-chip { display: inline-block; font-size: 13px; padding: 2px 8px; margin: 2px 4px 2px 0; }
+.v-chip.on { background: #def3ea; }
+.v-chip.off { background: #f1f1f1; color: #8a8a8a; text-decoration: line-through; }
+.v-screen { font-family: var(--f-win); font-size: 13px; background: #10141c; color: #e8e8e8; padding: 6px 10px; margin: 4px 0; overflow-wrap: anywhere; }
+
+.v-lab { margin-top: 14px; border-top: 3px dashed #dce3e0; padding-top: 12px; }
+.v-lab h4 { font-family: var(--f-head); margin: 0 0 8px; }
+.v-lab h5 { font-size: 14px; margin: 14px 0 4px; }
+.v-seeds { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
+.v-seeds label { display: grid; gap: 2px; font-size: 13px; flex: 1 1 160px; }
+.v-seeds input { font: inherit; font-size: 16px; padding: 6px 8px; border: 2px solid var(--navy); min-width: 0; }
+.v-hint { font-size: 12px; color: #5d6b78; margin: 6px 0 10px; }
+.v-ticket { background: var(--cream); padding: 10px 12px; }
+.v-ticket-head { font-family: var(--f-head); margin-bottom: 6px; }
+.v-machine { width: 100%; border-collapse: collapse; font-size: 14px; }
+.v-machine th { text-align: left; font-weight: 400; color: #4a5c58; padding: 3px 10px 3px 0; white-space: nowrap; vertical-align: top; }
+.v-machine td { padding: 3px 0; overflow-wrap: anywhere; }
+.v-machine tr.changed td { color: #8f1d17; font-weight: 700; }
+.v-was { font-weight: 400; font-size: 12px; }
+.v-problems, .v-steps { margin: 0; padding-left: 20px; font-size: 14px; }
+.v-problems li { margin-bottom: 8px; }
+.v-fixes { margin-top: 2px; }
+
+.v-bios-page { margin-top: 10px; }
+.v-bios-tab { display: inline-block; background: #0000a8; color: #fff; font-family: var(--f-win); font-size: 13px; padding: 1px 10px; }
+.v-bios-page ul { margin: 4px 0 0; padding-left: 20px; font-size: 14px; }
+
+.v-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 10px 0; border-top: 1px solid #dce3e0; }
+@media (max-width: 640px) { .v-pair { grid-template-columns: minmax(0, 1fr); } }
+.v-q p { margin: 4px 0; }
+.v-choices { margin: 0; padding-left: 22px; font-size: 14px; }
+.v-choices li.right { font-weight: 700; color: #0d5c3d; }
+.v-choices li.right::after { content: ' ✓'; }
+
+.v-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.v-gamecard { display: grid; gap: 4px; padding: 10px; background: var(--cream); box-shadow: inset 0 0 0 3px var(--teal); }
+.v-gamecard.rare { box-shadow: inset 0 0 0 3px #b07cd6; }
+.v-gamecard.epic { box-shadow: inset 0 0 0 3px var(--yellow); }
+.v-gamecard p { margin: 0; font-size: 14px; }

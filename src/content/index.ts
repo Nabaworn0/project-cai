@@ -1,8 +1,14 @@
 // Game-side content loader: every JSON file under ./data is bundled at build time.
 
 import { BrandSchema, CaseSchema, ObjectivesSchema, ProblemsSchema, type Brand, type Case, type Objectives, type Problem } from './schema';
+import type { ContentFile } from './validate';
 
 const raw = import.meta.glob<unknown>('./data/**/*.json', { eager: true, import: 'default' });
+/** Every bundled content file, in the shape the validator takes (paths relative to data/). */
+export function contentFiles(): ContentFile[] {
+  return Object.entries(raw).map(([path, data]) => ({ path: path.replace('./data/', ''), data }));
+}
+
 const pick = (prefix: string) => Object.entries(raw).filter(([p]) => p.startsWith(`./data/${prefix}`)).map(([, d]) => d);
 
 export interface Content {

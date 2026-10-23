@@ -10,6 +10,8 @@ export interface ActionContext {
 
 export interface Action {
   id: string;
+  /** What the player does, in Thai (hints, solution lists, the content viewer). */
+  labelTh: string;
   lo: string[];
   /** Wipes the customer's files. Forbidden when the customer asked to keep data. */
   destructive: boolean;
@@ -27,6 +29,7 @@ const ok = null;
 export const ACTIONS: readonly Action[] = [
   {
     id: 'set-usb-first',
+    labelTh: 'ตั้งให้บูตจาก USB ก่อน (Boot Menu / ลำดับบูต)',
     lo: ['LO3'],
     destructive: false,
     prep: false,
@@ -36,6 +39,7 @@ export const ACTIONS: readonly Action[] = [
   },
   {
     id: 'set-boot-uefi',
+    labelTh: 'เปลี่ยนโหมดบูตเป็น UEFI (ปิด CSM/Legacy)',
     lo: ['LO3'],
     destructive: false,
     prep: false,
@@ -45,6 +49,7 @@ export const ACTIONS: readonly Action[] = [
   },
   {
     id: 'set-supervisor-password',
+    labelTh: 'ตั้งรหัสผ่านผู้ดูแล BIOS (Supervisor Password)',
     lo: ['LO3'],
     destructive: false,
     prep: true,
@@ -54,6 +59,7 @@ export const ACTIONS: readonly Action[] = [
   },
   {
     id: 'enable-secure-boot',
+    labelTh: 'เปิด Secure Boot',
     lo: ['LO3', 'LO2'],
     destructive: false,
     prep: false,
@@ -68,6 +74,7 @@ export const ACTIONS: readonly Action[] = [
   },
   {
     id: 'enable-tpm',
+    labelTh: 'เปิด TPM (PTT / fTPM)',
     lo: ['LO2', 'LO3'],
     destructive: false,
     prep: false,
@@ -77,6 +84,7 @@ export const ACTIONS: readonly Action[] = [
   },
   {
     id: 'set-ahci',
+    labelTh: 'เปลี่ยน SATA Mode เป็น AHCI',
     lo: ['LO3', 'LO6'],
     destructive: false,
     prep: false,
@@ -87,6 +95,7 @@ export const ACTIONS: readonly Action[] = [
   },
   {
     id: 'load-raid-driver',
+    labelTh: 'โหลดไดรเวอร์ RAID/RST ในตัวติดตั้ง (Load driver)',
     lo: ['LO5', 'LO6'],
     destructive: false,
     prep: false,
@@ -95,6 +104,7 @@ export const ACTIONS: readonly Action[] = [
   },
   {
     id: 'setup-delete-all',
+    labelTh: 'ลบพาร์ทิชันทั้งหมดในตัวติดตั้ง ให้ Setup แปลงดิสก์เอง',
     lo: ['LO4'],
     destructive: true,
     prep: false,
@@ -104,6 +114,7 @@ export const ACTIONS: readonly Action[] = [
   },
   {
     id: 'diskpart-clean-convert-gpt',
+    labelTh: 'diskpart: clean แล้ว convert gpt',
     lo: ['LO4', 'LO6'],
     destructive: true,
     prep: false,
@@ -112,6 +123,7 @@ export const ACTIONS: readonly Action[] = [
   },
   {
     id: 'mbr2gpt',
+    labelTh: 'mbr2gpt แปลงเป็น GPT โดยไม่ลบข้อมูล',
     lo: ['LO4', 'LO6'],
     destructive: false,
     prep: false,
@@ -121,6 +133,7 @@ export const ACTIONS: readonly Action[] = [
   },
   {
     id: 'upgrade-ram',
+    labelTh: 'เพิ่มแรม (อะไหล่จากร้าน)',
     lo: ['LO2'],
     destructive: false,
     prep: false,
@@ -129,6 +142,7 @@ export const ACTIONS: readonly Action[] = [
   },
   {
     id: 'replace-ssd',
+    labelTh: 'เปลี่ยน SSD ลูกใหม่',
     lo: ['LO2'],
     destructive: true,
     prep: false,
@@ -137,6 +151,7 @@ export const ACTIONS: readonly Action[] = [
   },
   {
     id: 'install-drivers',
+    labelTh: 'ติดตั้งไดรเวอร์ที่ขาด',
     lo: ['LO5'],
     destructive: false,
     prep: false,
