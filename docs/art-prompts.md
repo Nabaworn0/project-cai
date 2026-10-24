@@ -73,6 +73,19 @@ Transparent background, PNG.
 **วิธีทำต่อคน:** ภาพแรกใช้พรอมต์ของคนนั้น แล้วอีก 3 สีหน้า **แนบภาพแรกกลับไป** พร้อมพรอมต์ "แก้สีหน้า" ด้านล่าง
 บันทึกชื่อไฟล์ว่า `art-source/<ชื่อ>-<สีหน้า>.png` เช่น `beam-neutral.png`, `beam-worried.png`
 
+> **สำคัญ (เจอเมื่อ 24 ต.ค. 2026):** ถ้าไม่แนบภาพตัวอย่าง ChatGPT จะวาดละเอียดเกินไปประมาณ 2 เท่า (สูง 120–165 พิกเซลอาร์ต)
+> และหัวเล็กแบบคนจริง พอย่อให้เท่าป้าสมศรีแล้ว หน้าจะเละ แว่นกลายเป็นแว่นกันแดด และสีหน้าดูไม่ออก
+> **ภาพแรกของทุกคนต้องแนบ `art-source/somsri-neutral.png` ไปเป็นตัวอย่างขนาด** แล้วใส่ข้อความนี้ไว้หน้าพรอมต์ของคนนั้น:
+>
+> ```
+> Use the attached sprite ONLY as the reference for scale and proportions. Draw a NEW character with:
+> the same art-pixel size (each pixel block as big as in the reference), the same total height (about 77 art pixels),
+> the same big chibi head (about 30 art pixels wide, the head is about 40% of the height), same outline and shading.
+> Transparent background, PNG, no glow or shadow around the character.
+> ```
+>
+> ห้ามใช้สีเหลืองอ่อนหรือครีมเป็นสีเสื้อ เพราะจะกลืนกับผนังร้าน (`#ffe3b3`) ใช้เหลืองสด `#ffd23f` แทน
+
 ### พรอมต์แก้สีหน้า (ใช้กับทุกคน แนบภาพแรกไปด้วยทุกครั้ง)
 
 ```
@@ -87,9 +100,9 @@ Transparent background, PNG.
 - `HAPPY — eyes in happy arcs, wide smile`
 - `ANGRY — eyebrows angled down toward the nose, frowning mouth`
 
-### ป้าสมศรี (`somsri`) · มีภาพ worried แล้ว ขาดอีก 3 ภาพ
+### ป้าสมศรี (`somsri`) · ✅ ครบแล้ว ยกเว้น happy ที่ต้องสร้างใหม่
 
-แนบ `somsri-worried.png` แล้วใช้พรอมต์แก้สีหน้าด้านบน 3 ครั้ง: NEUTRAL, HAPPY, ANGRY
+ภาพ happy ชุดแรกไม่มีแว่น ให้แนบ `somsri-neutral.png` แล้วใช้พรอมต์แก้สีหน้า HAPPY โดยเติมท้ายว่า `Keep her round glasses.`
 
 ### น้องบีม (`beam`) · 4 ภาพ
 
@@ -115,7 +128,7 @@ About 34 x 77 art pixels. Transparent background, PNG, centered.
 
 ```
 New sprite in the same style: "Ton", a Thai office worker about 28 years old.
-Neat short black hair, thin rectangular glasses, light yellow long-sleeved shirt with rolled-up sleeves,
+Neat short black hair, thin rectangular glasses, bright yellow (#ffd23f) long-sleeved shirt with rolled-up sleeves,
 grey trousers, holding a small laptop bag. Full body, front view, standing, polite posture.
 Expression: NEUTRAL — calm, polite.
 About 34 x 77 art pixels. Transparent background, PNG, centered.
@@ -135,11 +148,14 @@ About 34 x 77 art pixels. Transparent background, PNG, centered.
 
 | ลูกค้า | ไฟล์ |
 |---|---|
-| ป้าสมศรี | `somsri-neutral` `somsri-happy` `somsri-angry` (มี `somsri-worried` แล้ว) |
-| น้องบีม | `beam-neutral` `beam-worried` `beam-happy` `beam-angry` |
-| ลุงชัย | `chai-neutral` `chai-worried` `chai-happy` `chai-angry` |
-| พี่ต้น | `ton-neutral` `ton-worried` `ton-happy` `ton-angry` |
-| ครูวิไล | `wilai-neutral` `wilai-worried` `wilai-happy` `wilai-angry` |
+| ป้าสมศรี | ✅ ครบ |
+| น้องบีม | ✅ ครบ |
+| ลุงชัย | ✅ ครบ |
+| พี่ต้น | ✅ ครบ (angry ดูไม่ค่อยโกรธ ถ้าแก้ให้สั่ง `thick eyebrows angled down, clearly visible above the glasses`) |
+| ครูวิไล | ✅ ครบ |
+
+> บทเรียน: ถ้าสั่งแก้ภาพที่เคยผ่านแล้ว (เช่นให้คิ้วชัดขึ้น) ChatGPT มักวาดหัวและผมใหม่ด้วย ให้แนบภาพ neutral แล้วระบุว่า
+> `Change ONLY the eyebrows and mouth; do not redraw the hair or the head outline.` ไม่อย่างนั้นจะต่อกับตัวเดิมไม่ได้
 
 ## 4. ของประกอบฉาก (ทีละภาพ)
 
