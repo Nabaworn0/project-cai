@@ -202,6 +202,12 @@ test('a case must name a customer from customers.json', () => {
   hasError(files, 'unknown customer nobody');
 });
 
+test("a practice case's tip must name the keys of its BIOS brand", () => {
+  const files = real();
+  get(files, 'cases/c01-boot-order.json').coach.beforePcTh = 'กด DEL เข้า BIOS';
+  hasError(files, 'coach.beforePcTh does not name F2, F8 (keys of brand classic)');
+});
+
 test('case questions are checked: answers in range and customer questions say what the customer asks', () => {
   const files = real();
   const c = get(files, 'cases/c02-rufus-scheme.json');

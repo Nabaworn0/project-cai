@@ -129,6 +129,48 @@ test('hints: two per case, shown in the panel and on the PC, costing bonus coins
   await expect(summary).toContainText('+100');
 });
 
+test('practice help: a tip before the PC, a Thai subtitle and lit F2/F8 at POST, a free nudge after the first mistake', async ({ page }, info) => {
+  await playToRepair(page);
+  await expect(panel(page).getByTestId('coach-tip')).toContainText('F2 เข้า BIOS');
+  await facesVisible(page);
+  await shot(page, info, 'coach-1-tip');
+
+  await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
+  const subtitle = page.getByTestId('pc-subtitle');
+  await expect(subtitle).toContainText('กด F2 เพื่อเข้า BIOS');
+  expect(parseFloat(await subtitle.evaluate((e) => getComputedStyle(e).fontSize)), 'Thai stays readable').toBeGreaterThanOrEqual(12);
+  const sub = (await subtitle.boundingBox())!;
+  const keysLine = (await page.locator('.post-keys').boundingBox())!;
+  expect(sub.y, 'the subtitle does not cover the English line it translates').toBeGreaterThan(keysLine.y + keysLine.height);
+  await expect(page.locator('.keybar .key.cue')).toHaveCount(2);
+  await expect(page.locator('.keybar [data-key="F2"]')).toHaveClass(/cue/);
+  await expect(page.locator('.keybar [data-key="F8"]')).toHaveClass(/cue/);
+  await shot(page, info, 'coach-2-post');
+
+  // The first mistake: the senior technician steps in, for free.
+  await page.locator('.keybar [data-key="Enter"]').click();
+  await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'old-windows');
+  await expect(subtitle).toHaveCount(0);
+  await expect(page.locator('.keybar .key.cue')).toHaveCount(0);
+  await expect(page.getByRole('dialog').getByTestId('coach-tip')).toContainText('รีสตาร์ตเครื่อง');
+  await expect(page.getByRole('button', { name: 'คำใบ้ (2)' }), 'the nudge is not a hint').toBeVisible();
+  await shot(page, info, 'coach-3-nudge');
+
+  await page.getByRole('button', { name: 'ปิด' }).click();
+  await expect(panel(page).getByTestId('coach-tip'), 'the tip before the PC is gone, the nudge stays').toHaveCount(1);
+  await expect(panel(page).getByTestId('coach-tip')).toContainText('รีสตาร์ตเครื่อง');
+  await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
+  await page.getByRole('button', { name: 'รีสตาร์ตเครื่อง' }).click();
+  for (const k of ['F8', 'Down', 'Enter', 'Enter']) await page.locator(`.keybar [data-key="${k}"]`).click();
+  await expect(page.getByRole('dialog').getByTestId('coach-tip'), 'gone once fixed').toHaveCount(0);
+  await page.getByRole('button', { name: 'กลับไปคุยกับลูกค้า' }).click();
+  await page.getByRole('button', { name: /เครื่องเลือกบูตตามลำดับที่ตั้งไว้ใน BIOS/ }).click();
+  await page.getByRole('button', { name: 'ต่อไป' }).click();
+  const summary = page.getByRole('group', { name: 'สรุปผล' });
+  await expect(summary.locator('.stars')).toHaveAttribute('aria-label', '3 ดาว จาก 3');
+  await expect(summary).toContainText('+150');
+});
+
 test('the PC keeps its state when the monitor is closed and reopened, and only opens once the job is taken', async ({ page }) => {
   await openShop(page);
   await expectStage(page, 'intro');

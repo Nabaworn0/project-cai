@@ -48,12 +48,16 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   /** What the customer just said about the repair, and how often the PC came up with the old Windows. */
   const [said, setSaid] = useState<string | null>(null);
   const oldWindowsCount = useRef(0);
+  /** Practice cases: the PC has been opened once (the tip before it goes), and the senior technician's nudge after a mistake. */
+  const [opened, setOpened] = useState(false);
+  const [nudge, setNudge] = useState<string | null>(null);
   /** The customer is walking out: further "next customer" taps are ignored. */
   const leaving = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const latest = useRef({ gc, s });
   latest.current = { gc, s };
 
+  const coach = gc.template.coach;
   const customer = content.customers.find((c) => c.id === gc.template.customer.id);
   const name = customer?.nameTh ?? gc.template.customer.id;
 
@@ -83,7 +87,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   useEffect(
     () =>
       bus.on('ui:open-sim', () => {
-        if (latest.current.s.stage === 'repair') setSimOpen(true);
+        if (latest.current.s.stage === 'repair') openSim();
       }),
     [],
   );
@@ -104,14 +108,23 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     document.body.dataset.caseStage = arrived ? s.stage : 'arriving';
   }, [arrived, s.stage]);
 
+  const openSim = () => {
+    setSimOpen(true);
+    setOpened(true);
+  };
+
   const onEffect = (e: Effect) => {
     // After the fix the PC is just for looking: a later mistake does not count against the player.
     const cur = latest.current.s;
     if (cur.stage !== 'repair' || cur.route) return;
     act(e.type === 'mistake' ? { type: 'mistake' } : { type: 'repaired', route: e.route });
     const r = latest.current.gc.template.customer.reactionsTh;
-    if (e.type === 'reached-setup') setSaid(reactionLine(r, 'fixed'));
-    else if (e.reason === 'no-boot-device') setSaid(reactionLine(r, 'no-boot'));
+    const coachNow = latest.current.gc.template.coach;
+    if (e.type === 'mistake' && coachNow && latest.current.s.mistakes === 1) setNudge(coachNow.firstMistakeTh);
+    if (e.type === 'reached-setup') {
+      setNudge(null);
+      setSaid(reactionLine(r, 'fixed'));
+    } else if (e.reason === 'no-boot-device') setSaid(reactionLine(r, 'no-boot'));
     else setSaid(reactionLine(r, 'old-windows', ++oldWindowsCount.current));
   };
 
@@ -125,6 +138,8 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       pcRef.current = undefined;
       oldWindowsCount.current = 0;
       setSaid(null);
+      setNudge(null);
+      setOpened(false);
       setFeedback(null);
       setS(startSession(g));
       setGc(g);
@@ -140,6 +155,11 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   const saying = said && (
     <p class="says customer-says" data-testid="customer-says">
       <span class="speaker">{name}</span> “{said}”
+    </p>
+  );
+  const tip = (text: string) => (
+    <p class="coach-tip" data-testid="coach-tip">
+      <span class="speaker">พี่ช่าง</span> {text}
     </p>
   );
   const hints = shownHints(s);
@@ -159,6 +179,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
         initial={pcRef.current}
         onPc={(pc) => (pcRef.current = pc)}
         onEffect={onEffect}
+        coach={!!coach}
         onClose={() => {
           setSimOpen(false);
           bus.emit('ui:close-sim', {});
@@ -166,9 +187,10 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
         footer={
           <div class="pc-footer">
             {/* Text scrolls when space is short (phones on their side); the buttons below always stay in view. */}
-            {(saying || hintList) && (
+            {(saying || nudge || hintList) && (
               <div class="pc-notes">
                 {saying}
+                {nudge && tip(nudge)}
                 {hintList}
               </div>
             )}
@@ -258,7 +280,9 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       body = (
         <>
           <p class="ask">{s.route ? 'บูตจาก USB ได้แล้ว กลับไปคุยกับลูกค้า' : 'แตะคอมบนเคาน์เตอร์เพื่อเปิดเครื่องของลูกค้า แล้วทำให้เครื่องบูตจาก USB'}</p>
+          {coach && !opened && !s.route && tip(coach.beforePcTh)}
           {saying}
+          {nudge && tip(nudge)}
           {hintList}
           <div class="actions">
             {s.route ? (
@@ -266,7 +290,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
                 คุยกับลูกค้า
               </button>
             ) : (
-              <button class="btn" type="button" onClick={() => setSimOpen(true)}>
+              <button class="btn" type="button" onClick={openSim}>
                 เปิดเครื่องลูกค้า
               </button>
             )}

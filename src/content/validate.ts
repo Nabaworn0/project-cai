@@ -229,6 +229,11 @@ function checkCases(
     });
     let refsOk = true;
     for (const b of c.brands) if (!brandIds.has(b)) (errors.push(`${where}: unknown brand ${b}`), (refsOk = false));
+    // The tip names the keys, so it must match every brand the case can draw.
+    for (const b of c.coach ? parsed.brands.filter((x) => c.brands.includes(x.id)) : []) {
+      const keys = [b.keys.setup[0]!, b.keys.bootMenu[0]!].filter((k) => !c.coach!.beforePcTh.includes(k));
+      if (keys.length) errors.push(`${where}: coach.beforePcTh does not name ${keys.join(', ')} (keys of brand ${b.id})`);
+    }
     for (const pid of [...c.problems.fixed, ...c.problems.pool]) {
       if (!problemIds.has(pid)) (errors.push(`${where}: unknown problem ${pid}`), (refsOk = false));
     }

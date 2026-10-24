@@ -103,3 +103,9 @@
 .customer-says { background: #fff; padding: 6px 10px; box-shadow: inset 4px 0 0 var(--navy); }
 .pc-footer .customer-says { flex: 1 1 100%; margin: 0; font-size: 14px; color: var(--ink); }
 .pc-footer .customer-says .speaker { font-size: 12px; margin: 0 4px 0 0; }
+
+/* The senior technician's tip in practice cases (case "coach"). */
+.coach-tip { margin: 0 0 8px; background: #e3f6f3; padding: 6px 10px; box-shadow: inset 4px 0 0 var(--teal); font-size: 15px; }
+.case-panel .coach-tip .speaker { background: var(--teal); color: var(--navy); }
+.pc-footer .coach-tip { flex: 1 1 100%; margin: 0; font-size: 14px; color: var(--ink); }
+.pc-footer .coach-tip .speaker { display: inline-block; padding: 0 6px; margin: 0 4px 0 0; background: var(--teal); color: var(--navy); font-family: var(--f-head); font-weight: 700; font-size: 12px; }

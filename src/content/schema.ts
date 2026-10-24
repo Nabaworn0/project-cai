@@ -105,6 +105,17 @@ const ReactionsSchema = z
   .strict();
 export type Reactions = z.infer<typeof ReactionsSchema>;
 
+/** Teaching aids for a practice case: while present, the POST screen also gets a Thai subtitle and its
+ *  setup/boot-menu keys light up on the key bar. */
+const CoachSchema = z
+  .object({
+    /** The senior technician's tip in the panel, until the player first opens the customer's PC. */
+    beforePcTh: th,
+    /** A free nudge after the first mistake (unlike a hint it costs nothing). */
+    firstMistakeTh: th,
+  })
+  .strict();
+
 export const CaseSchema = z.object({
   id,
   order: z.number().int().positive(),
@@ -123,6 +134,7 @@ export const CaseSchema = z.object({
   diagnosis: CaseQuestionSchema,
   /** Step 4: the customer asks "why?" and the player picks the right explanation. */
   customerQuestions: z.array(CaseQuestionSchema).min(1),
+  coach: CoachSchema.optional(),
   /** Notes for whoever builds/plays the case (traps, what to watch); not shown to students. */
   designNotesTh: z.array(th).default([]),
   brands: z.array(id).min(1),

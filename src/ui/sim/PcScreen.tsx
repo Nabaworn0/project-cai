@@ -1,6 +1,6 @@
 // The simulated monitor showing the customer's PC (src/core/pc.ts). Keys come from the real keyboard
 // or the on-screen key bar (phones have no F keys); both send the same names. The bar always shows
-// every key, so it never gives away which one is needed.
+// every key, so it never gives away which one is needed, except in a practice case (coach).
 
 import type { ComponentChildren } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
@@ -25,6 +25,8 @@ interface Props {
   onPc?: (pc: Pc) => void;
   /** Extra controls in the status row (hints, "back to the customer"). */
   footer?: ComponentChildren;
+  /** Practice case: the POST screen gets a Thai subtitle and its setup/boot-menu keys light up. */
+  coach?: boolean;
 }
 
 const KEY_BAR: { key: Key; label: string; name: string }[] = [
@@ -64,7 +66,7 @@ const EFFECT_TH: Record<string, string> = {
   'reached-setup': 'บูตจาก USB สำเร็จ เข้าหน้าติดตั้ง Windows แล้ว',
 };
 
-export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, footer }: Props) {
+export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, footer, coach }: Props) {
   const [pc, setPc] = useState<Pc>(() => initial ?? powerOn(machine));
   const [status, setStatus] = useState('');
   const screenRef = useRef<HTMLDivElement>(null);
@@ -112,6 +114,8 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
   }, [pc.screen.kind]);
 
   const s = pc.screen;
+  const cue = coach && s.kind === 'post';
+  const cueKeys: readonly string[] = cue ? [brand.keys.setup[0]!, brand.keys.bootMenu[0]!] : [];
   return (
     <div class="sim-backdrop" role="dialog" aria-modal="true" aria-label="หน้าจอจำลอง">
       <div class="monitor pc-monitor">
@@ -143,6 +147,11 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
           {s.kind === 'no-boot' && <NoBootScreen />}
           {s.kind === 'old-windows' && <OldWindowsScreen />}
           {s.kind === 'setup' && <SetupLanguageScreen />}
+          {cue && (
+            <p class="pc-subtitle" data-testid="pc-subtitle">
+              คำแปล: กด {brand.keys.setup[0]} เพื่อเข้า BIOS (หน้าตั้งค่า) · <span class="nowrap">กด {brand.keys.bootMenu[0]} เพื่อเปิด Boot Menu</span>
+            </p>
+          )}
         </div>
         <div class="pc-status-row">
           <p class="pc-status" role="status" aria-live="polite">
@@ -155,7 +164,7 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
             <button
               key={k.key}
               type="button"
-              class={`key${k.label.length > 2 ? ' wide' : ''}${k.label.length === 1 ? ' glyph' : ''}`}
+              class={`key${k.label.length > 2 ? ' wide' : ''}${k.label.length === 1 ? ' glyph' : ''}${cueKeys.includes(k.key) ? ' cue' : ''}`}
               data-key={k.key}
               aria-label={k.name}
               // Keep focus on the screen so a real Enter after a tap still goes to the PC.
