@@ -3,14 +3,7 @@
 // the screens it passes through, for looking at by eye (test-results/).
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-
-async function openPc(page: Page) {
-  await page.goto('/');
-  await expect(page.locator('body')).toHaveAttribute('data-scene', 'shop');
-  await expect(page.locator('#splash')).toHaveCount(0);
-  await page.getByRole('button', { name: 'เปิดหน้าจอจำลอง' }).click();
-  await expectScreen(page, 'post');
-}
+import { openPc } from './helpers';
 
 const expectScreen = (page: Page, kind: string) => expect(page.locator('body')).toHaveAttribute('data-pc-screen', kind);
 /** Taps keys on the on-screen key bar. */
@@ -110,8 +103,9 @@ test('the Esc trap boots the old Windows and says it was a mistake; restart star
 });
 
 test('the screens move on by themselves: POST boots, "Press any key" gives up (not a mistake)', async ({ page }) => {
-  await page.clock.install();
   await openPc(page);
+  await page.clock.install();
+  await page.getByRole('button', { name: 'รีสตาร์ตเครื่อง' }).click(); // POST again, now on the fake clock
   await page.clock.runFor(8_100);
   await expectScreen(page, 'old-windows');
   await expect(page.locator('.pc-status')).toContainText('นับว่าพลาด');
@@ -132,4 +126,16 @@ test('Enter on a key bar button does not also click the button (focus stays on t
   await expect(page.locator('.bios-heading')).toHaveText('SATA Configuration');
   await page.keyboard.press('Escape');
   await expect(page.locator('.bios-heading')).toHaveText('Advanced Settings');
+});
+
+test('with both hints showing, every key and button still fits on the screen', async ({ page }) => {
+  await openPc(page);
+  await page.getByRole('button', { name: 'คำใบ้ (2)' }).click();
+  await page.getByRole('button', { name: 'คำใบ้ (1)' }).click();
+  const vp = page.viewportSize()!;
+  for (const el of await page.locator('.keybar .key, .monitor-bar .btn, .pc-footer .btn').all()) {
+    const b = (await el.boundingBox())!;
+    expect(b.y + b.height, await el.textContent() ?? '').toBeLessThanOrEqual(vp.height + 0.5);
+    expect(b.x + b.width).toBeLessThanOrEqual(vp.width + 0.5);
+  }
 });

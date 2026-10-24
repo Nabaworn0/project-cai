@@ -120,21 +120,27 @@
   .key { min-width: 40px; font-size: 15px; padding: 0 6px; }
 }
 
-/* Phones on their side: height is scarce, so the keys move to the right of the screen. */
+/* Phones on their side: height is scarce, so the status, hints and keys move to a column right of the screen. */
 @media (orientation: landscape) and (max-height: 520px) {
   .monitor.pc-monitor {
-    --pc-chrome: 64px;
-    width: 100%; padding: 6px 10px 8px;
-    display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px;
-    grid-template-areas: 'bar bar' 'screen keys' 'status keys';
+    --pc-chrome: 88px; /* backdrop and monitor padding + the top bar */
+    /* An explicit height: a percentage does not resolve inside the backdrop grid, and 1fr rows need it. */
+    width: 100%; height: calc(100dvh - 24px - var(--safe-t) - var(--safe-b)); padding: 6px 10px 8px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 196px; column-gap: 12px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'bar bar' 'screen status' 'screen keys';
   }
   .pc-monitor .monitor-bar { grid-area: bar; padding-bottom: 6px; }
-  .pc-monitor .pc { grid-area: screen; }
-  .pc-monitor .pc-status { grid-area: status; margin-top: 2px; font-size: 13px; }
+  .pc-monitor .pc { grid-area: screen; align-self: center; }
+  .pc-monitor .pc-status-row { grid-area: status; margin: 0 0 6px; min-height: 0; }
+  .pc-monitor .pc-status { font-size: 13px; flex-basis: 100%; }
+  .pc-monitor .pc-footer { justify-content: flex-start; }
+  .pc-monitor .pc-footer .hints { font-size: 12px; }
   .pc-monitor .keybar {
     grid-area: keys; align-self: center; padding: 0;
-    display: grid; grid-template-columns: repeat(3, 48px); gap: 6px;
+    /* Four keys a row: three short rows leave the column room for hints, which scroll above. */
+    display: grid; grid-template-columns: repeat(4, 44px); gap: 6px;
   }
-  .pc-monitor .key { min-width: 0; min-height: 42px; padding: 0; font-size: 14px; }
+  .pc-monitor .key { min-width: 0; min-height: 40px; padding: 0; font-size: 13px; }
   .pc-monitor .key.glyph { font-size: 20px; }
 }

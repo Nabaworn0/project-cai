@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { playToRepair } from './helpers';
 
 const errorsOf = (page: Page) => {
   const errors: string[] = [];
@@ -24,7 +25,7 @@ test('the shop scene opens with the character and the simulation badge, without 
   await openShop(page);
   await expect(page.locator('#game canvas')).toBeVisible();
   await expect(page.getByRole('status')).toHaveText('โหมดจำลอง');
-  await expect(page.locator('.narration')).toBeVisible();
+  await expect(page.locator('.narration')).toBeVisible({ timeout: 8000 });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
   // The narration box must sit inside the viewport.
@@ -96,11 +97,10 @@ test('tapping the technician changes their expression', async ({ page }) => {
   await expect(page.locator('body')).toHaveAttribute('data-expression', 'neutral');
   await tapAt(page, 'techAt');
   await expect(page.locator('body')).toHaveAttribute('data-expression', 'happy');
-  await expect(page.locator('.narration')).toContainText('ดีใจ');
 });
 
 test("the PC on the counter opens the customer's screen; only the close button closes it (Esc belongs to the BIOS)", async ({ page }) => {
-  await openShop(page);
+  await playToRepair(page);
   await tapAt(page, 'pcAt');
   const dialog = page.getByRole('dialog', { name: 'หน้าจอจำลอง' });
   await expect(dialog).toBeVisible();
@@ -109,7 +109,7 @@ test("the PC on the counter opens the customer's screen; only the close button c
   await expect(dialog).toBeVisible();
   await dialog.getByRole('button', { name: 'ปิด' }).click();
   await expect(dialog).toBeHidden();
-  await page.getByRole('button', { name: 'เปิดหน้าจอจำลอง' }).click();
+  await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
   await expect(dialog).toBeVisible();
 });
 

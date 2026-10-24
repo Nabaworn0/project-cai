@@ -2,7 +2,7 @@
 //                     [--out src/assets/sprites] [--no-preview]
 //   --same-rows / --same-cols: in a frame set, copy these art rows / columns from the *-neutral frame
 //                into the others (expressions only change the face; this removes AI noise elsewhere)
-//   Technician: npm run pixelize -- "art-source/tech-*.png" --same-rows 0-16,40- --same-cols 0-5,33-
+//   Technician: npm run pixelize -- "art-source/tech-*.png" --height 50 --same-rows 0-12,32- --same-cols 0-3,27-
 // npm run pixelize -- art-source/icons-sheet.png --grid 4x2 --names ram,ssd,usb,... [--prefix icon-]
 // npm run pixelize -- --export-palette
 //

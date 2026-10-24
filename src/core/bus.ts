@@ -2,11 +2,20 @@
 
 import type { Expression } from '../game/art/technician';
 import type { ShopLayout } from '../game/scenes/ShopScene';
+import type { CustomerMood } from './session';
 
 export interface GameEvents {
   'scene:ready': { scene: string };
   'layout:shop': ShopLayout;
   'character:tap': { expression: Expression };
+  /** A customer walks in to the counter (sprites `<id>-<mood>.png`). */
+  'customer:enter': { id: string; mood: CustomerMood };
+  'customer:mood': { mood: CustomerMood };
+  'customer:leave': Record<string, never>;
+  /** The scene finished the walk in / out. */
+  'customer:arrived': { id: string };
+  'customer:left': { id: string };
+  'customer:tap': { id: string };
   'ui:open-sim': Record<string, never>;
   'ui:close-sim': Record<string, never>;
 }

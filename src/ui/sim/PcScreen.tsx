@@ -2,6 +2,7 @@
 // or the on-screen key bar (phones have no F keys); both send the same names. The bar always shows
 // every key, so it never gives away which one is needed.
 
+import type { ComponentChildren } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { powerOn, press, restart, timeout, type Effect, type Key, type Pc } from '../../core/pc';
 import type { Machine } from '../../core/machine';
@@ -18,6 +19,12 @@ interface Props {
   onClose: () => void;
   /** Mistakes and reaching Setup, for the case flow. */
   onEffect?: (e: Effect) => void;
+  /** Resume a PC left earlier (closing the monitor does not reset the customer's machine). */
+  initial?: Pc;
+  /** Every change of the PC, so the owner can resume it later. */
+  onPc?: (pc: Pc) => void;
+  /** Extra controls in the status row (hints, "back to the customer"). */
+  footer?: ComponentChildren;
 }
 
 const KEY_BAR: { key: Key; label: string; name: string }[] = [
@@ -57,17 +64,18 @@ const EFFECT_TH: Record<string, string> = {
   'reached-setup': 'บูตจาก USB สำเร็จ เข้าหน้าติดตั้ง Windows แล้ว',
 };
 
-export function PcScreen({ brand, machine, onClose, onEffect }: Props) {
-  const [pc, setPc] = useState<Pc>(() => powerOn(machine));
+export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, footer }: Props) {
+  const [pc, setPc] = useState<Pc>(() => initial ?? powerOn(machine));
   const [status, setStatus] = useState('');
   const screenRef = useRef<HTMLDivElement>(null);
   // Latest values for the window key listener and timers, without re-subscribing on every render.
-  const latest = useRef({ pc, brand, onEffect });
-  latest.current = { pc, brand, onEffect };
+  const latest = useRef({ pc, brand, onEffect, onPc });
+  latest.current = { pc, brand, onEffect, onPc };
 
   const apply = (r: { pc: Pc; effects: Effect[] }) => {
     latest.current.pc = r.pc;
     setPc(r.pc);
+    latest.current.onPc?.(r.pc);
     for (const e of r.effects) {
       setStatus(EFFECT_TH[e.type === 'mistake' ? e.reason : e.type] ?? '');
       latest.current.onEffect?.(e);
@@ -136,9 +144,12 @@ export function PcScreen({ brand, machine, onClose, onEffect }: Props) {
           {s.kind === 'old-windows' && <OldWindowsScreen />}
           {s.kind === 'setup' && <SetupLanguageScreen />}
         </div>
-        <p class="pc-status" role="status" aria-live="polite">
-          {status}
-        </p>
+        <div class="pc-status-row">
+          <p class="pc-status" role="status" aria-live="polite">
+            {status}
+          </p>
+          {footer}
+        </div>
         <div class="keybar" role="toolbar" aria-label="ปุ่มคีย์บอร์ด">
           {KEY_BAR.map((k) => (
             <button

@@ -1,0 +1,94 @@
+/* Case panels (CaseFlow): the customer's speech, the work ticket, choices and the summary.
+   They reuse the .narration box at the bottom of the screen; long content scrolls inside it
+   so the customer's face above stays visible. */
+
+.hud-right { display: flex; gap: 8px; align-items: flex-start; }
+.coins-chip { background: var(--cream); }
+
+.narration.case-panel {
+  display: flex; flex-direction: column; align-items: stretch; padding: 0;
+  left: 0; right: 0; margin-inline: auto; transform: none;
+  /* At most the bottom part of the screen: the customer and technician stand above it (ShopScene). */
+  max-height: min(46dvh, 520px);
+}
+/* The scrolling happens inside: a scrolling box that also has the pixel-box shadow made Chrome paint
+   its scrolled-off part as a white block over the scene. */
+.case-scroll { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 10px 14px; }
+.case-panel .speaker {
+  display: inline-block; margin-bottom: 4px; padding: 0 8px;
+  background: var(--navy); color: var(--yellow);
+  font-family: var(--f-head); font-weight: 700; font-size: 14px;
+}
+.case-panel .says, .case-panel .ask { margin: 0 0 8px; font-size: 16px; }
+.case-panel .ask { font-family: var(--f-head); font-weight: 700; }
+.case-panel .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+
+/* Landscape (PCs and phones on their side): the panel goes to the right, beside the customer and the
+   technician (who stand left of centre), so their faces stay in view. */
+@media (orientation: landscape) {
+  .narration.case-panel {
+    left: auto; right: max(12px, var(--safe-r)); transform: none;
+    top: auto; bottom: calc(10px + var(--safe-b));
+    width: min(44%, 460px); max-height: calc(100dvh - 76px - var(--safe-t) - var(--safe-b));
+  }
+}
+
+/* ---- multiple choice ---- */
+.choices { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.choice {
+  width: 100%; min-height: 44px; display: flex; gap: 10px; align-items: center; text-align: left;
+  padding: 6px 10px; border: 0; border-radius: 0;
+  background: #fff; color: var(--ink); font-size: 15px; line-height: 1.4;
+  box-shadow: inset 0 0 0 2px var(--navy);
+}
+.choice:not(:disabled):hover { background: #eef9f7; }
+.choice:disabled { cursor: default; }
+.choice-key { flex: none; width: 1.6em; height: 1.6em; display: grid; place-items: center; background: var(--navy); color: #fff; font-family: var(--f-head); font-size: 13px; }
+.choice.right { background: #dff6e3; box-shadow: inset 0 0 0 3px #2f9e44; }
+.choice.wrong { background: #ffe1e1; box-shadow: inset 0 0 0 3px var(--coral); }
+.choice.dim { opacity: 0.55; }
+.feedback { margin: 8px 0 0; padding: 8px 10px; font-size: 15px; background: #fff; border-left: 6px solid #2f9e44; }
+.feedback.wrong { border-left-color: var(--coral); }
+
+/* ---- hints ---- */
+.hints { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.hints li { background: #fff8d6; padding: 4px 8px; }
+
+/* ---- work ticket ---- */
+.ticket { background: #fff; box-shadow: inset 0 0 0 2px var(--navy); }
+.ticket-head { background: var(--navy); color: #fff; padding: 4px 10px; font-family: var(--f-head); }
+.ticket-head b { color: var(--yellow); }
+.ticket dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; padding: 8px 10px; font-size: 15px; }
+.ticket dt { font-weight: 700; white-space: nowrap; }
+.ticket dd { margin: 0; overflow-wrap: anywhere; }
+
+/* ---- summary ---- */
+.summary .stars { font-size: 40px; line-height: 1; color: var(--yellow); text-shadow: 2px 2px 0 var(--navy); letter-spacing: 4px; }
+.summary .stars-off { color: #d8dee8; }
+.summary .lost { margin: 6px 0; padding: 0; list-style: none; font-size: 14px; }
+.summary-stats { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; margin: 6px 0; }
+.summary-stats dt { font-weight: 700; }
+.summary-stats dd { margin: 0; }
+.summary .coins { font-family: var(--f-head); font-weight: 700; font-size: 18px; }
+.meter { display: inline-block; vertical-align: middle; width: 120px; height: 12px; background: #d8dee8; box-shadow: inset 0 0 0 2px var(--navy); }
+.meter > span { display: block; height: 100%; background: var(--teal); }
+.techlog { margin-top: 8px; background: #fff; box-shadow: inset 0 0 0 2px var(--navy); }
+.techlog-head { background: var(--teal); padding: 2px 10px; font-family: var(--f-head); font-weight: 700; }
+.techlog p { margin: 0; padding: 6px 10px; font-size: 14px; }
+.techlog .page { color: #5f6b80; }
+
+/* ---- inside the PC monitor: hints and "back to the customer" ---- */
+.pc-status-row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; margin-top: 6px; }
+.pc-status-row .pc-status { margin: 0; flex: 1 1 200px; }
+.pc-footer { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; flex: 1 1 auto; }
+.pc-footer .hints { margin: 0; flex: 1 1 100%; color: var(--ink); max-height: 5.4em; overflow-y: auto; }
+/* Hints take room under the screen: make the screen a little smaller rather than push the keys off. */
+.pc-monitor:has(.pc-footer .hints) { --pc-chrome: 290px; }
+
+@media (orientation: landscape) and (max-height: 520px) {
+  /* In the side column only the hint list scrolls; the buttons stay put. */
+  .pc-monitor .pc-status-row { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; overflow: hidden; }
+  .pc-monitor .pc-footer { flex: 1 1 auto; min-height: 0; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; }
+  .pc-monitor .pc-footer .hints { flex: 0 1 auto; min-height: 0; max-height: none; }
+  .pc-monitor:has(.pc-footer .hints) { --pc-chrome: 88px; }
+}

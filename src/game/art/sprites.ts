@@ -10,6 +10,11 @@ export function spriteUrl(name: string): string | undefined {
   return byName.get(name);
 }
 
+/** Characters that have a drawn neutral frame, e.g. "somsri" from somsri-neutral.png (the technician excluded). */
+export function characterIds(): string[] {
+  return [...byName.keys()].filter((n) => n.endsWith('-neutral') && !n.startsWith('tech-')).map((n) => n.slice(0, -'-neutral'.length));
+}
+
 /**
  * URLs for a set of frames (e.g. every expression). Frames that do not exist yet reuse `fallback`
  * (e.g. the neutral face), so the character never switches to a differently drawn placeholder.

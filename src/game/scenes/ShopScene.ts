@@ -7,8 +7,16 @@ import { bus } from '../../core/bus';
 import { hex, PALETTE as P } from '../art/palette';
 import { paintRows, type PixelRows } from '../art/pixels';
 import { MONITOR } from '../art/props';
-import { spriteSet, spriteUrl } from '../art/sprites';
+import { characterIds, spriteSet, spriteUrl } from '../art/sprites';
 import { EXPRESSIONS, technicianRows, TECH_FACE, type Expression } from '../art/technician';
+import type { CustomerMood } from '../../core/session';
+
+const MOODS: readonly CustomerMood[] = ['neutral', 'worried', 'happy', 'angry'];
+/** Walking speed in art pixels per second, and how often the walker bobs a pixel. */
+const WALK_SPEED = 90;
+const BOB_MS = 140;
+
+type CustomerState = 'away' | 'walking-in' | 'here' | 'walking-out';
 
 /** HUD chip footprint in CSS px (see .hud in theme.css); the sign must not sit under the chips. */
 const HUD_CHIP = { width: 170, height: 56 };
@@ -31,6 +39,21 @@ export class ShopScene extends Phaser.Scene {
   private techSprites = spriteSet(EXPRESSIONS.map((e) => `tech-${e}`), 'tech-neutral');
   /** Pixelized props; each falls back to its code-drawn version when its file does not exist. */
   private props = { monitor: spriteUrl('monitor'), window: spriteUrl('window'), shelf: spriteUrl('shelf') };
+  /** Customer frames by id; a missing mood reuses that customer's neutral frame. */
+  private customerSprites = new Map(
+    characterIds().flatMap((id) => {
+      const set = spriteSet(MOODS.map((m) => `${id}-${m}`), `${id}-neutral`);
+      return set ? [[id, set] as const] : [];
+    }),
+  );
+  private customer!: Phaser.GameObjects.Image;
+  private customerId: string | null = null;
+  private customerMood: CustomerMood = 'neutral';
+  private customerState: CustomerState = 'away';
+  /** Where the customer stands in front of the counter (set by layout). */
+  private stand = { x: 0, y: 0 };
+  private walk?: Phaser.Tweens.Tween;
+  private bob?: Phaser.Time.TimerEvent;
 
   constructor() {
     super('shop');
@@ -39,6 +62,7 @@ export class ShopScene extends Phaser.Scene {
   preload(): void {
     this.techSprites?.forEach((url, key) => this.load.image(key, url));
     for (const [key, url] of Object.entries(this.props)) if (url) this.load.image(key, url);
+    for (const set of this.customerSprites.values()) set.forEach((url, key) => this.load.image(key, url));
   }
 
   create(): void {
@@ -54,6 +78,16 @@ export class ShopScene extends Phaser.Scene {
     this.front = this.add.graphics();
     this.monitor = this.add.image(0, 0, 'monitor').setOrigin(0, 0).setInteractive({ useHandCursor: true });
     this.monitor.on('pointerdown', () => bus.emit('ui:open-sim', {}));
+    // The customer stands in front of the counter, so it is drawn last.
+    this.customer = this.add.image(0, 0, '__DEFAULT').setOrigin(0, 0).setVisible(false);
+    this.customer.setInteractive({ useHandCursor: true, pixelPerfect: true });
+    this.customer.on('pointerdown', () => this.customerId && bus.emit('customer:tap', { id: this.customerId }));
+    const offs = [
+      bus.on('customer:enter', ({ id, mood }) => this.enterCustomer(id, mood)),
+      bus.on('customer:mood', ({ mood }) => this.setCustomerMood(mood)),
+      bus.on('customer:leave', () => this.leaveCustomer()),
+    ];
+    this.events.once('shutdown', () => offs.forEach((off) => off()));
 
     // Idle: a one-pixel breath every 0.7 s.
     this.time.addEvent({
@@ -102,7 +136,10 @@ export class ShopScene extends Phaser.Scene {
     const zoom = this.scale.zoom; // CSS px per art px
     this.cameras.main.setSize(W, H);
     const portrait = H > W;
-    const floorY = Math.round(H * (portrait ? 0.74 : 0.8));
+    // Tall phones: the case panel takes the bottom half of the screen, so the counter and the people move up
+    // into what would be empty wall (see .case-panel in case.css). Landscape keeps the panel at the side.
+    const tall = H / W >= 1.6;
+    const floorY = Math.round(H * (tall ? 0.56 : portrait ? 0.74 : 0.8));
     const counterTop = floorY - (portrait ? 28 : 24);
 
     // Wall: stripes, then a wainscot rail; floor planks with staggered seams.
@@ -164,6 +201,12 @@ export class ShopScene extends Phaser.Scene {
     const mx = Math.min(techX + techW + 10, W - this.monitor.width - 6);
     this.monitor.setPosition(mx, counterTop - this.monitor.height + 1);
 
+    // The customer stands on the floor in front of the counter, to the technician's left (the PC is on the right).
+    const custW = this.customerId ? this.customer.width : 34;
+    const custH = this.customerId ? this.customer.height : 80;
+    this.stand = { x: Math.max(4, techX - custW - (portrait ? 4 : 10)), y: floorY + (portrait ? 10 : 6) - custH };
+    this.placeCustomer();
+
     // Positions in CSS px: tap targets for the Playwright tests, and the sign rectangle for the HTML label.
     const css = (v: number) => Math.round(v * zoom);
     const face = this.techSprites ? { x: Math.round(techW / 2), y: Math.round(techH * 0.3) } : TECH_FACE;
@@ -171,6 +214,96 @@ export class ShopScene extends Phaser.Scene {
     document.body.dataset.pcAt = `${css(mx + this.monitor.width / 2)},${css(this.monitor.y + 6)}`;
     const layout: ShopLayout = { sign: { x: css(signX), y: css(signY), w: css(signW), h: css(signH) } };
     bus.emit('layout:shop', layout);
+  }
+
+  // ---- the customer at the counter ----
+
+  private enterCustomer(id: string, mood: CustomerMood): void {
+    if (!this.customerSprites.has(id)) {
+      console.warn(`No sprites for customer "${id}" yet; nobody walks in.`);
+      return;
+    }
+    this.stopWalk();
+    this.customerId = id;
+    this.customerMood = mood;
+    this.customer.setTexture(`${id}-${mood}`).setVisible(true);
+    this.layout(); // the stand position depends on this customer's size
+    this.walkTo(-this.customer.width - 2, this.stand.x, 'walking-in', () => {
+      this.customerState = 'here';
+      this.syncCustomerData();
+      bus.emit('customer:arrived', { id });
+    });
+  }
+
+  private setCustomerMood(mood: CustomerMood): void {
+    if (!this.customerId) return;
+    this.customerMood = mood;
+    this.customer.setTexture(`${this.customerId}-${mood}`);
+    this.syncCustomerData();
+  }
+
+  private leaveCustomer(): void {
+    const id = this.customerId;
+    if (!id || this.customerState === 'walking-out' || this.customerState === 'away') return;
+    this.stopWalk();
+    this.walkTo(this.customer.x, -this.customer.width - 2, 'walking-out', () => {
+      this.customerState = 'away';
+      this.customerId = null;
+      this.customer.setVisible(false);
+      this.syncCustomerData();
+      bus.emit('customer:left', { id });
+    });
+  }
+
+  /** Slides between two x positions on whole pixels, bobbing a pixel per step (there are no walk frames). */
+  private walkTo(fromX: number, toX: number, state: CustomerState, onDone: () => void): void {
+    this.customerState = state;
+    this.syncCustomerData();
+    const pos = { x: fromX };
+    this.customer.setPosition(Math.round(fromX), this.stand.y);
+    let up = false;
+    this.bob = this.time.addEvent({
+      delay: BOB_MS,
+      loop: true,
+      callback: () => this.customer.setY(this.stand.y - ((up = !up) ? 1 : 0)),
+    });
+    this.walk = this.tweens.add({
+      targets: pos,
+      x: toX,
+      duration: Math.max(200, (Math.abs(toX - fromX) / WALK_SPEED) * 1000),
+      onUpdate: () => this.customer.setX(Math.round(pos.x)),
+      onComplete: () => {
+        this.stopWalk();
+        this.customer.setPosition(Math.round(toX), this.stand.y);
+        onDone();
+      },
+    });
+  }
+
+  private stopWalk(): void {
+    this.walk?.stop();
+    this.bob?.remove();
+    this.walk = undefined;
+    this.bob = undefined;
+  }
+
+  /** After a resize: a standing customer moves to the new spot; a walk in progress finishes at once. */
+  private placeCustomer(): void {
+    if (!this.customer) return;
+    this.walk?.complete(); // ends at the old spot, so the line below moves them to the new one
+    if (this.customerState === 'here') this.customer.setPosition(this.stand.x, this.stand.y);
+    this.syncCustomerData();
+  }
+
+  /** State for the Playwright tests: who is here, their mood, and where to tap them (CSS px). */
+  private syncCustomerData(): void {
+    const d = document.body.dataset;
+    d.customer = this.customerId && this.customerState === 'here' ? this.customerId : '';
+    d.customerMood = this.customerId ? this.customerMood : '';
+    const zoom = this.scale.zoom;
+    d.customerAt = this.customerId
+      ? `${Math.round((this.stand.x + this.customer.width / 2) * zoom)},${Math.round((this.stand.y + this.customer.height * 0.25) * zoom)}`
+      : '';
   }
 
   private drawWindow(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number): void {
