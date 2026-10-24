@@ -16,6 +16,8 @@ export interface GameEvents {
   'customer:arrived': { id: string };
   'customer:left': { id: string };
   'customer:tap': { id: string };
+  /** The customer hops for joy (back from a fixed PC, or a good result). */
+  'customer:cheer': Record<string, never>;
   'ui:open-sim': Record<string, never>;
   'ui:close-sim': Record<string, never>;
 }

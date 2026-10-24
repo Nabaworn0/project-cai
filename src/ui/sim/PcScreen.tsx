@@ -7,8 +7,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { powerOn, press, restart, timeout, type Effect, type Key, type Pc } from '../../core/pc';
 import type { Machine } from '../../core/machine';
 import type { Brand } from '../../content/schema';
+import { play, reducedMotion } from '../sound';
 import { BiosScreen, BootMenuScreen, NoBootScreen, OldWindowsScreen, PostScreen, PressAnyKeyScreen, SetupLanguageScreen } from './screens';
 import './sim.css';
+
+/** How long the "fixed" banner stays over the Setup screen, and how long a mistake shakes the screen. */
+const WIN_BANNER_MS = 2600;
+const SHAKE_MS = 400;
 
 /** How long a screen waits before moving on by itself. POST is longer than on a real PC so learners can read it. */
 export const SCREEN_TIMEOUT_MS = { post: 8000, 'press-any-key': 5000 } as const;
@@ -69,6 +74,8 @@ const EFFECT_TH: Record<string, string> = {
 export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, footer, coach }: Props) {
   const [pc, setPc] = useState<Pc>(() => initial ?? powerOn(machine));
   const [status, setStatus] = useState('');
+  const [win, setWin] = useState(false);
+  const [shaking, setShaking] = useState(false);
   const screenRef = useRef<HTMLDivElement>(null);
   // Latest values for the window key listener and timers, without re-subscribing on every render.
   const latest = useRef({ pc, brand, onEffect, onPc });
@@ -80,10 +87,35 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
     latest.current.onPc?.(r.pc);
     for (const e of r.effects) {
       setStatus(EFFECT_TH[e.type === 'mistake' ? e.reason : e.type] ?? '');
+      if (e.type === 'mistake') {
+        play('mistake');
+        if (!reducedMotion()) {
+          // Off then on again, so a second mistake right after the first still shakes.
+          setShaking(false);
+          requestAnimationFrame(() => setShaking(true));
+        }
+      } else {
+        play('fixed');
+        setWin(true);
+      }
       latest.current.onEffect?.(e);
     }
   };
-  const send = (key: Key) => apply(press(latest.current.brand, latest.current.pc, key));
+  const send = (key: Key) => {
+    play('key');
+    apply(press(latest.current.brand, latest.current.pc, key));
+  };
+
+  useEffect(() => {
+    if (!win) return;
+    const t = setTimeout(() => setWin(false), WIN_BANNER_MS);
+    return () => clearTimeout(t);
+  }, [win]);
+  useEffect(() => {
+    if (!shaking) return;
+    const t = setTimeout(() => setShaking(false), SHAKE_MS);
+    return () => clearTimeout(t);
+  }, [shaking]);
 
   useLayoutEffect(() => {
     // Focus the screen, not a button: Enter must reach the PC rather than click something.
@@ -139,7 +171,7 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
             </button>
           </span>
         </div>
-        <div class="pc" ref={screenRef} tabIndex={-1} data-screen={s.kind} aria-label="จอคอมของลูกค้า">
+        <div class={`pc${shaking ? ' shake' : ''}`} ref={screenRef} tabIndex={-1} data-screen={s.kind} aria-label="จอคอมของลูกค้า">
           {s.kind === 'post' && <PostScreen brand={brand} pc={pc} />}
           {s.kind === 'bios' && <BiosScreen brand={brand} pc={pc} />}
           {s.kind === 'boot-menu' && <BootMenuScreen pc={pc} />}
@@ -147,6 +179,11 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
           {s.kind === 'no-boot' && <NoBootScreen />}
           {s.kind === 'old-windows' && <OldWindowsScreen />}
           {s.kind === 'setup' && <SetupLanguageScreen />}
+          {win && (
+            <p class="pc-win" data-testid="pc-win">
+              ซ่อมสำเร็จ!
+            </p>
+          )}
           {cue && (
             <p class="pc-subtitle" data-testid="pc-subtitle">
               คำแปล: กด {brand.keys.setup[0]} เพื่อเข้า BIOS (หน้าตั้งค่า) · <span class="nowrap">กด {brand.keys.bootMenu[0]} เพื่อเปิด Boot Menu</span>

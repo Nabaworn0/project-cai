@@ -15,6 +15,12 @@ const MOODS: readonly CustomerMood[] = ['neutral', 'worried', 'happy', 'angry'];
 /** Walking speed in art pixels per second, and how often the walker bobs a pixel. */
 const WALK_SPEED = 90;
 const BOB_MS = 140;
+/** A happy hop: the customer's height above the floor (art px) frame by frame; whole pixels only.
+ *  Players who asked for less motion get one small hop instead of two: the hop is the only sign of joy
+ *  at the counter, and it moves one small figure, not the screen. */
+const HOP = [2, 4, 5, 4, 2, 0, 2, 4, 5, 4, 2, 0];
+const HOP_GENTLE = [1, 2, 2, 1, 0];
+const HOP_MS = 50;
 
 type CustomerState = 'away' | 'walking-in' | 'here' | 'walking-out';
 
@@ -54,6 +60,7 @@ export class ShopScene extends Phaser.Scene {
   private stand = { x: 0, y: 0 };
   private walk?: Phaser.Tweens.Tween;
   private bob?: Phaser.Time.TimerEvent;
+  private hop?: Phaser.Time.TimerEvent;
 
   constructor() {
     super('shop');
@@ -86,6 +93,7 @@ export class ShopScene extends Phaser.Scene {
       bus.on('customer:enter', ({ id, mood }) => this.enterCustomer(id, mood)),
       bus.on('customer:mood', ({ mood }) => this.setCustomerMood(mood)),
       bus.on('customer:leave', () => this.leaveCustomer()),
+      bus.on('customer:cheer', () => this.cheer()),
     ];
     this.events.once('shutdown', () => offs.forEach((off) => off()));
 
@@ -244,6 +252,23 @@ export class ShopScene extends Phaser.Scene {
     this.syncCustomerData();
   }
 
+  /** Little hops for joy while the customer stands at the counter. */
+  private cheer(): void {
+    if (this.customerState !== 'here') return;
+    const hop = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? HOP_GENTLE : HOP;
+    this.hop?.remove();
+    let i = 0;
+    this.hop = this.time.addEvent({
+      delay: HOP_MS,
+      repeat: hop.length - 1,
+      callback: () => {
+        if (this.customerState !== 'here') return;
+        this.customer.setY(this.stand.y - hop[i++]!);
+        document.body.dataset.customerHop = i < hop.length ? 'up' : '';
+      },
+    });
+  }
+
   private leaveCustomer(): void {
     const id = this.customerId;
     if (this.customerState === 'walking-out') return; // already leaving: customer:left comes when the walk ends
@@ -253,6 +278,7 @@ export class ShopScene extends Phaser.Scene {
       return;
     }
     this.stopWalk();
+    this.hop?.remove();
     this.walkTo(this.customer.x, -this.customer.width - 2, 'walking-out', () => {
       this.customerState = 'away';
       this.customerId = null;

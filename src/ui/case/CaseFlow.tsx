@@ -20,6 +20,7 @@ import {
 } from '../../core/session';
 import type { Content } from '../../content';
 import { PcScreen } from '../sim/PcScreen';
+import { play } from '../sound';
 import { ChoiceList, Feedback } from './parts';
 import { SummaryCard } from './SummaryCard';
 import { TicketCard } from './TicketCard';
@@ -74,6 +75,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     setArrived(false);
     const off = bus.on('customer:arrived', ({ id }) => id === gc.template.customer.id && setArrived(true));
     bus.emit('customer:enter', { id: gc.template.customer.id, mood: customerMood(gc, startSession(gc)) });
+    play('bell');
     return off;
   }, [ready, gc]);
 
@@ -92,10 +94,20 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     [],
   );
 
+  // Back at the counter after the fix (whichever button closed the PC), the customer hops for joy once.
+  const cheered = useRef(false);
+  useEffect(() => {
+    if (simOpen || !s.route || cheered.current) return;
+    cheered.current = true;
+    bus.emit('customer:cheer', {});
+  }, [simOpen, s.route]);
+
   // Coins once per case, when the summary appears.
   const summary = useMemo(() => (s.stage === 'summary' ? summarize(gc, s) : null), [gc, s]);
   useEffect(() => {
-    if (summary) onCoins(summary.coins);
+    if (!summary) return;
+    onCoins(summary.coins);
+    if (summary.stars >= 2) bus.emit('customer:cheer', {});
   }, [summary !== null]);
 
   // A long panel scrolls: bring the answer's explanation into view, and start each stage at the top.
@@ -128,6 +140,12 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     else setSaid(reactionLine(r, 'old-windows', ++oldWindowsCount.current));
   };
 
+  /** A chosen answer: its sound, and it stays on screen with its explanation. */
+  const answered = (a: Answer) => {
+    play(a.correct ? 'right' : 'mistake');
+    setFeedback(a);
+  };
+
   const nextCustomer = () => {
     if (leaving.current) return;
     leaving.current = true;
@@ -137,6 +155,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       const g = newCase(content);
       pcRef.current = undefined;
       oldWindowsCount.current = 0;
+      cheered.current = false;
       setSaid(null);
       setNudge(null);
       setOpened(false);
@@ -255,7 +274,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
             choices={q.choicesTh}
             answered={s.diagnosis}
             correct={q.answer}
-            onChoose={(choice) => setFeedback(act({ type: 'diagnose', choice }).diagnosis)}
+            onChoose={(choice) => answered(act({ type: 'diagnose', choice }).diagnosis!)}
           />
           {feedback && <Feedback answer={feedback} explain={q.explainTh} />}
           {s.diagnosis && (
@@ -310,7 +329,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
             choices={q.choicesTh}
             answered={feedback}
             correct={q.answer}
-            onChoose={(choice) => setFeedback(act({ type: 'answer', choice }).answers.at(-1)!)}
+            onChoose={(choice) => answered(act({ type: 'answer', choice }).answers.at(-1)!)}
           />
           {feedback && <Feedback answer={feedback} explain={q.explainTh} />}
           {feedback && (

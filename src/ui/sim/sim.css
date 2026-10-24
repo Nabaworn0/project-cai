@@ -127,6 +127,22 @@
   .key.cue { animation: none; box-shadow: 0 0 0 3px var(--coral); }
 }
 
+/* Reaching Setup: a game-style banner over the screen for a moment (it does not block taps). */
+.pc > .pc-win {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0;
+  padding: 0.3em 1em; background: var(--yellow); color: var(--navy);
+  box-shadow: 0 0 0 0.15em var(--navy), 0.3em 0.3em 0 rgba(0, 0, 0, 0.4);
+  font-family: var(--f-head); font-weight: 700; font-size: max(18px, 6cqw); white-space: nowrap; pointer-events: none;
+  animation: win-in 0.35s steps(4);
+}
+@keyframes win-in { from { transform: translate(-50%, -50%) scale(0.3); } to { transform: translate(-50%, -50%) scale(1); } }
+/* A mistake: the screen jolts sideways a few pixels. */
+.pc.shake { animation: pc-shake 0.4s steps(1); }
+@keyframes pc-shake { 0%, 50% { transform: translateX(-4px); } 25%, 75% { transform: translateX(4px); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .pc > .pc-win, .pc.shake { animation: none; }
+}
+
 .monitor-actions .btn { white-space: nowrap; }
 
 @media (max-width: 520px) {
