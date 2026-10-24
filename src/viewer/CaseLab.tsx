@@ -5,9 +5,10 @@ import { useMemo, useState } from 'preact/hooks';
 import { ACTIONS, getAction } from '../core/actions';
 import { brandShows, generateCase, solve, type CaseLibrary } from '../core/cases';
 import type { Machine } from '../core/machine';
+import { GENERIC_REACTIONS } from '../core/reactions';
 import { BLOCKER_TH, findBlockers, hardwareLimits } from '../core/requirements';
 import { SourceBadge } from './SourceBadge';
-import type { Case, CaseQuestion, Customer, Objectives } from '../content/schema';
+import type { Case, CaseQuestion, Customer, Objectives, Reactions } from '../content/schema';
 import { LoTags } from './LoTags';
 
 const yesNo = (v: boolean) => (v ? 'ใช่' : 'ไม่');
@@ -87,6 +88,7 @@ export function CaseLab({ template, customer, lib, objectives }: Props) {
         {template.customerQuestions.map((q, i) => (
           <Question key={i} title={`ลูกค้าถาม: “${q.askTh}”`} q={q} />
         ))}
+        <ReactionList r={template.customer.reactionsTh} />
         {template.designNotesTh.length > 0 && (
           <>
             <h5>บันทึกสำหรับคนทำเกม</h5>
@@ -195,6 +197,30 @@ function Question({ title, q }: { title: string; q: CaseQuestion }) {
         ))}
       </ol>
       <p class="v-dim">{q.explainTh}</p>
+    </div>
+  );
+}
+
+/** The customer's lines during the repair; generic ones (src/core/reactions.ts) are marked so writers see what is missing. */
+function ReactionList({ r }: { r: Reactions }) {
+  const own = (has: boolean) => (has ? null : <span class="v-badge warn">ใช้ประโยคกลาง</span>);
+  return (
+    <div data-testid="reactions">
+      <h5>ลูกค้าพูดระหว่างซ่อม</h5>
+      <dl class="v-meta">
+        <dt>บูตเข้า Windows เดิม (พลาด)</dt>
+        <dd>
+          {(r.oldWindowsTh ?? GENERIC_REACTIONS.oldWindowsTh).map((l) => `“${l}”`).join(' · ')} {own(!!r.oldWindowsTh)}
+        </dd>
+        <dt>ไม่มีอุปกรณ์บูต</dt>
+        <dd>“{r.noBootTh ?? GENERIC_REACTIONS.noBootTh}” {own(!!r.noBootTh)}</dd>
+        <dt>ซ่อมสำเร็จ</dt>
+        <dd>“{r.fixedTh ?? GENERIC_REACTIONS.fixedTh}” {own(!!r.fixedTh)}</dd>
+        <dt>ลาตอนจบ (1·2·3 ดาว)</dt>
+        <dd>
+          {(r.goodbyeTh ?? GENERIC_REACTIONS.goodbyeTh).map((l) => `“${l}”`).join(' · ')} {own(!!r.goodbyeTh)}
+        </dd>
+      </dl>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { bus } from '../../core/bus';
 import { generateCase, type GeneratedCase } from '../../core/cases';
 import type { Effect, Pc } from '../../core/pc';
+import { goodbyeLine, reactionLine } from '../../core/reactions';
 import {
   currentQuestion,
   customerMood,
@@ -44,6 +45,9 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   /** The answer just given, shown until the player moves on. */
   const [feedback, setFeedback] = useState<Answer | null>(null);
   const pcRef = useRef<Pc | undefined>(undefined);
+  /** What the customer just said about the repair, and how often the PC came up with the old Windows. */
+  const [said, setSaid] = useState<string | null>(null);
+  const oldWindowsCount = useRef(0);
   const panelRef = useRef<HTMLDivElement>(null);
   const latest = useRef({ gc, s });
   latest.current = { gc, s };
@@ -103,6 +107,10 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     const cur = latest.current.s;
     if (cur.stage !== 'repair' || cur.route) return;
     act(e.type === 'mistake' ? { type: 'mistake' } : { type: 'repaired', route: e.route });
+    const r = latest.current.gc.template.customer.reactionsTh;
+    if (e.type === 'reached-setup') setSaid(reactionLine(r, 'fixed'));
+    else if (e.reason === 'no-boot-device') setSaid(reactionLine(r, 'no-boot'));
+    else setSaid(reactionLine(r, 'old-windows', ++oldWindowsCount.current));
   };
 
   const nextCustomer = () => {
@@ -110,6 +118,8 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       off();
       const g = newCase(content);
       pcRef.current = undefined;
+      oldWindowsCount.current = 0;
+      setSaid(null);
       setFeedback(null);
       setS(startSession(g));
       setGc(g);
@@ -121,6 +131,11 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     <button class="btn ghost small" type="button" disabled={s.hintsUsed >= s.hints.length} onClick={() => act({ type: 'hint' })}>
       คำใบ้ ({s.hints.length - s.hintsUsed})
     </button>
+  );
+  const saying = said && (
+    <p class="says customer-says" data-testid="customer-says">
+      <span class="speaker">{name}</span> “{said}”
+    </p>
   );
   const hints = shownHints(s);
   const hintList = hints.length > 0 && (
@@ -145,9 +160,16 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
         }}
         footer={
           <div class="pc-footer">
-            {hintList}
-            {hintButton}
-            {s.route && (
+            {/* Text scrolls when space is short (phones on their side); the buttons below always stay in view. */}
+            {(saying || hintList) && (
+              <div class="pc-notes">
+                {saying}
+                {hintList}
+              </div>
+            )}
+            <div class="pc-actions">
+              {hintButton}
+              {s.route && (
               <button
                 class="btn small"
                 type="button"
@@ -157,9 +179,10 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
                   act({ type: 'next' });
                 }}
               >
-                กลับไปคุยกับลูกค้า
-              </button>
-            )}
+                  กลับไปคุยกับลูกค้า
+                </button>
+              )}
+            </div>
           </div>
         }
       />
@@ -230,6 +253,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       body = (
         <>
           <p class="ask">{s.route ? 'บูตจาก USB ได้แล้ว กลับไปคุยกับลูกค้า' : 'แตะคอมบนเคาน์เตอร์เพื่อเปิดเครื่องของลูกค้า แล้วทำให้เครื่องบูตจาก USB'}</p>
+          {saying}
           {hintList}
           <div class="actions">
             {s.route ? (
@@ -281,6 +305,8 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     case 'summary':
       body = (
         <>
+          {speaker}
+          <p class="says" data-testid="goodbye">“{goodbyeLine(gc.template.customer.reactionsTh, summary!.stars)}”</p>
           <SummaryCard summary={summary!} />
           <div class="actions">
             <button class="btn" type="button" onClick={nextCustomer}>

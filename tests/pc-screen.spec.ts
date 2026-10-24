@@ -128,11 +128,16 @@ test('Enter on a key bar button does not also click the button (focus stays on t
   await expect(page.locator('.bios-heading')).toHaveText('Advanced Settings');
 });
 
-test('with both hints showing, every key and button still fits on the screen', async ({ page }) => {
+test('with the customer talking and both hints showing, every key and button still fits on the screen', async ({ page }) => {
   await openPc(page);
+  await page.locator('.keybar [data-key="Enter"]').click(); // boots the old Windows: the customer says something
+  await expect(page.getByTestId('customer-says')).toBeVisible();
   await page.getByRole('button', { name: 'คำใบ้ (2)' }).click();
   await page.getByRole('button', { name: 'คำใบ้ (1)' }).click();
   const vp = page.viewportSize()!;
+  const notes = (await page.locator('.pc-notes').boundingBox())!;
+  expect(notes.height, 'the words and hints get room to be read (they scroll inside it)').toBeGreaterThanOrEqual(40);
+  expect(notes.y + notes.height).toBeLessThanOrEqual(vp.height + 0.5);
   for (const el of await page.locator('.keybar .key, .monitor-bar .btn, .pc-footer .btn').all()) {
     const b = (await el.boundingBox())!;
     expect(b.y + b.height, await el.textContent() ?? '').toBeLessThanOrEqual(vp.height + 0.5);

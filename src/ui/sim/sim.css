@@ -120,20 +120,25 @@
   .key { min-width: 40px; font-size: 15px; padding: 0 6px; }
 }
 
-/* Phones on their side: height is scarce, so the status, hints and keys move to a column right of the screen. */
+/* Phones on their side: height is scarce, so the screen gets the full height between two side columns:
+   messages, hints and their buttons on the left (where the 4:3 screen leaves room), keys on the right. */
 @media (orientation: landscape) and (max-height: 520px) {
   .monitor.pc-monitor {
     --pc-chrome: 88px; /* backdrop and monitor padding + the top bar */
     /* An explicit height: a percentage does not resolve inside the backdrop grid, and 1fr rows need it. */
     width: 100%; height: calc(100dvh - 24px - var(--safe-t) - var(--safe-b)); padding: 6px 10px 8px;
-    display: grid; grid-template-columns: minmax(0, 1fr) 196px; column-gap: 12px;
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    grid-template-areas: 'bar bar' 'screen status' 'screen keys';
+    display: grid; grid-template-columns: minmax(0, 1fr) auto 196px; column-gap: 12px;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: 'bar bar bar' 'status screen keys';
   }
   .pc-monitor .monitor-bar { grid-area: bar; padding-bottom: 6px; }
-  .pc-monitor .pc { grid-area: screen; align-self: center; }
-  .pc-monitor .pc-status-row { grid-area: status; margin: 0 0 6px; min-height: 0; }
-  .pc-monitor .pc-status { font-size: 13px; flex-basis: 100%; }
+  /* Sized from the height (an auto column cannot give it a %); capped so the message column keeps ~140px. */
+  .pc-monitor .pc {
+    grid-area: screen; align-self: center;
+    width: min(calc((100dvh - var(--pc-chrome) - var(--safe-t) - var(--safe-b)) * 4 / 3), calc(100vw - 404px - var(--safe-l) - var(--safe-r)));
+  }
+  .pc-monitor .pc-status-row { grid-area: status; margin: 0; min-height: 0; align-self: stretch; }
+  .pc-monitor .pc-status { font-size: 13px; }
   .pc-monitor .pc-footer { justify-content: flex-start; }
   .pc-monitor .pc-footer .hints { font-size: 12px; }
   .pc-monitor .keybar {

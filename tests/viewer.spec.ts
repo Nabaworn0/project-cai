@@ -87,3 +87,11 @@ test('each case shows its customer, the guess-the-cause question and the custome
   const c5 = page.getByTestId('case-c05-lab-upgrade');
   await expect(c5.locator('.v-qs h5', { hasText: 'ลูกค้าถาม' })).toHaveCount(2);
 });
+
+test("each case shows the customer's lines during the repair, and marks the ones still generic", async ({ page }) => {
+  await page.goto('/?view=content#cases');
+  const somsri = page.getByTestId('case-c01-boot-order').getByTestId('reactions');
+  await expect(somsri).toContainText('เหมือนที่ป้าเจอเลย');
+  await expect(somsri).not.toContainText('ใช้ประโยคกลาง');
+  await expect(page.getByTestId('case-c02-rufus-scheme').getByTestId('reactions')).toContainText('ใช้ประโยคกลาง');
+});

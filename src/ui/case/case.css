@@ -81,14 +81,25 @@
 .pc-status-row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; margin-top: 6px; }
 .pc-status-row .pc-status { margin: 0; flex: 1 1 200px; }
 .pc-footer { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; flex: 1 1 auto; }
-.pc-footer .hints { margin: 0; flex: 1 1 100%; color: var(--ink); max-height: 5.4em; overflow-y: auto; }
-/* Hints take room under the screen: make the screen a little smaller rather than push the keys off. */
-.pc-monitor:has(.pc-footer .hints) { --pc-chrome: 290px; }
+.pc-notes { flex: 1 1 100%; display: grid; gap: 4px; align-content: start; max-height: 7.5em; overflow-y: auto; }
+.pc-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.pc-footer .hints { margin: 0; color: var(--ink); }
+/* Hints and the customer's words take room under the screen: make the screen a little smaller rather
+   than push the keys off (.pc-notes scrolls past 7.5em). */
+.pc-monitor:has(.pc-notes) { --pc-chrome: 320px; }
 
 @media (orientation: landscape) and (max-height: 520px) {
   /* In the side column only the hint list scrolls; the buttons stay put. */
   .pc-monitor .pc-status-row { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; overflow: hidden; }
-  .pc-monitor .pc-footer { flex: 1 1 auto; min-height: 0; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; }
-  .pc-monitor .pc-footer .hints { flex: 0 1 auto; min-height: 0; max-height: none; }
-  .pc-monitor:has(.pc-footer .hints) { --pc-chrome: 88px; }
+  .pc-monitor .pc-footer { flex: 1 1 auto; min-height: 0; flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  .pc-monitor .pc-notes { flex: 1 1 auto; min-height: 0; max-height: none; }
+  .pc-monitor .pc-actions { flex: none; justify-content: flex-start; }
+  .pc-monitor:has(.pc-notes) { --pc-chrome: 88px; }
+  /* Overrides .pc-status-row .pc-status above, which would make the status line take most of the column. */
+  .pc-monitor .pc-status-row .pc-status { flex: none; }
 }
+
+/* What the customer says during the repair, on the panel and under the PC screen. */
+.customer-says { background: #fff; padding: 6px 10px; box-shadow: inset 4px 0 0 var(--navy); }
+.pc-footer .customer-says { flex: 1 1 100%; margin: 0; font-size: 14px; color: var(--ink); }
+.pc-footer .customer-says .speaker { font-size: 12px; margin: 0 4px 0 0; }

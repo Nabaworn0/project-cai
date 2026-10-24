@@ -90,6 +90,21 @@ export const CustomersSchema = z.array(
 );
 export type Customer = z.infer<typeof CustomersSchema>[number];
 
+/** What the customer says as the repair goes (case1-plan task F). Missing lines use generic ones (src/core/reactions.ts). */
+const ReactionsSchema = z
+  .object({
+    /** The PC booted the old Windows again (a mistake); said in turn, one per time. */
+    oldWindowsTh: z.array(th).min(1).optional(),
+    /** The PC found nothing to boot ("Reboot and Select proper Boot device"). */
+    noBootTh: th.optional(),
+    /** The USB booted: the problem is fixed. */
+    fixedTh: th.optional(),
+    /** Goodbye on the summary, by stars: [1 star, 2 stars, 3 stars]. */
+    goodbyeTh: z.tuple([th, th, th]).optional(),
+  })
+  .strict();
+export type Reactions = z.infer<typeof ReactionsSchema>;
+
 export const CaseSchema = z.object({
   id,
   order: z.number().int().positive(),
@@ -102,7 +117,8 @@ export const CaseSchema = z.object({
     lineTh: th,
     /** The customer wants their files kept: destructive repairs lose points. */
     keepData: z.boolean(),
-  }),
+    reactionsTh: ReactionsSchema.default({}),
+  }).strict(),
   /** Step 2 of a case: the player guesses the cause before touching anything. */
   diagnosis: CaseQuestionSchema,
   /** Step 4: the customer asks "why?" and the player picks the right explanation. */

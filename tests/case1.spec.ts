@@ -56,6 +56,7 @@ test('a perfect run: three stars, full coins, Somsri leaves happy, and the next 
   await shot(page, info, '4-repair');
   await repairWithBios(page);
   await expect(page.locator('body')).toHaveAttribute('data-customer-mood', 'happy');
+  await expect(page.getByTestId('customer-says')).toContainText('ขึ้นหน้าใหม่แล้ว!');
   await shot(page, info, '5-fixed');
   await page.getByRole('button', { name: 'กลับไปคุยกับลูกค้า' }).click();
 
@@ -73,6 +74,7 @@ test('a perfect run: three stars, full coins, Somsri leaves happy, and the next 
   await expect(summary).toContainText('ซ่อมได้ไม่พลาดเลย');
   await expect(summary).toContainText('+150');
   await expect(summary).toContainText('หนังสือ น.48–51');
+  await expect(page.getByTestId('goodbye')).toContainText('ไว้ป้าจะเอาขนมมาฝาก');
   await expect(page.getByTestId('coins')).toContainText('150');
   await expect(page.locator('body')).toHaveAttribute('data-customer-mood', 'happy');
   await facesVisible(page);
@@ -86,10 +88,12 @@ test('a perfect run: three stars, full coins, Somsri leaves happy, and the next 
 test('mistakes cost stars: wrong guess, two boots into the old Windows, wrong explanation; never below one star', async ({ page }) => {
   await playToRepair(page, 'แฟลชไดรฟ์เสีย');
   await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
-  // Two mistakes: Enter at POST boots the old Windows, twice.
+  // Two mistakes: Enter at POST boots the old Windows, twice. Somsri says something different each time.
+  const said = ['ขึ้นหน้าเดิมอีกแล้วค่ะ', 'ป้าถ่ายรูปไว้ให้ดูไหมคะ'];
   for (let i = 0; i < 2; i++) {
     await page.locator('.keybar [data-key="Enter"]').click();
     await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'old-windows');
+    await expect(page.getByTestId('customer-says')).toContainText(said[i]!);
     await page.getByRole('button', { name: 'รีสตาร์ตเครื่อง' }).click();
   }
   // Then the Boot Menu shortcut, which is a full-marks route.
@@ -104,6 +108,7 @@ test('mistakes cost stars: wrong guess, two boots into the old Windows, wrong ex
   await expect(summary).toContainText('เดาสาเหตุผิด');
   await expect(summary).toContainText('ลงมือพลาด 2 ครั้ง');
   await expect(summary).toContainText('อธิบายให้ลูกค้าฟังไม่ถูก');
+  await expect(page.getByTestId('goodbye')).toContainText('ใจหายใจคว่ำ');
   await expect(page.locator('body')).toHaveAttribute('data-customer-mood', 'angry');
 });
 
