@@ -48,6 +48,8 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   /** What the customer just said about the repair, and how often the PC came up with the old Windows. */
   const [said, setSaid] = useState<string | null>(null);
   const oldWindowsCount = useRef(0);
+  /** The customer is walking out: further "next customer" taps are ignored. */
+  const leaving = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const latest = useRef({ gc, s });
   latest.current = { gc, s };
@@ -114,8 +116,11 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   };
 
   const nextCustomer = () => {
+    if (leaving.current) return;
+    leaving.current = true;
     const off = bus.on('customer:left', () => {
       off();
+      leaving.current = false;
       const g = newCase(content);
       pcRef.current = undefined;
       oldWindowsCount.current = 0;
@@ -170,15 +175,15 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
             <div class="pc-actions">
               {hintButton}
               {s.route && (
-              <button
-                class="btn small"
-                type="button"
-                onClick={() => {
-                  setSimOpen(false);
-                  bus.emit('ui:close-sim', {});
-                  act({ type: 'next' });
-                }}
-              >
+                <button
+                  class="btn small"
+                  type="button"
+                  onClick={() => {
+                    setSimOpen(false);
+                    bus.emit('ui:close-sim', {});
+                    act({ type: 'next' });
+                  }}
+                >
                   กลับไปคุยกับลูกค้า
                 </button>
               )}

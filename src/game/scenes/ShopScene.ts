@@ -220,7 +220,9 @@ export class ShopScene extends Phaser.Scene {
 
   private enterCustomer(id: string, mood: CustomerMood): void {
     if (!this.customerSprites.has(id)) {
+      // The case still has to go on: answer at once, with nobody drawn at the counter.
       console.warn(`No sprites for customer "${id}" yet; nobody walks in.`);
+      bus.emit('customer:arrived', { id });
       return;
     }
     this.stopWalk();
@@ -244,7 +246,12 @@ export class ShopScene extends Phaser.Scene {
 
   private leaveCustomer(): void {
     const id = this.customerId;
-    if (!id || this.customerState === 'walking-out' || this.customerState === 'away') return;
+    if (this.customerState === 'walking-out') return; // already leaving: customer:left comes when the walk ends
+    if (!id || this.customerState === 'away') {
+      // Nobody (or an undrawn customer) at the counter: the case can still move on.
+      bus.emit('customer:left', { id: id ?? '' });
+      return;
+    }
     this.stopWalk();
     this.walkTo(this.customer.x, -this.customer.width - 2, 'walking-out', () => {
       this.customerState = 'away';

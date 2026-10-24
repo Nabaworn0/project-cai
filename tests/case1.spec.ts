@@ -148,3 +148,52 @@ test('the PC keeps its state when the monitor is closed and reopened, and only o
   await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
   await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'bios');
 });
+
+test('two customers in a row with the real keyboard only, no console errors, and a double tap on "next customer"', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  for (const round of [1, 2]) {
+    if (round === 1) await playToRepair(page);
+    else {
+      await page.getByRole('button', { name: 'รับเรื่อง' }).click();
+      await page.getByRole('button', { name: 'รับงาน' }).click();
+      await page.getByRole('button', { name: C1_DIAGNOSIS }).click();
+      await page.getByRole('button', { name: 'ไปซ่อมเครื่อง' }).click();
+    }
+    await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
+    // The textbook route typed on the keyboard (no on-screen keys).
+    for (const k of ['F2', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowDown', 'ArrowDown', 'Enter', 'Enter', 'ArrowDown', 'Enter', 'F10', 'Enter', 'Enter', 'x']) {
+      await page.keyboard.press(k);
+    }
+    await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'setup');
+    await page.getByRole('button', { name: 'กลับไปคุยกับลูกค้า' }).click();
+    await page.getByRole('button', { name: /เครื่องเลือกบูตตามลำดับที่ตั้งไว้ใน BIOS/ }).click();
+    await page.getByRole('button', { name: 'ต่อไป' }).click();
+    await expectStage(page, 'summary');
+    await expect(page.getByTestId('coins')).toContainText(String(150 * round));
+    const next = page.getByRole('button', { name: 'รับลูกค้าคนถัดไป' });
+    await next.click();
+    if (round === 1) await next.click({ timeout: 1000 }).catch(() => undefined); // a second tap while she walks out
+    await expectStage(page, 'intro');
+  }
+  await expect(page.getByTestId('coins'), 'one new case per tap, coins counted once each').toContainText('300');
+  expect(errors).toEqual([]);
+});
+
+test('rotating the phone in the middle of the BIOS keeps the PC and the case where they were', async ({ page }) => {
+  await playToRepair(page);
+  await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
+  for (const k of ['F2', 'Right', 'Right', 'Right', 'Down', 'Down', 'Enter']) await page.locator(`.keybar [data-key="${k}"]`).click();
+  await expect(page.locator('.bios-heading')).toHaveText('Hard Disk Drives');
+  const vp = page.viewportSize()!;
+  await page.setViewportSize({ width: vp.height, height: vp.width });
+  await expect(page.locator('.bios-heading')).toHaveText('Hard Disk Drives');
+  await expect(page.locator('body')).toHaveAttribute('data-case-stage', 'repair');
+  for (const el of await page.locator('.keybar .key').all()) {
+    const b = (await el.boundingBox())!;
+    expect(b.y + b.height).toBeLessThanOrEqual(vp.width + 0.5);
+  }
+  await page.getByRole('button', { name: 'ปิด' }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-customer', 'somsri');
+});
