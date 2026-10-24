@@ -21,6 +21,9 @@ export function TicketCard({ gc, customerName }: { gc: GeneratedCase; customerNa
         <dd>{gc.brand.name}</dd>
         <dt>ต้องการ</dt>
         <dd>ลง Windows 11</dd>
+        {/* The stick is part of the job (case 2 remakes it); what is wrong with it is for the player to find. */}
+        <dt>ของที่ได้มา</dt>
+        <dd>แฟลชไดรฟ์ติดตั้ง 16 GB ที่ลูกค้านำมา</dd>
         <dt>ไฟล์ลูกค้า</dt>
         <dd>{gc.template.customer.keepData ? 'ต้องเก็บไว้ ห้ามลบ' : 'สำรองไว้แล้ว ลบได้'}</dd>
       </dl>

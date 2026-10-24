@@ -191,35 +191,58 @@ test('the PC keeps its state when the monitor is closed and reopened, and only o
   await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'bios');
 });
 
-test('two customers in a row with the real keyboard only, no console errors, and a double tap on "next customer"', async ({ page }) => {
+test('customers in order: Somsri by keyboard, then Beam, then Somsri again; a double tap brings one customer; no console errors', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-  for (const round of [1, 2]) {
-    if (round === 1) await playToRepair(page);
-    else {
-      await page.getByRole('button', { name: 'รับเรื่อง' }).click();
-      await page.getByRole('button', { name: 'รับงาน' }).click();
-      await page.getByRole('button', { name: C1_DIAGNOSIS }).click();
-      await page.getByRole('button', { name: 'ไปซ่อมเครื่อง' }).click();
-    }
-    await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
-    // The textbook route typed on the keyboard (no on-screen keys).
-    for (const k of ['F2', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowDown', 'ArrowDown', 'Enter', 'Enter', 'ArrowDown', 'Enter', 'F10', 'Enter', 'Enter', 'x']) {
-      await page.keyboard.press(k);
-    }
-    await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'setup');
-    await page.getByRole('button', { name: 'กลับไปคุยกับลูกค้า' }).click();
-    await page.getByRole('button', { name: /เครื่องเลือกบูตตามลำดับที่ตั้งไว้ใน BIOS/ }).click();
-    await page.getByRole('button', { name: 'ต่อไป' }).click();
-    await expectStage(page, 'summary');
-    await expect(page.getByTestId('coins')).toContainText(String(150 * round));
-    const next = page.getByRole('button', { name: 'รับลูกค้าคนถัดไป' });
-    await next.click();
-    if (round === 1) await next.click({ timeout: 1000 }).catch(() => undefined); // a second tap while she walks out
-    await expectStage(page, 'intro');
+  const next = page.getByRole('button', { name: 'รับลูกค้าคนถัดไป' });
+
+  // Case 1, the textbook route typed on the keyboard (no on-screen keys).
+  await playToRepair(page);
+  await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
+  for (const k of ['F2', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowDown', 'ArrowDown', 'Enter', 'Enter', 'ArrowDown', 'Enter', 'F10', 'Enter', 'Enter', 'x']) {
+    await page.keyboard.press(k);
   }
-  await expect(page.getByTestId('coins'), 'one new case per tap, coins counted once each').toContainText('300');
+  await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'setup');
+  await page.getByRole('button', { name: 'กลับไปคุยกับลูกค้า' }).click();
+  await page.getByRole('button', { name: /เครื่องเลือกบูตตามลำดับที่ตั้งไว้ใน BIOS/ }).click();
+  await page.getByRole('button', { name: 'ต่อไป' }).click();
+  await expectStage(page, 'summary');
+  await next.click();
+  await next.click({ timeout: 1000 }).catch(() => undefined); // a second tap while she walks out
+
+  // Case 2: Beam is next.
+  await expectStage(page, 'intro');
+  await expect(page.locator('body')).toHaveAttribute('data-customer', 'beam');
+  await expect(page.locator('.case-panel')).toContainText('น้องบีม');
+  await page.getByRole('button', { name: 'รับเรื่อง' }).click();
+  await expect(page.getByRole('group', { name: 'ใบรับงาน' })).toContainText('แฟลชไดรฟ์ติดตั้ง 16 GB ที่ลูกค้านำมา');
+  await page.getByRole('button', { name: 'รับงาน' }).click();
+  await page.getByRole('button', { name: 'USB ทำแบบ MBR แต่เครื่องบูตแบบ UEFI' }).click();
+  await page.getByRole('button', { name: 'ไปซ่อมเครื่อง' }).click();
+  await page.getByRole('button', { name: 'เปิดโน้ตบุ๊กร้าน' }).click();
+  await page.getByRole('button', { name: 'SELECT' }).click();
+  await page.getByRole('button', { name: 'Win11_24H2_Thai_x64.iso' }).dblclick();
+  await page.getByRole('group', { name: 'Rufus' }).getByLabel('Partition scheme').selectOption('GPT');
+  await page.getByRole('button', { name: 'START' }).click();
+  await page.getByRole('button', { name: 'OK' }).click();
+  await page.getByRole('button', { name: 'OK' }).click();
+  await expect(page.getByTestId('usb-note')).toBeVisible({ timeout: 8000 }); // wait for the copy to finish
+  await page.getByRole('button', { name: 'ไปที่เครื่องลูกค้า' }).click();
+  for (const k of ['F8', 'Enter', 'x']) await page.keyboard.press(k);
+  await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'setup');
+  await expect(page.getByTestId('customer-says')).toContainText('แฟลชไดรฟ์ไม่ได้ปลอมนี่หว่า');
+  await page.getByRole('button', { name: 'กลับไปคุยกับลูกค้า' }).click();
+  await page.getByRole('button', { name: /คลิปทำสำหรับเครื่องเก่าที่บูตแบบ BIOS/ }).click();
+  await page.getByRole('button', { name: 'ต่อไป' }).click();
+  await expectStage(page, 'summary');
+  await expect(page.getByTestId('goodbye')).toContainText('อธิบายเข้าใจกว่าคลิปอีก');
+  await expect(page.getByTestId('coins'), 'coins counted once per case').toHaveAttribute('aria-label', 'เหรียญ 300');
+
+  // Every playable case has been seen: someone other than Beam comes next (only Somsri, for now).
+  await next.click();
+  await expectStage(page, 'intro');
+  await expect(page.locator('body')).toHaveAttribute('data-customer', 'somsri');
   expect(errors).toEqual([]);
 });
 

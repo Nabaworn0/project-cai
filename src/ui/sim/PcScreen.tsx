@@ -8,7 +8,18 @@ import { powerOn, press, restart, timeout, type Effect, type Key, type Pc } from
 import type { Machine } from '../../core/machine';
 import type { Brand } from '../../content/schema';
 import { play, reducedMotion } from '../sound';
-import { BiosScreen, BootMenuScreen, NoBootScreen, OldWindowsScreen, PostScreen, PressAnyKeyScreen, SetupLanguageScreen } from './screens';
+import {
+  BiosScreen,
+  BootMenuScreen,
+  CantRunScreen,
+  GrubScreen,
+  NoBootScreen,
+  OldWindowsScreen,
+  PostScreen,
+  PressAnyKeyScreen,
+  SetupLanguageScreen,
+  SetupWin10Screen,
+} from './screens';
 import './sim.css';
 
 /** How long the "fixed" banner stays over the Setup screen, and how long a mistake shakes the screen. */
@@ -68,6 +79,8 @@ const FROM_KEYBOARD: Record<string, Key> = {
 const EFFECT_TH: Record<string, string> = {
   'booted-old-windows': 'เครื่องบูตเข้า Windows ตัวเดิม (นับว่าพลาด)',
   'no-boot-device': 'เครื่องหาอุปกรณ์บูตไม่เจอ (นับว่าพลาด)',
+  'wrong-image': 'บูตจาก USB ได้ แต่ในนั้นไม่ใช่ Windows 11 (นับว่าพลาด)',
+  'legacy-boot': 'บูตแบบ Legacy (CSM) ซึ่ง Windows 11 ไม่รองรับ (นับว่าพลาด)',
   'reached-setup': 'บูตจาก USB สำเร็จ เข้าหน้าติดตั้ง Windows แล้ว',
 };
 
@@ -179,6 +192,9 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
           {s.kind === 'no-boot' && <NoBootScreen />}
           {s.kind === 'old-windows' && <OldWindowsScreen />}
           {s.kind === 'setup' && <SetupLanguageScreen />}
+          {s.kind === 'setup-win10' && <SetupWin10Screen />}
+          {s.kind === 'grub' && <GrubScreen />}
+          {s.kind === 'cant-run' && <CantRunScreen />}
           {win && (
             <p class="pc-win" data-testid="pc-win">
               ซ่อมสำเร็จ!

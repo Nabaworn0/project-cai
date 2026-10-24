@@ -44,7 +44,9 @@ export class ShopScene extends Phaser.Scene {
   /** Real pixelized technician frames (missing expressions reuse neutral), or null for the placeholder. */
   private techSprites = spriteSet(EXPRESSIONS.map((e) => `tech-${e}`), 'tech-neutral');
   /** Pixelized props; each falls back to its code-drawn version when its file does not exist. */
-  private props = { monitor: spriteUrl('monitor'), window: spriteUrl('window'), shelf: spriteUrl('shelf') };
+  private props = { monitor: spriteUrl('monitor'), window: spriteUrl('window'), shelf: spriteUrl('shelf'), laptop: spriteUrl('laptop') };
+  /** The shop's own laptop (Rufus), on the counter right of the customer's PC; absent without its sprite. */
+  private laptop?: Phaser.GameObjects.Image;
   /** Customer frames by id; a missing mood reuses that customer's neutral frame. */
   private customerSprites = new Map(
     characterIds().flatMap((id) => {
@@ -81,14 +83,18 @@ export class ShopScene extends Phaser.Scene {
     if (this.props.shelf) this.shelfImg = this.add.image(0, 0, 'shelf').setOrigin(0, 0);
     this.tech = this.add.image(0, 0, 'tech-neutral').setOrigin(0, 0);
     this.tech.setInteractive({ useHandCursor: true, pixelPerfect: true });
-    this.tech.on('pointerdown', () => this.react());
+    this.tech.on('pointerdown', (p: Phaser.Input.Pointer) => this.onCanvas(p) && this.react());
     this.front = this.add.graphics();
     this.monitor = this.add.image(0, 0, 'monitor').setOrigin(0, 0).setInteractive({ useHandCursor: true });
-    this.monitor.on('pointerdown', () => bus.emit('ui:open-sim', {}));
+    this.monitor.on('pointerdown', (p: Phaser.Input.Pointer) => this.onCanvas(p) && bus.emit('ui:open-sim', {}));
+    if (this.props.laptop) {
+      this.laptop = this.add.image(0, 0, 'laptop').setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      this.laptop.on('pointerdown', (p: Phaser.Input.Pointer) => this.onCanvas(p) && bus.emit('ui:open-laptop', {}));
+    }
     // The customer stands in front of the counter, so it is drawn last.
     this.customer = this.add.image(0, 0, '__DEFAULT').setOrigin(0, 0).setVisible(false);
     this.customer.setInteractive({ useHandCursor: true, pixelPerfect: true });
-    this.customer.on('pointerdown', () => this.customerId && bus.emit('customer:tap', { id: this.customerId }));
+    this.customer.on('pointerdown', (p: Phaser.Input.Pointer) => this.onCanvas(p) && this.customerId && bus.emit('customer:tap', { id: this.customerId }));
     const offs = [
       bus.on('customer:enter', ({ id, mood }) => this.enterCustomer(id, mood)),
       bus.on('customer:mood', ({ mood }) => this.setCustomerMood(mood)),
@@ -113,6 +119,14 @@ export class ShopScene extends Phaser.Scene {
     this.setExpression('neutral');
     document.body.dataset.scene = 'shop';
     bus.emit('scene:ready', { scene: 'shop' });
+  }
+
+  /**
+   * Phaser also hears presses anywhere on the page (window events), so a tap on an HTML screen over the
+   * canvas (a button in Rufus, say) could land on the PC or laptop behind it. Only taps on the canvas count.
+   */
+  private onCanvas(p: Phaser.Input.Pointer): boolean {
+    return !p.event || p.event.target === this.game.canvas;
   }
 
   private addPixelTexture(key: string, rows: PixelRows): void {
@@ -215,11 +229,21 @@ export class ShopScene extends Phaser.Scene {
     this.stand = { x: Math.max(4, techX - custW - (portrait ? 4 : 10)), y: floorY + (portrait ? 10 : 6) - custH };
     this.placeCustomer();
 
+    // The shop laptop: right of the PC in portrait; in landscape the case panel covers the right side,
+    // so it goes to the free left end of the counter, clear of the customer standing in front.
+    if (this.laptop) {
+      const lx = portrait
+        ? Math.min(mx + this.monitor.width + 6, W - this.laptop.width - 8)
+        : Math.max(8, Math.min(Math.round(W * 0.06), this.stand.x - this.laptop.width - 12));
+      this.laptop.setPosition(lx, counterTop - this.laptop.height + 1);
+    }
+
     // Positions in CSS px: tap targets for the Playwright tests, and the sign rectangle for the HTML label.
     const css = (v: number) => Math.round(v * zoom);
     const face = this.techSprites ? { x: Math.round(techW / 2), y: Math.round(techH * 0.3) } : TECH_FACE;
     document.body.dataset.techAt = `${css(techX + face.x)},${css(this.techBaseY + face.y)}`;
     document.body.dataset.pcAt = `${css(mx + this.monitor.width / 2)},${css(this.monitor.y + 6)}`;
+    if (this.laptop) document.body.dataset.laptopAt = `${css(this.laptop.x + this.laptop.width / 2)},${css(this.laptop.y + 6)}`;
     const layout: ShopLayout = { sign: { x: css(signX), y: css(signY), w: css(signW), h: css(signH) } };
     bus.emit('layout:shop', layout);
   }

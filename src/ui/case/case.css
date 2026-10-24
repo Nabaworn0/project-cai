@@ -137,3 +137,6 @@
 .case-panel .coach-tip .speaker { background: var(--teal); color: var(--navy); }
 .pc-footer .coach-tip { flex: 1 1 100%; margin: 0; font-size: 14px; color: var(--ink); }
 .pc-footer .coach-tip .speaker { display: inline-block; padding: 0 6px; margin: 0 4px 0 0; background: var(--teal); color: var(--navy); font-family: var(--f-head); font-weight: 700; font-size: 12px; }
+
+/* Case 2: Rufus finished writing; the stick is back in the customer's PC. */
+.usb-note { flex: 0 0 auto; width: 100%; margin: 0; padding: 6px 10px; background: #dff6e3; box-shadow: inset 4px 0 0 #2f9e44; color: var(--ink); font-size: 14px; }

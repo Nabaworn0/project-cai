@@ -1,9 +1,10 @@
 // The customer's PC from power-on to the first Windows Setup screen: POST, the BIOS setup screen,
-// the one-time Boot Menu, "Press any key to boot", and what the machine boots into.
+// the one-time Boot Menu, "Press any key to boot", and what the machine boots into, which depends on
+// what is on the install USB (case 2: the stick can be remade on the shop laptop, src/core/rufus.ts).
 // Pure data in, data out (no DOM): the simulated screens only render `biosView` / `bootMenuEntries`
 // and send keys; the case flow listens to the returned effects. Real wording: docs/real-screens.md.
 
-import type { Machine } from './machine';
+import type { Machine, UsbOs } from './machine';
 import type { BiosMenu, BiosSetting, Brand, MenuRow } from '../content/schema';
 
 /** Keys the simulated screens understand (the on-screen key bar sends the same names). */
@@ -40,15 +41,29 @@ export type Screen =
   | { kind: 'press-any-key'; via: Route }
   | { kind: 'old-windows' }
   | { kind: 'no-boot' }
-  | { kind: 'setup' };
+  | { kind: 'setup' }
+  /** Wrong image on the stick: the Windows 10 installer, or Ubuntu's GNU GRUB menu (case 2 traps). */
+  | { kind: 'setup-win10' }
+  | { kind: 'grub' }
+  /** Windows 11 Setup started in legacy (CSM) mode: "This PC can't run Windows 11" (short version). */
+  | { kind: 'cant-run' };
 
 /** How the USB was reached: the saved boot order, or the one-time Boot Menu. Both are correct (case 1 design). */
 export type Route = 'bios' | 'boot-menu';
 
+export type MistakeReason =
+  | 'booted-old-windows'
+  | 'no-boot-device'
+  /** The stick holds Windows 10 or Ubuntu instead of Windows 11. */
+  | 'wrong-image'
+  /** The stick booted only because CSM (legacy BIOS) was turned on; Windows 11 needs UEFI. */
+  | 'legacy-boot';
+
 export type Effect =
   /** The player made the machine boot the wrong thing. Waiting too long at "Press any key" is not a mistake. */
-  | { type: 'mistake'; reason: 'booted-old-windows' | 'no-boot-device' }
-  | { type: 'reached-setup'; route: Route };
+  | { type: 'mistake'; reason: MistakeReason }
+  /** `bypassedChecks`: the stick was made with Rufus' "remove requirement" box ticked (not a mistake, but noted). */
+  | { type: 'reached-setup'; route: Route; bypassedChecks: boolean };
 
 export interface Pc {
   /** The machine as the rest of the game sees it (saved settings already applied). */
@@ -105,6 +120,11 @@ export function powerOn(m: Machine): Pc {
 
 const done = (pc: Pc, effects: Effect[] = []): Result => ({ pc, effects });
 
+/** The stick as Rufus left it, plugged back into this PC, which then starts again from POST. */
+export function insertUsb(pc: Pc, usb: { scheme: Machine['usbScheme']; os: UsbOs; bypassChecks: boolean }): Pc {
+  return restart({ ...pc, machine: { ...pc.machine, usbScheme: usb.scheme, usbOs: usb.os, usbBypassChecks: usb.bypassChecks } });
+}
+
 /** Restart from any screen: unsaved BIOS changes are lost, saved ones stay, like on a real PC. */
 export function restart(pc: Pc): Pc {
   return { ...pc, draft: pc.saved, screen: { kind: 'post' } };
@@ -116,9 +136,23 @@ function boot(pc: Pc, skipUsb = false): Result {
   const first = order.find((d) => d === 'ssd' || usbBoots(pc.machine));
   // Timing out at "Press any key" is not the player's mistake: the machine just carries on (decision 3, case1-plan).
   const blame = (reason: 'booted-old-windows' | 'no-boot-device'): Effect[] => (skipUsb ? [] : [{ type: 'mistake', reason }]);
-  if (first === 'usb') return done({ ...pc, screen: { kind: 'press-any-key', via: 'bios' } });
+  if (first === 'usb') return bootUsb(pc, 'bios');
   if (first === 'ssd') return done({ ...pc, screen: { kind: 'old-windows' } }, blame('booted-old-windows'));
   return done({ ...pc, screen: { kind: 'no-boot' } }, blame('no-boot-device'));
+}
+
+/** Starting from the USB: Windows installers ask "Press any key"; Ubuntu goes straight to its GRUB menu. */
+function bootUsb(pc: Pc, via: Route): Result {
+  if (pc.machine.usbOs === 'ubuntu') return done({ ...pc, screen: { kind: 'grub' } }, [{ type: 'mistake', reason: 'wrong-image' }]);
+  return done({ ...pc, screen: { kind: 'press-any-key', via } });
+}
+
+/** A key at "Press any key": the installer on the stick starts. Only Windows 11 booted in UEFI mode is the fix. */
+function startInstaller(pc: Pc, via: Route): Result {
+  const m = pc.machine;
+  if (m.usbOs !== 'win11') return done({ ...pc, screen: { kind: 'setup-win10' } }, [{ type: 'mistake', reason: 'wrong-image' }]);
+  if (m.bootMode !== 'uefi') return done({ ...pc, screen: { kind: 'cant-run' } }, [{ type: 'mistake', reason: 'legacy-boot' }]);
+  return done({ ...pc, screen: { kind: 'setup' } }, [{ type: 'reached-setup', route: via, bypassedChecks: m.usbBypassChecks }]);
 }
 
 /** The screen's own timer ran out (POST continues, "Press any key" moves on). Other screens ignore it. */
@@ -141,7 +175,7 @@ export function press(brand: Brand, pc: Pc, key: Key): Result {
     case 'boot-menu':
       return pressBootMenu(brand, pc, s.cursor, key);
     case 'press-any-key':
-      return done({ ...pc, screen: { kind: 'setup' } }, [{ type: 'reached-setup', route: s.via }]);
+      return startInstaller(pc, s.via);
     case 'no-boot':
       // "Reboot and Select proper Boot device ... and press a key"
       return done(restart(pc));
@@ -376,6 +410,6 @@ function pressBootMenu(brand: Brand, pc: Pc, cursor: number, key: Key): Result {
   if (key !== 'Enter') return done(pc);
   const target = entries[cursor]!.target;
   if (target === 'setup') return done({ ...pc, screen: openBios(menuOf(brand)) });
-  if (target === 'usb') return done({ ...pc, screen: { kind: 'press-any-key', via: 'boot-menu' } });
+  if (target === 'usb') return bootUsb(pc, 'boot-menu');
   return done({ ...pc, screen: { kind: 'old-windows' } }, [{ type: 'mistake', reason: 'booted-old-windows' }]);
 }

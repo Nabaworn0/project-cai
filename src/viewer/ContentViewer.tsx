@@ -7,6 +7,7 @@ import { ACTIONS } from '../core/actions';
 import { contentFiles } from '../content';
 import { parseAll, validateContent, type Report } from '../content/validate';
 import { CaseLab } from './CaseLab';
+import { SimLab } from './SimLab';
 import { LoTags } from './LoTags';
 import { SourceBadge } from './SourceBadge';
 import { REQUIREMENTS } from '../core/requirements';
@@ -17,6 +18,7 @@ const TABS = [
   ['cases', 'เคส'],
   ['problems', 'ปัญหา'],
   ['bios', 'BIOS'],
+  ['sims', 'หน้าจอจำลอง'],
   ['quizzes', 'ข้อสอบ'],
   ['cards', 'การ์ด'],
 ] as const;
@@ -231,6 +233,8 @@ export function ContentViewer() {
             ))}
           </section>
         )}
+
+        {tab === 'sims' && parsed.brands.find((b) => b.menu) && <SimLab brand={parsed.brands.find((b) => b.menu)!} />}
 
         {tab === 'quizzes' && (
           <section class="v-stack">

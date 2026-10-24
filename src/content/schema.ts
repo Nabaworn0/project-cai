@@ -97,6 +97,10 @@ const ReactionsSchema = z
     oldWindowsTh: z.array(th).min(1).optional(),
     /** The PC found nothing to boot ("Reboot and Select proper Boot device"). */
     noBootTh: th.optional(),
+    /** The USB held the wrong image: the Windows 10 installer or Ubuntu came up (case 2). */
+    wrongImageTh: th.optional(),
+    /** Windows 11 Setup said "This PC can't run Windows 11" (booted in legacy/CSM mode). */
+    cantRunTh: th.optional(),
     /** The USB booted: the problem is fixed. */
     fixedTh: th.optional(),
     /** Goodbye on the summary, by stars: [1 star, 2 stars, 3 stars]. */

@@ -5,6 +5,8 @@ export type BootMode = 'uefi' | 'legacy';
 export type DiskStyle = 'mbr' | 'gpt';
 export type TpmVersion = 'none' | '1.2' | '2.0';
 export type SataMode = 'ahci' | 'raid';
+/** What the install USB was made from (Rufus Boot selection). */
+export type UsbOs = 'win11' | 'win10' | 'ubuntu';
 export interface Machine {
   brand: string;
   bootMode: BootMode;
@@ -18,6 +20,10 @@ export interface Machine {
   usbFirst: boolean;
   /** Partition scheme the install USB was made with in Rufus (textbook p.47). */
   usbScheme: DiskStyle;
+  /** The image on the USB: only Windows 11 is right (the wrong image is a case 2 trap). */
+  usbOs: UsbOs;
+  /** Rufus removed the Windows 11 checks (TPM, Secure Boot, RAM): it installs, but Microsoft does not support it. */
+  usbBypassChecks: boolean;
   cpu: string;
   cpuWin11: boolean;
   ramGB: number;
@@ -47,6 +53,8 @@ export function healthyMachine(brand: string): Machine {
     raidDriverLoaded: false,
     usbFirst: true,
     usbScheme: 'gpt',
+    usbOs: 'win11',
+    usbBypassChecks: false,
     cpu: 'Generic 8th-gen 4-core',
     cpuWin11: true,
     ramGB: 8,

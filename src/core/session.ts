@@ -39,6 +39,8 @@ export interface Session {
   mistakes: number;
   /** How the machine was fixed, e.g. "bios" or "boot-menu"; both earn full marks. */
   route: string | null;
+  /** The working USB was made with Rufus' Windows 11 checks removed: noted in the log, never scored (case2-plan decision 4). */
+  bypassedChecks: boolean;
   hints: readonly string[];
   hintsUsed: number;
 }
@@ -49,7 +51,7 @@ export type SessionEvent =
   | { type: 'diagnose'; choice: number }
   | { type: 'mistake' }
   | { type: 'hint' }
-  | { type: 'repaired'; route: string }
+  | { type: 'repaired'; route: string; bypassedChecks?: boolean }
   | { type: 'answer'; choice: number };
 
 export interface LogEntry {
@@ -64,6 +66,8 @@ export interface Summary {
   coins: number;
   /** 0–100. */
   satisfaction: number;
+  /** Repair mistakes, including the free one that cost no star. */
+  mistakes: number;
   /** The technician's log: what this case taught, with the textbook pages. */
   log: LogEntry[];
 }
@@ -77,6 +81,7 @@ export function startSession(gc: GeneratedCase): Session {
     questionCount: gc.template.customerQuestions.length,
     mistakes: 0,
     route: null,
+    bypassedChecks: false,
     // Two hints per machine (the brief), taken from the hidden problems in order.
     hints: gc.problems.flatMap((p) => p.hintsTh).slice(0, SCORING.hintLimit),
     hintsUsed: 0,
@@ -127,7 +132,7 @@ export function step(gc: GeneratedCase, s: Session, e: SessionEvent): Session {
     case 'repaired': {
       if (s.stage !== 'repair' || s.route) fail('not repairing');
       if (!e.route) fail('no route given');
-      return { ...s, route: e.route };
+      return { ...s, route: e.route, bypassedChecks: !!e.bypassedChecks };
     }
     case 'answer': {
       if (s.stage !== 'explain') fail('wrong stage');
@@ -166,8 +171,9 @@ export function summarize(gc: GeneratedCase, s: Session): Summary {
   const satisfaction = clamp(100 - s.hintsUsed * perHint - s.mistakes * perMistake - wrongAnswers * perWrongAnswer, 0, 100);
   const coins = SCORING.repairCoins + (SCORING.hintBonus[Math.min(s.hintsUsed, SCORING.hintBonus.length - 1)] ?? 0);
 
-  const log = gc.problems.map((p) => ({ textTh: p.explainTh, bookPage: p.bookPage }));
-  return { stars, lostTh, coins, satisfaction, log };
+  const log: LogEntry[] = gc.problems.map((p) => ({ textTh: p.explainTh, bookPage: p.bookPage }));
+  if (s.bypassedChecks) log.push({ textTh: BYPASS_NOTE_TH });
+  return { stars, lostTh, coins, satisfaction, mistakes: s.mistakes, log };
 }
 
 /** How the customer looks: worried until the PC is fixed, pleased while asking, then by the result. */
@@ -178,5 +184,9 @@ export function customerMood(gc: GeneratedCase, s: Session): CustomerMood {
   }
   return s.route ? 'happy' : 'worried';
 }
+
+/** Tech log note for a stick made with Rufus' "remove requirement" box ticked. */
+export const BYPASS_NOTE_TH =
+  'USB นี้ทำแบบติ๊กยกเลิกการตรวจ TPM/Secure Boot ใน Rufus: ลงได้ แต่เป็นการติดตั้งที่ไมโครซอฟต์ไม่รองรับ เครื่องที่ผ่านข้อกำหนดอยู่แล้วไม่ต้องติ๊ก';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));

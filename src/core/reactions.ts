@@ -4,11 +4,13 @@
 
 import type { Reactions } from '../content/schema';
 
-export type ReactionEvent = 'old-windows' | 'no-boot' | 'fixed';
+export type ReactionEvent = 'old-windows' | 'no-boot' | 'wrong-image' | 'cant-run' | 'fixed';
 
 export const GENERIC_REACTIONS: Required<Reactions> = {
   oldWindowsTh: ['ยังขึ้นหน้าจอเดิมอยู่เลยนะ', 'เหมือนเดิมเลย ยังไม่ได้อีกเหรอ'],
   noBootTh: 'จอดำขึ้นภาษาอังกฤษเต็มเลย เครื่องพังหรือเปล่า',
+  wrongImageTh: 'ขึ้นหน้าติดตั้งแล้ว แต่ดูไม่ใช่ Windows 11 นะ',
+  cantRunTh: 'ขึ้นว่าเครื่องนี้ลง Windows 11 ไม่ได้ จริงเหรอ',
   fixedTh: 'ขึ้นหน้าใหม่แล้ว! ได้แล้วใช่ไหม',
   goodbyeTh: ['ได้แล้วก็ดี แต่ลุ้นอยู่นานเลยนะ', 'เรียบร้อยแล้ว ขอบคุณนะ', 'เก่งมาก ขอบคุณมากเลย ไว้มาใช้บริการอีกนะ'],
 };
@@ -20,6 +22,8 @@ export function reactionLine(r: Reactions, event: ReactionEvent, count = 1): str
     return lines[(Math.max(1, count) - 1) % lines.length]!;
   }
   if (event === 'no-boot') return r.noBootTh ?? GENERIC_REACTIONS.noBootTh;
+  if (event === 'wrong-image') return r.wrongImageTh ?? GENERIC_REACTIONS.wrongImageTh;
+  if (event === 'cant-run') return r.cantRunTh ?? GENERIC_REACTIONS.cantRunTh;
   return r.fixedTh ?? GENERIC_REACTIONS.fixedTh;
 }
 

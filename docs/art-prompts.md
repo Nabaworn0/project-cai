@@ -174,6 +174,18 @@ Prop sprite: a square shop window with a wooden frame, blue sky and two small wh
 About 32 x 24 art pixels. Transparent background, PNG.
 ```
 
+**โน้ตบุ๊กของร้าน** (เคส 2: เปิด Rufus ทำ USB ใหม่ · วางบนเคาน์เตอร์ทางขวาของจอเครื่องลูกค้า) ส่งต่อในแชตเดิมที่ตั้งสไตล์ไว้ แนบภาพจอ `monitor.png` ไปด้วยเพื่อให้ขนาดและสีเข้าชุดกัน:
+
+```
+Prop sprite: an open laptop standing on a table, seen from the front at a slight angle so both the screen
+and a thin strip of the keyboard are visible. Dark navy body (#1b2a4a, #2c3e66), the screen a flat blue
+(#1d6fd6) with a few simple light lines like the attached monitor, a small teal light on the base, no text,
+no logo, no stickers. Same pixel size and outline as the attached monitor sprite. About 34 x 24 art pixels,
+a little smaller than the monitor. Transparent background, PNG.
+```
+
+ได้ภาพแล้ววางไฟล์ไว้ที่ `art-source/laptop.png` (หรือโฟลเดอร์รูปเดิม) แล้วบอกผม ผมจะรัน `npm run pixelize` และใส่ในฉากให้
+
 ## 5. ไอคอนอะไหล่ (16×16 แต่ละชิ้น)
 
 ```

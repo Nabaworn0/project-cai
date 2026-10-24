@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { generateCase } from '../src/core/cases';
-import { blockedNext, currentQuestion, customerMood, SCORING, shownHints, startSession, step, summarize, type Session, type SessionEvent } from '../src/core/session';
+import { generateCase, nextCase } from '../src/core/cases';
+import { BYPASS_NOTE_TH, blockedNext, currentQuestion, customerMood, SCORING, shownHints, startSession, step, summarize, type Session, type SessionEvent } from '../src/core/session';
 import { BrandSchema, CaseSchema, ProblemsSchema } from '../src/content/schema';
 
 const data = (path: string) => JSON.parse(readFileSync(new URL(`../src/content/data/${path}`, import.meta.url), 'utf8'));
@@ -18,7 +18,7 @@ const play = (events: SessionEvent[], s: Session = startSession(gc)) => events.r
 const NEXT: SessionEvent = { type: 'next' };
 
 /** A whole case. Repair mistakes and hints are inserted before the repair finishes. */
-function playCase(o: { diagnosis?: number; mistakes?: number; hints?: number; route?: string; answers?: number[] } = {}) {
+function playCase(o: { diagnosis?: number; mistakes?: number; hints?: number; route?: string; bypassedChecks?: boolean; answers?: number[] } = {}) {
   return play([
     NEXT, // intro -> ticket
     NEXT, // ticket -> diagnose
@@ -26,7 +26,7 @@ function playCase(o: { diagnosis?: number; mistakes?: number; hints?: number; ro
     NEXT, // -> repair
     ...Array.from({ length: o.mistakes ?? 0 }, (): SessionEvent => ({ type: 'mistake' })),
     ...Array.from({ length: o.hints ?? 0 }, (): SessionEvent => ({ type: 'hint' })),
-    { type: 'repaired', route: o.route ?? 'bios' },
+    { type: 'repaired', route: o.route ?? 'bios', bypassedChecks: o.bypassedChecks },
     NEXT, // -> explain
     ...(o.answers ?? right.answers).map((choice): SessionEvent => ({ type: 'answer', choice })),
     NEXT, // -> summary
@@ -139,4 +139,25 @@ test('steps never change the session they were given', () => {
   const copy = structuredClone(s);
   step(gc, s, { type: 'diagnose', choice: 0 });
   assert.deepEqual(s, copy);
+});
+
+test('customers come in order (case 1, then 2), then at random but never the same case twice in a row', () => {
+  const cases = [{ id: 'c02', order: 2 }, { id: 'c01', order: 1 }, { id: 'c03', order: 3 }];
+  assert.equal(nextCase(cases, null, () => 0).id, 'c01', 'a new player starts with case 1');
+  assert.equal(nextCase(cases, 'c01', () => 0).id, 'c02');
+  assert.equal(nextCase(cases, 'c02', () => 0).id, 'c03');
+  const after = new Set([0, 0.3, 0.6, 0.99].map((r) => nextCase(cases, 'c03', () => r).id));
+  assert.deepEqual([...after].sort(), ['c01', 'c02'], 'after the last one: any other case');
+  assert.equal(nextCase([{ id: 'c01', order: 1 }], 'c01', () => 0.5).id, 'c01', 'only one case: it repeats');
+  assert.equal(nextCase(cases, 'not-playable', () => 0).id, 'c01');
+});
+
+test("a USB made with Rufus' checks removed is noted in the tech log but costs nothing", () => {
+  const clean = summarize(gc, playCase());
+  const bypassed = summarize(gc, playCase({ bypassedChecks: true }));
+  assert.equal(bypassed.stars, 3);
+  assert.equal(bypassed.coins, clean.coins);
+  assert.equal(bypassed.satisfaction, clean.satisfaction);
+  assert.deepEqual(bypassed.log, [...clean.log, { textTh: BYPASS_NOTE_TH }]);
+  assert.ok(!clean.log.some((l) => l.textTh === BYPASS_NOTE_TH));
 });

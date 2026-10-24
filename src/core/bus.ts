@@ -20,6 +20,8 @@ export interface GameEvents {
   'customer:cheer': Record<string, never>;
   'ui:open-sim': Record<string, never>;
   'ui:close-sim': Record<string, never>;
+  /** The shop laptop on the counter was tapped (Rufus, case 2). */
+  'ui:open-laptop': Record<string, never>;
 }
 
 type Handler<K extends keyof GameEvents> = (payload: GameEvents[K]) => void;

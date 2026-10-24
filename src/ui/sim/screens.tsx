@@ -158,3 +158,75 @@ export function SetupLanguageScreen() {
     </div>
   );
 }
+
+/** Case 2 trap: the stick holds Windows 10. Its older installer opens with the classic "Windows Setup" box. */
+export function SetupWin10Screen() {
+  return (
+    <div class="setup10">
+      <div class="setup10-win" role="group" aria-label="Windows Setup">
+        <div class="setup10-title">Windows Setup</div>
+        <div class="setup10-body">
+          <div class="setup10-brand">Windows 10</div>
+          <label>
+            Language to install: <span class="setup-select">English (United States)</span>
+          </label>
+          <label>
+            Time and currency format: <span class="setup-select">English (United States)</span>
+          </label>
+          <label>
+            Keyboard or input method: <span class="setup-select">US</span>
+          </label>
+          <p class="setup10-hint">Enter your language and other preferences and click "Next" to continue.</p>
+          <div class="setup-foot">
+            <span class="setup10-next">Next</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Case 2 trap: the stick holds Ubuntu. Its USB starts the GNU GRUB menu (Ubuntu 24.04 desktop image). */
+export function GrubScreen() {
+  const entries = ['Try or Install Ubuntu', 'Ubuntu (safe graphics)', 'OEM install (for manufacturers)', 'Test memory'];
+  return (
+    <div class="pc-text grub">
+      <p class="grub-title">GNU GRUB  version 2.12</p>
+      <ul class="grub-menu" role="listbox" aria-label="GNU GRUB">
+        {entries.map((e, i) => (
+          <li key={e} role="option" aria-selected={i === 0} class={i === 0 ? 'sel' : ''}>
+            {i === 0 ? '*' : ' '}
+            {e}
+          </li>
+        ))}
+      </ul>
+      <p class="grub-help">
+        Use the ↑ and ↓ keys to select which entry is highlighted. Press enter to boot the selected OS, `e' to edit the commands before
+        booting or `c' for a command-line.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Case 2 trap (CSM turned on to boot an MBR stick) and later case 4: Windows 11 Setup refuses the PC.
+ * Short version for now: the full requirements page comes with case 4 (docs/real-screens.md, wording ⚠️).
+ */
+export function CantRunScreen() {
+  return (
+    <div class="setup">
+      <div class="setup-win" role="group" aria-label="Windows 11 Setup">
+        <div class="setup-head">Windows 11 Setup</div>
+        <h2>This PC can't run Windows 11</h2>
+        <p class="cantrun-text">This PC doesn't currently meet Windows 11 system requirements.</p>
+        <p class="cantrun-text">Here's why:</p>
+        <ul class="cantrun-why">
+          <li>The PC must support Secure Boot.</li>
+        </ul>
+        <div class="setup-foot">
+          <span class="setup-back">Back</span>
+        </div>
+      </div>
+    </div>
+  );
+}

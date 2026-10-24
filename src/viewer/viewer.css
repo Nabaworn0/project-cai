@@ -108,3 +108,10 @@ html.viewer-page #ui { position: static; pointer-events: auto; }
 .v-qs { margin-top: 14px; border-top: 3px dashed #dce3e0; padding-top: 12px; }
 .v-qs h4 { font-family: var(--f-head); margin: 0 0 4px; }
 .v-qs .v-q h5 { font-size: 14px; margin: 10px 0 4px; }
+
+/* "หน้าจอจำลอง" tab (SimLab): the screens open over the page like in the game. */
+.v-simlab { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.v-simlab .v-card h3 { margin: 0 0 6px; font-size: 16px; }
+.v-simlab-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.v-simlab-check { display: flex; gap: 8px; align-items: center; }
+.v-sim-overlay { position: fixed; inset: 0; z-index: 20; }

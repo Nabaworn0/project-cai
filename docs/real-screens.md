@@ -94,7 +94,12 @@ Rufus เปลี่ยนเป็นภาษาไทยเองถ้า W
 - วิธีถูก: ลบพาร์ทิชันของดิสก์ในเครื่องทีละอันด้วย **Delete** (ไม่ใช่ Format) จนเหลือ **Unallocated Space** อันเดียว → เลือก → Next (Setup สร้างพาร์ทิชันระบบให้เอง)
 - ถ้าไม่เห็นดิสก์ในเครื่องเลย ต้องใช้ **Load Driver** (ไดรเวอร์ Intel RST) เชื่อมกับบทไดรเวอร์ในรอบ 2 ได้
 
-**หน้า "เครื่องนี้ลง Windows 11 ไม่ได้"** (ใช้ในเคส 4) ⚠️ ไม่เจอแหล่งที่ยกข้อความหน้าจอของ Setup แบบใหม่คำต่อคำ
+**หน้าจอบูตผิดของเคส 2** (ทำแล้ว 25 ต.ค. 2026 ใน `src/ui/sim/screens.tsx`) ⚠️ เขียนจากความรู้ทั่วไป ยังไม่ได้เทียบกับภาพจริง
+- **Windows 10 Setup** หน้าแรก: กล่อง "Windows Setup" · Language to install / Time and currency format / Keyboard or input method · "Enter your language and other preferences and click "Next" to continue." · ปุ่ม Next
+- **Ubuntu 24.04 (GNU GRUB 2.12)**: เมนู Try or Install Ubuntu · Ubuntu (safe graphics) · OEM install (for manufacturers) · Test memory พร้อมข้อความวิธีใช้ปุ่มด้านล่าง
+- เครื่อง UEFI จริงอาจมีรายการเพิ่ม (เช่น UEFI Firmware Settings) ในเมนู GRUB ไม่ได้ใส่ไว้
+
+**หน้า "เครื่องนี้ลง Windows 11 ไม่ได้"** (ใช้ในเคส 4 · เคส 2 ใช้แบบสั้นเมื่อเปิด CSM) ⚠️ ไม่เจอแหล่งที่ยกข้อความหน้าจอของ Setup แบบใหม่คำต่อคำ
 - หัวจอ: **This PC can't run Windows 11**
 - ข้อความ: This PC doesn't meet the minimum system requirements to install this version of Windows. (Setup แบบเก่า) · Setup แบบใหม่บอกเหตุผลเป็นข้อ เช่น "The PC must support TPM 2.0." / "The PC must support Secure Boot."
 - ขึ้นหลังหน้าเลือกภาษาและก่อนหน้าเลือกพาร์ทิชัน ปุ่มเดียวคือ Back

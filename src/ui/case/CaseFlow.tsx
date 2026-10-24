@@ -1,11 +1,14 @@
 // One case from the customer walking in to the summary (docs/case1-plan.md section 1).
 // The rules live in src/core/session.ts; this component shows each stage in the panel at the bottom of
-// the screen, opens the customer's PC for the repair, and keeps the customer's expression in step.
+// the screen, opens the customer's PC (and in case 2 the shop laptop with Rufus) for the repair, and keeps
+// the customer's expression in step. The install USB is one stick shared by both: whatever Rufus writes
+// goes back into the customer's PC (docs/case2-plan.md).
 
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { bus } from '../../core/bus';
-import { generateCase, type GeneratedCase } from '../../core/cases';
-import type { Effect, Pc } from '../../core/pc';
+import { generateCase, nextCase, type GeneratedCase } from '../../core/cases';
+import { insertUsb, powerOn, type Effect, type Pc } from '../../core/pc';
+import { ISO_FILES, openRufus, type Rufus, type RufusEffect, type Usb } from '../../core/rufus';
 import { goodbyeLine, reactionLine } from '../../core/reactions';
 import {
   currentQuestion,
@@ -20,6 +23,7 @@ import {
 } from '../../core/session';
 import type { Content } from '../../content';
 import { PcScreen } from '../sim/PcScreen';
+import { RufusScreen } from '../sim/RufusScreen';
 import { play } from '../sound';
 import { ChoiceList, Feedback } from './parts';
 import { SummaryCard } from './SummaryCard';
@@ -33,19 +37,43 @@ interface Props {
   onCoins: (coins: number) => void;
 }
 
-/** Phase 1 plays case 1 (the next cases come after case1-plan). A new seed gives a new machine each time. */
-function newCase(content: Content): GeneratedCase {
-  return generateCase(content.cases[0]!, content, `${Date.now()}`);
+/** Cases whose screens exist so far (Rufus came with case 2; Setup's partition screen comes with case 3). */
+const PLAYABLE = ['c01-boot-order', 'c02-rufus-scheme'];
+
+/**
+ * The next customer: case 1, then 2, then mixed (nextCase). The first one can be chosen with ?case=<id>
+ * (for teachers and tests). A new seed gives a new machine each time.
+ */
+function newCase(content: Content, lastId: string | null): GeneratedCase {
+  const playable = content.cases.filter((c) => PLAYABLE.includes(c.id));
+  const wanted = lastId === null ? new URLSearchParams(location.search).get('case') : null;
+  const template = playable.find((c) => c.id === wanted) ?? nextCase(playable, lastId, Math.random);
+  return generateCase(template, content, `${Date.now()}`);
 }
 
+/** The install stick the customer brought, as the machine describes it. */
+function usbOf(gc: GeneratedCase): Usb {
+  const m = gc.machine;
+  const label = ISO_FILES.find((f) => f.os === m.usbOs)?.label ?? 'USB';
+  return { scheme: m.usbScheme, os: m.usbOs, label, bypassChecks: m.usbBypassChecks };
+}
+
+/** Cases whose fix is remaking the stick get the shop laptop. */
+const needsLaptop = (gc: GeneratedCase) => gc.problems.some((p) => p.fixes.includes('remake-usb'));
+
 export function CaseFlow({ content, ready, onCoins }: Props) {
-  const [gc, setGc] = useState(() => newCase(content));
+  const [gc, setGc] = useState(() => newCase(content, null));
   const [s, setS] = useState<Session>(() => startSession(gc));
   const [arrived, setArrived] = useState(false);
   const [simOpen, setSimOpen] = useState(false);
   /** The answer just given, shown until the player moves on. */
   const [feedback, setFeedback] = useState<Answer | null>(null);
   const pcRef = useRef<Pc | undefined>(undefined);
+  /** The shop laptop: open, where Rufus was left, the stick as it is now, and whether a write just finished. */
+  const [laptopOpen, setLaptopOpen] = useState(false);
+  const rufusRef = useRef<Rufus | undefined>(undefined);
+  const usbRef = useRef<Usb>(usbOf(gc));
+  const [written, setWritten] = useState(false);
   /** What the customer just said about the repair, and how often the PC came up with the old Windows. */
   const [said, setSaid] = useState<string | null>(null);
   const oldWindowsCount = useRef(0);
@@ -93,14 +121,21 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       }),
     [],
   );
+  useEffect(
+    () =>
+      bus.on('ui:open-laptop', () => {
+        if (latest.current.s.stage === 'repair' && needsLaptop(latest.current.gc)) openLaptop();
+      }),
+    [],
+  );
 
   // Back at the counter after the fix (whichever button closed the PC), the customer hops for joy once.
   const cheered = useRef(false);
   useEffect(() => {
-    if (simOpen || !s.route || cheered.current) return;
+    if (simOpen || laptopOpen || !s.route || cheered.current) return;
     cheered.current = true;
     bus.emit('customer:cheer', {});
-  }, [simOpen, s.route]);
+  }, [simOpen, laptopOpen, s.route]);
 
   // Coins once per case, when the summary appears.
   const summary = useMemo(() => (s.stage === 'summary' ? summarize(gc, s) : null), [gc, s]);
@@ -121,15 +156,35 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   }, [arrived, s.stage]);
 
   const openSim = () => {
+    setLaptopOpen(false);
     setSimOpen(true);
     setOpened(true);
+  };
+  const openLaptop = () => {
+    setSimOpen(false);
+    setWritten(false);
+    setLaptopOpen(true);
+    setOpened(true);
+  };
+  const closeScreens = () => {
+    setSimOpen(false);
+    setLaptopOpen(false);
+    bus.emit('ui:close-sim', {});
+  };
+
+  /** Rufus finished: the new stick goes back into the customer's PC, which starts again from POST. */
+  const onRufusEffect = (e: RufusEffect) => {
+    usbRef.current = e.usb;
+    if (pcRef.current) pcRef.current = insertUsb(pcRef.current, e.usb);
+    setWritten(true);
+    setSaid(null); // what the customer said was about the old stick
   };
 
   const onEffect = (e: Effect) => {
     // After the fix the PC is just for looking: a later mistake does not count against the player.
     const cur = latest.current.s;
     if (cur.stage !== 'repair' || cur.route) return;
-    act(e.type === 'mistake' ? { type: 'mistake' } : { type: 'repaired', route: e.route });
+    act(e.type === 'mistake' ? { type: 'mistake' } : { type: 'repaired', route: e.route, bypassedChecks: e.bypassedChecks });
     const r = latest.current.gc.template.customer.reactionsTh;
     const coachNow = latest.current.gc.template.coach;
     if (e.type === 'mistake' && coachNow && latest.current.s.mistakes === 1) setNudge(coachNow.firstMistakeTh);
@@ -137,6 +192,8 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       setNudge(null);
       setSaid(reactionLine(r, 'fixed'));
     } else if (e.reason === 'no-boot-device') setSaid(reactionLine(r, 'no-boot'));
+    else if (e.reason === 'wrong-image') setSaid(reactionLine(r, 'wrong-image'));
+    else if (e.reason === 'legacy-boot') setSaid(reactionLine(r, 'cant-run'));
     else setSaid(reactionLine(r, 'old-windows', ++oldWindowsCount.current));
   };
 
@@ -152,8 +209,11 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     const off = bus.on('customer:left', () => {
       off();
       leaving.current = false;
-      const g = newCase(content);
+      const g = newCase(content, latest.current.gc.template.id);
       pcRef.current = undefined;
+      rufusRef.current = undefined;
+      usbRef.current = usbOf(g);
+      setWritten(false);
       oldWindowsCount.current = 0;
       cheered.current = false;
       setSaid(null);
@@ -190,38 +250,68 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     </ol>
   );
 
+  const notes = (saying || nudge || hintList) && (
+    <div class="pc-notes">
+      {saying}
+      {nudge && tip(nudge)}
+      {hintList}
+    </div>
+  );
+
+  if (laptopOpen) {
+    return (
+      <RufusScreen
+        initial={rufusRef.current ?? openRufus(usbRef.current)}
+        onRufus={(r) => (rufusRef.current = r)}
+        onEffect={onRufusEffect}
+        onClose={closeScreens}
+        footer={
+          <div class="pc-footer">
+            {written && (
+              <p class="usb-note" role="status" data-testid="usb-note">
+                ✔ ทำ USB เสร็จแล้ว เสียบกลับเครื่อง{name}ให้แล้ว
+              </p>
+            )}
+            {notes}
+            <div class="pc-actions">
+              {hintButton}
+              <button class={`btn small${written ? '' : ' ghost'}`} type="button" onClick={openSim}>
+                ไปที่เครื่องลูกค้า
+              </button>
+            </div>
+          </div>
+        }
+      />
+    );
+  }
+
   if (simOpen) {
     return (
       <PcScreen
         brand={gc.brand}
         machine={gc.machine}
-        initial={pcRef.current}
+        initial={pcRef.current ?? insertUsb(powerOn(gc.machine), usbRef.current)}
         onPc={(pc) => (pcRef.current = pc)}
         onEffect={onEffect}
         coach={!!coach}
-        onClose={() => {
-          setSimOpen(false);
-          bus.emit('ui:close-sim', {});
-        }}
+        onClose={closeScreens}
         footer={
           <div class="pc-footer">
             {/* Text scrolls when space is short (phones on their side); the buttons below always stay in view. */}
-            {(saying || nudge || hintList) && (
-              <div class="pc-notes">
-                {saying}
-                {nudge && tip(nudge)}
-                {hintList}
-              </div>
-            )}
+            {notes}
             <div class="pc-actions">
               {hintButton}
+              {needsLaptop(gc) && !s.route && (
+                <button class="btn ghost small" type="button" onClick={openLaptop}>
+                  โน้ตบุ๊กร้าน
+                </button>
+              )}
               {s.route && (
                 <button
                   class="btn small"
                   type="button"
                   onClick={() => {
-                    setSimOpen(false);
-                    bus.emit('ui:close-sim', {});
+                    closeScreens();
                     act({ type: 'next' });
                   }}
                 >
@@ -298,7 +388,13 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     case 'repair':
       body = (
         <>
-          <p class="ask">{s.route ? 'บูตจาก USB ได้แล้ว กลับไปคุยกับลูกค้า' : 'แตะคอมบนเคาน์เตอร์เพื่อเปิดเครื่องของลูกค้า แล้วทำให้เครื่องบูตจาก USB'}</p>
+          <p class="ask">
+            {s.route
+              ? 'บูตจาก USB ได้แล้ว กลับไปคุยกับลูกค้า'
+              : needsLaptop(gc)
+                ? 'มีเครื่องลูกค้ากับโน้ตบุ๊กของร้านบนเคาน์เตอร์ แตะเครื่องที่จะใช้ แล้วทำให้เครื่องลูกค้าบูตจาก USB'
+                : 'แตะคอมบนเคาน์เตอร์เพื่อเปิดเครื่องของลูกค้า แล้วทำให้เครื่องบูตจาก USB'}
+          </p>
           {coach && !opened && !s.route && tip(coach.beforePcTh)}
           {saying}
           {nudge && tip(nudge)}
@@ -311,6 +407,11 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
             ) : (
               <button class="btn" type="button" onClick={openSim}>
                 เปิดเครื่องลูกค้า
+              </button>
+            )}
+            {needsLaptop(gc) && !s.route && (
+              <button class="btn ghost" type="button" onClick={openLaptop}>
+                เปิดโน้ตบุ๊กร้าน
               </button>
             )}
             {hintButton}

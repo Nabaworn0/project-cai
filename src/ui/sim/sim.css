@@ -89,7 +89,7 @@
 .setup { height: 100%; display: grid; place-items: center; background: linear-gradient(135deg, #1a2a6c, #3b2f8f 55%, #6a3fa0); font-family: var(--f-win); }
 .setup-win { width: 78%; background: #fff; color: #1b1b1b; border-radius: 0.5em; padding: 1em 1.4em 1.2em; box-shadow: 0 0.6em 2em rgba(0, 0, 0, 0.4); }
 .setup-head { font-size: 0.8em; color: #5d5d5d; margin-bottom: 0.6em; }
-.setup-win h2 { font-size: 1.5em; font-weight: 600; margin: 0 0 0.8em; }
+.setup-win h2 { font-family: var(--f-win); font-size: 1.5em; font-weight: 600; margin: 0 0 0.8em; }
 .setup-win label { display: grid; gap: 0.2em; margin-bottom: 0.7em; font-size: 0.9em; }
 .setup-select { border: 0.08em solid #8a8a8a; border-radius: 0.25em; padding: 0.3em 0.6em; }
 .setup-foot { display: flex; justify-content: flex-end; }
@@ -182,3 +182,104 @@
   .pc-monitor .key.glyph { font-size: 20px; }
 }
 .pc-subtitle .nowrap { white-space: nowrap; }
+
+/* ---- case 2 wrong boots: Windows 10 installer, Ubuntu's GRUB, "can't run Windows 11" ---- */
+.setup10 { height: 100%; display: grid; place-items: center; background: #1c4b8f; font-family: var(--f-win); }
+.setup10-win { width: 76%; background: #f0f0f0; color: #000; box-shadow: 0 0 0 0.1em #6d8fbf; }
+.setup10-title { background: #fff; padding: 0.2em 0.6em; font-size: 0.8em; border-bottom: 0.06em solid #ccc; }
+.setup10-body { padding: 0.8em 1.4em 1em; font-size: 0.85em; }
+.setup10-brand { font-size: 1.8em; font-weight: 300; color: #1c4b8f; margin-bottom: 0.6em; text-align: center; }
+.setup10-body label { display: grid; grid-template-columns: 1fr 1.3fr; align-items: center; gap: 0.6em; margin-bottom: 0.5em; }
+.setup10-body .setup-select { background: #fff; border-radius: 0; }
+.setup10-hint { margin: 0.6em 0; font-size: 0.85em; }
+.setup10-next { border: 0.08em solid #707070; background: #e1e1e1; padding: 0.15em 1.6em; }
+.grub { background: #000; color: #c8c8c8; }
+.grub-title { text-align: center; margin-bottom: 0.8em !important; }
+.grub-menu { list-style: none; margin: 0 0 0.8em; padding: 0.3em 0.4em; border: 0.1em solid #c8c8c8; min-height: 9em; white-space: pre; }
+.grub-menu li.sel { background: #c8c8c8; color: #000; }
+.grub-help { font-size: 0.85em; }
+.cantrun-text { margin: 0 0 0.4em; font-size: 0.95em; }
+.cantrun-why { margin: 0 0 1em; padding-left: 1.4em; font-size: 0.95em; }
+.setup-back { border: 0.08em solid #8a8a8a; border-radius: 0.25em; padding: 0.3em 1.6em; }
+
+/* ---- shop laptop: Rufus (RufusScreen) ----
+   A Windows desktop with the Rufus window on it, in real px rather than the PC screen's scaled em: it is
+   used by tapping, so controls keep a phone-friendly size, and the desktop scrolls if the window is taller. */
+/* An explicit height cap, so the desktop (not the buttons under it) gives way on short screens. */
+.laptop-monitor { width: min(560px, 100%); max-height: calc(100dvh - 24px - var(--safe-t) - var(--safe-b)); }
+.desktop-wrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.desktop {
+  min-height: 0; flex: 1 1 auto; overflow: auto; overscroll-behavior: contain;
+  padding: 12px; background: linear-gradient(160deg, #0b5cad, #073b78);
+}
+.rufus {
+  position: relative; width: min(440px, 100%); margin: 0 auto;
+  background: #f0f0f0; color: #000; font-family: var(--f-win); font-size: 14px; line-height: 1.3;
+  box-shadow: 0 0 0 1px #5a6f8f, 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.rufus-titlebar { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; font-size: 13px; }
+.rufus-x { color: #555; }
+.rufus-body { padding: 4px 14px 14px; }
+.rufus-section { margin: 12px 0 6px; font-size: 17px; font-weight: 400; border-bottom: 1px solid #c9c9c9; padding-bottom: 2px; }
+.rufus-field { display: grid; gap: 3px; margin-bottom: 8px; font-size: 13px; }
+.rufus-row { display: flex; gap: 6px; }
+.rufus-row select { flex: 1 1 auto; min-width: 0; }
+.rufus-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rufus select, .rufus input {
+  min-height: 34px; width: 100%; min-width: 0; padding: 4px 6px;
+  font: inherit; font-size: 14px; color: #000; background: #fff; border: 1px solid #7a7a7a; border-radius: 0;
+}
+.rufus select:disabled { color: #000; background: #fff; opacity: 1; border-color: #adadad; }
+.rufus select:not(:disabled) { cursor: pointer; }
+.rufus-link { display: block; margin: 0 0 4px; font-size: 13px; color: #3a3a3a; }
+.rufus-status { position: relative; height: 30px; background: #e6e6e6; border: 1px solid #bcbcbc; display: grid; place-items: center; overflow: hidden; }
+.rufus-bar { position: absolute; left: 0; top: 0; bottom: 0; background: #06b025; }
+.rufus-status-text { position: relative; font-size: 14px; }
+.rufus-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.rufus-btn {
+  min-height: 36px; min-width: 84px; padding: 4px 12px;
+  font: inherit; font-size: 14px; color: #000; background: #e1e1e1; border: 1px solid #adadad; border-radius: 0; cursor: pointer;
+}
+.rufus-btn:not(:disabled):hover { background: #e5f1fb; border-color: #0078d7; }
+.rufus-btn:disabled { color: #8a8a8a; cursor: default; }
+
+/* Windows dialogs (file picker, Customize, the wipe warning) float centred over the desktop, outside its
+   scrolling, so one opened by START at the bottom of a tall window is still in front of the player. */
+.win-modal {
+  position: absolute; inset: 0; z-index: 2; overflow: auto; overscroll-behavior: contain;
+  display: grid; place-items: center; padding: 8px; background: rgba(0, 0, 0, 0.25);
+}
+.win-dialog {
+  width: min(400px, 100%); background: #fff; color: #000; font-family: var(--f-win); line-height: 1.3;
+  box-shadow: 0 0 0 1px #5a6f8f, 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+.win-dialog-title { background: #fff; padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #e3e3e3; }
+.win-dialog-text { margin: 12px 14px; font-size: 14px; white-space: pre-line; }
+.win-dialog-text.warn { display: flex; gap: 10px; align-items: flex-start; }
+.win-warn-icon { font-size: 26px; line-height: 1; color: #d9a12b; }
+.win-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 12px; background: #f0f0f0; }
+.win-path { padding: 6px 12px; font-size: 13px; color: #444; background: #f7f7f7; }
+.win-files { list-style: none; margin: 0; padding: 6px; }
+.win-files button {
+  width: 100%; min-height: 40px; display: flex; gap: 8px; align-items: center; padding: 4px 8px; text-align: left;
+  font: inherit; font-size: 14px; color: #000; background: none; border: 1px solid transparent; border-radius: 0; cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.win-files button.sel { background: #cce8ff; border-color: #99d1ff; }
+.win-checks { list-style: none; margin: 0 14px 10px; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.win-checks label { display: flex; gap: 8px; align-items: flex-start; min-height: 32px; cursor: pointer; }
+.win-checks input { width: 18px; height: 18px; margin: 1px 0 0; flex: none; }
+
+/* The messages and buttons under the window never shrink: the desktop gives way and scrolls. */
+.laptop-monitor > .pc-status-row { flex: none; }
+
+/* Phones on their side: like the customer's PC, the desktop takes the full height and the messages and
+   buttons get a column of their own on the right. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .monitor.laptop-monitor {
+    display: grid; width: 100%; height: calc(100dvh - 24px - var(--safe-t) - var(--safe-b)); padding: 6px 10px 8px; column-gap: 12px;
+    grid-template-columns: minmax(0, 1fr) 220px; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: 'bar bar' 'screen side';
+  }
+  .laptop-monitor .desktop-wrap { grid-area: screen; }
+  .laptop-monitor .pc-status-row { grid-area: side; margin: 0; overflow: auto; }
+}

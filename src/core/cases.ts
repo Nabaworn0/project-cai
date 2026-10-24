@@ -123,3 +123,18 @@ export function solve(start: Machine, brand: Brand, opts: SolveOptions): string[
 export function brandShows(brand: Brand, a: Action): boolean {
   return !a.biosSetting || brand.pages.some((pg) => pg.items.some((it) => it.setting === a.biosSetting));
 }
+
+/**
+ * Who walks in next. New players meet the customers in order (case 1, then 2, …); once every playable
+ * case has been seen, a random one other than the case just played. `rand` returns [0, 1).
+ */
+export function nextCase<C extends { id: string; order: number }>(playable: readonly C[], lastId: string | null, rand: () => number): C {
+  const ordered = [...playable].sort((a, b) => a.order - b.order);
+  if (!ordered.length) throw new Error('no playable cases');
+  const i = ordered.findIndex((c) => c.id === lastId);
+  if (i < 0) return ordered[0]!;
+  if (i + 1 < ordered.length) return ordered[i + 1]!;
+  const others = ordered.filter((c) => c.id !== lastId);
+  if (!others.length) return ordered[0]!;
+  return others[Math.min(others.length - 1, Math.floor(rand() * others.length))]!;
+}
