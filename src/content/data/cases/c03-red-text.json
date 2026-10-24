@@ -36,7 +36,6 @@
     "ถ้าสุ่มได้ no-product-key: ลุงลืมเอาคีย์มา ให้กด I don't have a product key ไม่ต้องหยุดงาน",
     "มินิเกมพาร์ทิชัน: ลบ/สร้าง/ฟอร์แมต ให้ถูกลำดับ"
   ],
-  "targetOs": "win11",
   "brands": ["classic"],
   "machine": {
     "ramGB": [8],

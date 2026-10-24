@@ -5,13 +5,8 @@ export type BootMode = 'uefi' | 'legacy';
 export type DiskStyle = 'mbr' | 'gpt';
 export type TpmVersion = 'none' | '1.2' | '2.0';
 export type SataMode = 'ahci' | 'raid';
-/** Which Windows the customer wants. Windows 11 is the main path; Windows 10 follows the textbook. */
-export type TargetOs = 'win10' | 'win11';
-
 export interface Machine {
   brand: string;
-  /** Set by the case, never by a problem. */
-  targetOs: TargetOs;
   bootMode: BootMode;
   secureBoot: boolean;
   supervisorPassword: boolean;
@@ -37,13 +32,12 @@ export interface Machine {
   missingDrivers: string[];
 }
 
-export type MachinePatch = Partial<Omit<Machine, 'brand' | 'targetOs'>>;
+export type MachinePatch = Partial<Omit<Machine, 'brand'>>;
 
-/** A machine with nothing wrong: the target Windows installs on it straight away. */
-export function healthyMachine(brand: string, targetOs: TargetOs = 'win11'): Machine {
+/** A machine with nothing wrong: Windows 11 installs on it straight away. */
+export function healthyMachine(brand: string): Machine {
   return {
     brand,
-    targetOs,
     bootMode: 'uefi',
     secureBoot: true,
     supervisorPassword: false,

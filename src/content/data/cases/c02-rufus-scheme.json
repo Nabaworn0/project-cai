@@ -35,7 +35,6 @@
     "กับดัก: เลือก MBR ซ้ำ หรือเลือก ISO ผิดไฟล์ (ในโฟลเดอร์มีไฟล์ Windows 10 และ Ubuntu ปนอยู่ ให้เลือก Windows 11)",
     "มินิเกมจับคู่ MBR/GPT กับโหมดบูตเล่นก่อนเปิด Rufus"
   ],
-  "targetOs": "win11",
   "brands": ["classic"],
   "machine": {
     "ramGB": [16, 32],

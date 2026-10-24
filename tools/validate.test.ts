@@ -126,45 +126,45 @@ test('problems that need different values of the same field cannot be combined',
   hasError(files, 'need different values of bootMode');
 });
 
-// --- Windows 10 / 11 (textbook alignment, docs/book-alignment.md) ---
+// --- Windows 11 only (decided 2026-10-24; Windows 10 is just the customers' old system) ---
 
-test('Windows 10 accepts a Legacy BIOS + MBR machine that Windows 11 rejects', () => {
-  const legacy = { ...healthyMachine('classic', 'win10'), bootMode: 'legacy' as const, secureBoot: false, diskStyle: 'mbr' as const, usbScheme: 'mbr' as const };
-  assert.deepEqual(findBlockers(legacy), []);
-  assert.deepEqual(findBlockers({ ...legacy, targetOs: 'win11' }), ['legacy-boot']);
+test('Windows 11 rejects a Legacy BIOS machine, even one set up correctly for it (MBR disk and USB)', () => {
+  const legacy = { ...healthyMachine('classic'), bootMode: 'legacy' as const, secureBoot: false, diskStyle: 'mbr' as const, usbScheme: 'mbr' as const };
+  assert.deepEqual(findBlockers(legacy), ['legacy-boot']);
 });
 
-test('Legacy boot with a GPT disk is a problem for Windows 10, and so is an MBR install USB on a UEFI machine', () => {
-  const w10 = healthyMachine('classic', 'win10');
-  assert.ok(findBlockers({ ...w10, bootMode: 'legacy', usbScheme: 'mbr' }).includes('legacy-gpt'));
-  assert.ok(findBlockers({ ...w10, usbScheme: 'mbr' }).includes('usb-scheme-mismatch'));
+test('an MBR install USB on a UEFI machine is a mismatch (textbook p.47)', () => {
+  assert.deepEqual(findBlockers({ ...healthyMachine('classic'), usbScheme: 'mbr' }), ['usb-scheme-mismatch']);
 });
 
-test('no TPM chip or an unlisted CPU only limits Windows 11', () => {
-  const old = { ...healthyMachine('classic', 'win10'), tpm: 'none' as const, cpuWin11: false };
-  assert.deepEqual(hardwareLimits(old), []);
-  assert.deepEqual(hardwareLimits({ ...old, targetOs: 'win11' }), ['tpm-missing', 'cpu-unsupported']);
+test('no TPM chip or an unlisted CPU are hardware limits: upgrade the hardware or advise the customer', () => {
+  const old = { ...healthyMachine('classic'), tpm: 'none' as const, cpuWin11: false };
+  assert.deepEqual(hardwareLimits(old), ['tpm-missing', 'cpu-unsupported']);
+  assert.deepEqual(hardwareLimits(healthyMachine('classic')), []);
 });
 
 test('the textbook problems are repaired the textbook way', () => {
   const files = real();
   const brand = BrandSchema.parse(get(files, 'brands/classic.json'));
   const problems = ProblemsSchema.parse(get(files, 'problems.json'));
-  const fixWith = (problem: string, target: 'win10' | 'win11') => {
-    const template = CaseSchema.parse({ ...get(files, 'cases/c03-red-text.json'), targetOs: target, problems: { fixed: [problem] } });
+  const fixWith = (problem: string) => {
+    const template = CaseSchema.parse({ ...get(files, 'cases/c03-red-text.json'), problems: { fixed: [problem] } });
     const g = generateCase(template, { problems, brands: [brand] }, 'x');
     return solve(g.machine, brand, { keepData: false });
   };
-  assert.deepEqual(fixWith('usb-wrong-scheme', 'win10'), ['remake-usb']);
-  assert.deepEqual(fixWith('bios-not-saved', 'win11'), ['set-usb-first']);
-  assert.deepEqual(fixWith('no-product-key', 'win11'), ['skip-product-key']);
-  assert.deepEqual(fixWith('missing-display-driver', 'win10'), ['install-drivers']);
+  assert.deepEqual(fixWith('usb-wrong-scheme'), ['remake-usb']);
+  assert.deepEqual(fixWith('bios-not-saved'), ['set-usb-first']);
+  assert.deepEqual(fixWith('no-product-key'), ['skip-product-key']);
+  assert.deepEqual(fixWith('missing-display-driver'), ['install-drivers']);
 });
 
-test('a Windows 11-only problem in a Windows 10 case is rejected', () => {
+test('unknown fields in cases and problems are errors, so leftovers like "targetOs" or typos are not silently ignored', () => {
   const files = real();
-  get(files, 'cases/adv-old-office-pc.json').problems = { fixed: ['tpm-disabled'], pool: [], extra: [0, 0] };
-  hasError(files, 'problem tpm-disabled does not apply to win10');
+  get(files, 'cases/adv-old-office-pc.json').targetOs = 'win10';
+  hasError(files, 'targetOs');
+  const typo = real();
+  get(typo, 'problems.json')[0].hintTh = ['สะกดผิด'];
+  hasError(typo, 'hintTh');
 });
 
 test('the first five cases are warned when they use topics beyond the textbook', () => {
@@ -209,4 +209,21 @@ test('case questions are checked: answers in range and customer questions say wh
   delete c.customerQuestions[0].askTh;
   hasError(files, 'c02-rufus-scheme.json diagnosis: answer 9 is out of range');
   hasError(files, 'customerQuestions[0]: missing askTh');
+});
+
+test('the playable BIOS menu is checked against the engine and the settings list', () => {
+  const broken = (edit: (menu: Record<string, any>) => void, text: string) => {
+    const files = real();
+    edit(get(files, 'brands/classic.json').menu);
+    hasError(files, text);
+  };
+  broken((m) => (m.menus.boot.rows[1].menu = 'nowhere'), 'links to unknown menu "nowhere"');
+  broken((m) => (m.menus['boot-settings'].rows[1].choices[0].value = 'turbo'), 'bootMode cannot be "turbo"');
+  broken((m) => (m.menus['hard-disks'].rows[1].slot = 5), 'slot 5 but the machine has 2 drives');
+  broken((m) => (m.menus.exit.rows = m.menus.exit.rows.filter((r: any) => r.action !== 'save')), 'no "Save Changes and Exit" row');
+  broken((m) => (m.menus['secure-boot'].rows = [{ type: 'info', label: 'Secure Boot', value: '' }]), 'pages list secureBoot but the playable menu has no row');
+  broken((m) => m.menus.sata.rows.push({ type: 'option', label: 'Password', setting: 'supervisorPassword', choices: [{ label: 'On', value: true }, { label: 'Off', value: false }] }), 'supervisorPassword cannot be an option');
+  const files = real();
+  delete get(files, 'brands/classic.json').menu;
+  hasError(files, 'MVP brand has no playable "menu"');
 });

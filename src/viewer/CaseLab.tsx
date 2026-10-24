@@ -47,7 +47,6 @@ export function CaseLab({ template, customer, lib, objectives }: Props) {
   const path = useMemo(() => solve(g.machine, g.brand, { keepData: template.customer.keepData }), [g, template]);
   const blockers = findBlockers(g.machine);
   const limits = hardwareLimits(g.machine);
-  const osName = template.targetOs === 'win11' ? 'Windows 11' : 'Windows 10';
 
   return (
     <article class="v-card" data-testid={`case-${template.id}`}>
@@ -68,11 +67,6 @@ export function CaseLab({ template, customer, lib, objectives }: Props) {
         <dd><LoTags ids={template.lo} objectives={objectives} /></dd>
         <dt>เก็บไฟล์ลูกค้า</dt>
         <dd>{template.customer.keepData ? 'ต้องเก็บ (ห้ามใช้วิธีที่ลบข้อมูล)' : 'ไม่ต้อง (สำรองแล้ว)'}</dd>
-        <dt>ลูกค้าต้องการ</dt>
-        <dd>
-          <b>{osName}</b>
-          {template.targetOs === 'win10' && <span class="v-badge warn">หมดการอัปเดตความปลอดภัยแล้ว</span>}
-        </dd>
         <dt>ยี่ห้อที่สุ่มได้</dt>
         <dd>{template.brands.join(', ')}</dd>
         <dt>ปัญหาตายตัว</dt>
@@ -120,7 +114,7 @@ export function CaseLab({ template, customer, lib, objectives }: Props) {
 
         <div class="v-ticket">
           <div class="v-ticket-head">
-            ตั๋วเครื่อง · <b>{g.brand.name}</b> · ลง <b>{osName}</b>
+            ตั๋วเครื่อง · <b>{g.brand.name}</b> · ลง <b>Windows 11</b>
             {!g.brand.verified && <span class="v-badge warn">BIOS ยังไม่เทียบเครื่องจริง</span>}
           </div>
           <table class="v-machine">

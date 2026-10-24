@@ -42,9 +42,143 @@
       "items": []
     }
   ],
+  "menu": {
+    "title": "BIOS SETUP UTILITY",
+    "tabs": [
+      { "label": "Main", "menu": "main" },
+      { "label": "Advanced", "menu": "advanced" },
+      { "label": "PCIPnP", "menu": "pcipnp" },
+      { "label": "Boot", "menu": "boot" },
+      { "label": "Security", "menu": "security" },
+      { "label": "Chipset", "menu": "chipset" },
+      { "label": "Exit", "menu": "exit" }
+    ],
+    "menus": {
+      "main": {
+        "title": "System Overview",
+        "rows": [
+          { "type": "info", "label": "AMIBIOS Version", "value": "08.00.15" },
+          { "type": "info", "label": "Processor", "value": "{cpu}" },
+          { "type": "info", "label": "System Memory", "value": "{ramMB}MB" },
+          { "type": "info", "label": "Hard Disk", "value": "SSD {storageGB}GB" }
+        ]
+      },
+      "advanced": {
+        "title": "Advanced Settings",
+        "rows": [
+          { "type": "submenu", "label": "SATA Configuration", "menu": "sata", "help": "Configure SATA devices." },
+          { "type": "submenu", "label": "Trusted Computing", "menu": "trusted", "help": "Trusted Computing settings." }
+        ]
+      },
+      "sata": {
+        "title": "SATA Configuration",
+        "rows": [
+          {
+            "type": "option",
+            "label": "SATA Mode",
+            "setting": "sataMode",
+            "choices": [{ "label": "AHCI", "value": "ahci" }, { "label": "RAID", "value": "raid" }],
+            "help": "Select how the SATA controller operates."
+          }
+        ]
+      },
+      "trusted": {
+        "title": "Trusted Computing",
+        "rows": [
+          {
+            "type": "option",
+            "label": "Security Device Support",
+            "setting": "tpm",
+            "choices": [{ "label": "Enabled", "value": true }, { "label": "Disabled", "value": false }],
+            "help": "Enables or disables the TPM security device."
+          }
+        ]
+      },
+      "pcipnp": {
+        "title": "Advanced PCI/PnP Settings",
+        "rows": [
+          { "type": "info", "label": "Plug & Play O/S", "value": "No" },
+          { "type": "info", "label": "PCI Latency Timer", "value": "64" }
+        ]
+      },
+      "boot": {
+        "title": "Boot Settings",
+        "rows": [
+          { "type": "submenu", "label": "Boot Settings Configuration", "menu": "boot-settings", "help": "Configure settings during system boot." },
+          { "type": "submenu", "label": "Boot Device Priority", "menu": "boot-priority", "help": "Specifies the boot device priority sequence." },
+          { "type": "submenu", "label": "Hard Disk Drives", "menu": "hard-disks", "help": "Specifies the boot device priority sequence from available hard drives." }
+        ]
+      },
+      "boot-settings": {
+        "title": "Boot Settings Configuration",
+        "rows": [
+          { "type": "info", "label": "Quick Boot", "value": "Enabled" },
+          {
+            "type": "option",
+            "label": "CSM Support",
+            "setting": "bootMode",
+            "choices": [{ "label": "Enabled", "value": "legacy" }, { "label": "Disabled", "value": "uefi" }],
+            "help": "Enabled: legacy BIOS boot is allowed. Disabled: UEFI boot only."
+          }
+        ]
+      },
+      "boot-priority": {
+        "title": "Boot Device Priority",
+        "rows": [
+          { "type": "bootDevice", "label": "1st Boot Device", "slot": 0, "help": "Specifies the boot sequence from the available devices." },
+          { "type": "bootDevice", "label": "2nd Boot Device", "slot": 1, "help": "Specifies the boot sequence from the available devices." }
+        ]
+      },
+      "hard-disks": {
+        "title": "Hard Disk Drives",
+        "rows": [
+          { "type": "drive", "label": "1st Drive", "slot": 0, "help": "Specifies the boot sequence from the available devices." },
+          { "type": "drive", "label": "2nd Drive", "slot": 1, "help": "Specifies the boot sequence from the available devices." }
+        ]
+      },
+      "security": {
+        "title": "Security Settings",
+        "rows": [
+          { "type": "info", "label": "Supervisor Password", "value": "Not Installed" },
+          { "type": "submenu", "label": "Secure Boot", "menu": "secure-boot", "help": "Secure Boot configuration." }
+        ]
+      },
+      "secure-boot": {
+        "title": "Secure Boot",
+        "rows": [
+          {
+            "type": "option",
+            "label": "Secure Boot",
+            "setting": "secureBoot",
+            "choices": [{ "label": "Enabled", "value": true }, { "label": "Disabled", "value": false }],
+            "help": "Secure Boot works only when CSM Support is Disabled."
+          }
+        ]
+      },
+      "chipset": {
+        "title": "Advanced Chipset Settings",
+        "rows": [
+          { "type": "info", "label": "North Bridge Configuration", "value": "" },
+          { "type": "info", "label": "South Bridge Configuration", "value": "" }
+        ]
+      },
+      "exit": {
+        "title": "Exit Options",
+        "rows": [
+          { "type": "exit", "label": "Save Changes and Exit", "action": "save", "help": "Exit system setup after saving the changes." },
+          { "type": "exit", "label": "Discard Changes and Exit", "action": "discard", "help": "Exit system setup without saving any changes." }
+        ]
+      }
+    },
+    "legend": ["←→  Select Screen", "↑↓  Select Item", "Enter  Go to Sub Screen", "+-  Change Option", "F1  General Help", "F10  Save and Exit", "ESC  Exit"],
+    "saveDialog": "Save configuration changes and exit setup?",
+    "discardDialog": "Discard changes and exit setup?"
+  },
   "notesTh": [
-    "หน้าตาแบบหนังสือหน้า 49–51: แถบเมนูด้านบน Main / Advanced / Power / Boot / Security / Exit พื้นเทาตัวหนังสือน้ำเงิน",
+    "หน้าตาแบบหนังสือหน้า 49–51 (AMIBIOS 8): หัวจอ BIOS SETUP UTILITY แถบเมนู Main / Advanced / PCIPnP / Boot / Security / Chipset / Exit พื้นเทาตัวหนังสือน้ำเงิน",
     "ใช้ลูกศรเลือกเมนู Enter เข้าเมนูย่อย F10 บันทึกและออก (Save and Exit) Esc ออกไม่บันทึก",
-    "เมนู CSM / Secure Boot / TPM ไม่มีในภาพของหนังสือ (BIOS ปี 2008) แต่ BIOS รุ่นใหม่ที่ใช้กับ Windows 11 มี จึงเพิ่มไว้"
+    "ลำดับบูตแบบหนังสือ: Boot Device Priority เลือกได้แค่ตัวแรกของแต่ละกลุ่ม แฟลชไดรฟ์อยู่ในกลุ่ม Hard Disk Drives จึงต้องตั้ง 1st Drive = USB ก่อน แล้ว USB จะขึ้นเป็นอันดับแรก (รูป 3.17)",
+    "เมนู CSM / Secure Boot / TPM ไม่มีในภาพของหนังสือ (BIOS ปี 2008) แต่ BIOS รุ่นใหม่ที่ใช้กับ Windows 11 มี จึงเพิ่มไว้",
+    "ข้อความแถบคำอธิบายปุ่มและกล่อง F10/Esc ยังไม่ได้เทียบกับเครื่องจริง (ดู docs/real-screens.md ข้อ 2)"
   ]
 }

@@ -9,7 +9,6 @@ const loId = z.string().regex(/^LO\d+$/, 'objective ids look like LO1');
 const th = z.string().min(1);
 /** Where a topic comes from: the textbook, what Windows 11 adds to it, or beyond the book (advanced). */
 export const SourceSchema = z.enum(['book', 'win11', 'extra']);
-export const TargetOsSchema = z.enum(['win10', 'win11']);
 
 export const BIOS_SETTINGS = ['bootOrder', 'bootMode', 'secureBoot', 'supervisorPassword', 'tpm', 'sataMode'] as const;
 export const BiosSetting = z.enum(BIOS_SETTINGS);
@@ -51,8 +50,6 @@ export const ProblemSchema = z.object({
   source: SourceSchema,
   /** Textbook page(s) that teach this. */
   bookPage: z.string().optional(),
-  /** Windows versions this problem can appear in (default: both). */
-  targets: z.array(TargetOsSchema).min(1).default(['win10', 'win11']),
   /** Blocker from src/core/requirements.ts that this problem must produce. */
   blocker: z.string(),
   /** Conditions on the machine for this problem to make sense. */
@@ -66,7 +63,7 @@ export const ProblemSchema = z.object({
   screenText: z.string().min(1).optional(),
   explainTh: th,
   hintsTh: z.array(th).min(1).max(2),
-});
+}).strict();
 export const ProblemsSchema = z.array(ProblemSchema);
 
 const range = z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]).refine(([a, b]) => a <= b, 'range must be [min, max]');
@@ -112,8 +109,6 @@ export const CaseSchema = z.object({
   customerQuestions: z.array(CaseQuestionSchema).min(1),
   /** Notes for whoever builds/plays the case (traps, what to watch); not shown to students. */
   designNotesTh: z.array(th).default([]),
-  /** Which Windows the customer wants installed. */
-  targetOs: TargetOsSchema.default('win11'),
   brands: z.array(id).min(1),
   machine: z
     .object({
@@ -133,7 +128,7 @@ export const CaseSchema = z.object({
   }),
   minigames: z.array(id).default([]),
   timeLimitSec: z.number().int().positive().default(300),
-});
+}).strict();
 export type Case = z.infer<typeof CaseSchema>;
 
 const BiosItemSchema = z.object({
@@ -143,6 +138,40 @@ const BiosItemSchema = z.object({
   advancedOnly: z.boolean().default(false),
   helpTh: th.optional(),
 });
+
+/**
+ * One line of a BIOS menu screen (src/core/pc.ts runs it). Text stays English like the real screen.
+ * info: read-only line · submenu: Enter opens `menu` · option: a setting with fixed choices ·
+ * bootDevice / drive: a slot in Boot Device Priority / Hard Disk Drives (AMIBIOS 8, textbook p.49–51) ·
+ * exit: opens the save or discard dialog.
+ */
+const MenuRowSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('info'), label: z.string().min(1), value: z.string().default(''), help: z.string().optional() }),
+  z.object({ type: z.literal('submenu'), label: z.string().min(1), menu: id, help: z.string().optional() }),
+  z.object({
+    type: z.literal('option'),
+    label: z.string().min(1),
+    setting: BiosSetting,
+    choices: z.array(z.object({ label: z.string().min(1), value: z.union([z.string(), z.boolean()]) })).min(2),
+    help: z.string().optional(),
+  }),
+  z.object({ type: z.literal('bootDevice'), label: z.string().min(1), slot: z.number().int().nonnegative(), help: z.string().optional() }),
+  z.object({ type: z.literal('drive'), label: z.string().min(1), slot: z.number().int().nonnegative(), help: z.string().optional() }),
+  z.object({ type: z.literal('exit'), label: z.string().min(1), action: z.enum(['save', 'discard']), help: z.string().optional() }),
+]);
+export type MenuRow = z.infer<typeof MenuRowSchema>;
+
+/** The playable BIOS screen of a brand: tabs, menus (flat, linked by id), and the real on-screen wording. */
+const BiosMenuSchema = z.object({
+  title: z.string().min(1),
+  tabs: z.array(z.object({ label: z.string().min(1), menu: id })).min(1),
+  menus: z.record(id, z.object({ title: z.string().min(1), rows: z.array(MenuRowSchema).min(1) })),
+  /** Key help shown at the bottom right, one entry per line. */
+  legend: z.array(z.string().min(1)).min(1),
+  saveDialog: z.string().min(1),
+  discardDialog: z.string().min(1),
+});
+export type BiosMenu = z.infer<typeof BiosMenuSchema>;
 
 export const BrandSchema = z.object({
   id,
@@ -165,6 +194,8 @@ export const BrandSchema = z.object({
   pages: z
     .array(z.object({ id, label: z.string().min(1), items: z.array(BiosItemSchema) }))
     .min(1),
+  /** The playable screen; brands without it can be listed but not played yet. */
+  menu: BiosMenuSchema.optional(),
   notesTh: z.array(th).default([]),
 });
 export type Brand = z.infer<typeof BrandSchema>;

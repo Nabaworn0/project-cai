@@ -1,0 +1,140 @@
+/* The customer's PC screen (PcScreen). Real-screen look, not pixel art: docs/style-guide.md section 1.
+   .pc is a 4:3 box whose font size follows its width (container query units), so every screen keeps
+   its proportions from a 360 px phone to a desktop monitor. Sizes inside use em. */
+
+/* Height of everything around the screen: monitor bar, status line, key bar, paddings. */
+.pc-monitor { --pc-chrome: 200px; width: min(900px, 100%); }
+.monitor-actions { display: flex; gap: 8px; }
+
+.pc {
+  container-type: inline-size;
+  position: relative; overflow: hidden;
+  /* 4:3, and never taller than the room left beside the bars (phones in landscape): the width gives way. */
+  width: min(100%, calc((100dvh - var(--pc-chrome) - var(--safe-t) - var(--safe-b)) * 4 / 3));
+  aspect-ratio: 4 / 3;
+  margin-inline: auto;
+  background: #000; color: #c8c8c8;
+  outline: none;
+}
+@supports (width: 1cqw) {
+  .pc > * { font-size: 2.6cqw; }
+}
+.pc-text { height: 100%; padding: 1.2em 1.6em; font-family: Consolas, 'Courier New', monospace; line-height: 1.5; }
+.pc-text p { margin: 0; }
+.post-keys { margin-top: 1.5em !important; color: #fff; }
+
+.dots::after { content: ''; animation: dots 1.6s steps(5) infinite; }
+@keyframes dots {
+  0% { content: ''; } 20% { content: '.'; } 40% { content: '..'; } 60% { content: '...'; } 80%, 100% { content: '....'; }
+}
+
+/* ---- AMIBIOS 8 style setup screen (textbook p.49–51) ---- */
+.bios {
+  --b-blue: #0000a8; --b-grey: #a8a8a8; --b-white: #fff; --b-cyan: #00a8a8; --b-dark: #000060;
+  position: relative; height: 100%; display: grid; grid-template-rows: auto auto 1fr auto;
+  background: var(--b-grey); color: var(--b-blue);
+  font-family: Consolas, 'Courier New', monospace; line-height: 1.35;
+}
+.bios-title { background: var(--b-blue); color: var(--b-white); text-align: center; padding: 0.2em 0; letter-spacing: 0.1em; }
+.bios-tabs { display: flex; background: var(--b-blue); color: var(--b-white); padding: 0 0.6em; gap: 0.2em; overflow: hidden; }
+.bios-tabs span { padding: 0.1em 0.55em; white-space: nowrap; }
+.bios-tabs span.on { background: var(--b-grey); color: var(--b-blue); }
+.bios-body { display: grid; grid-template-columns: 1fr 13em; min-height: 0; border: 0.15em solid var(--b-blue); border-top: 0; }
+.bios-main { padding: 0.5em 0.8em; min-width: 0; }
+.bios-heading { border-bottom: 0.1em solid var(--b-blue); padding-bottom: 0.2em; margin-bottom: 0.4em; }
+.bios-rows { list-style: none; margin: 0; padding: 0; }
+.bios-rows li { display: flex; justify-content: space-between; gap: 1em; padding: 0 0.3em; white-space: nowrap; }
+.bios-rows li.info { color: var(--b-dark); }
+.bios-rows li.sel { background: var(--b-blue); color: var(--b-white); }
+.bios-label { overflow: hidden; text-overflow: ellipsis; }
+.bios-side { border-left: 0.15em solid var(--b-blue); padding: 0.5em 0.6em; display: flex; flex-direction: column; justify-content: space-between; gap: 0.6em; min-width: 0; }
+.bios-help { margin: 0; overflow-wrap: anywhere; }
+.bios-legend { list-style: none; margin: 0; padding: 0.4em 0 0; border-top: 0.1em solid var(--b-blue); white-space: pre; font-size: 0.92em; }
+.bios-foot { background: var(--b-blue); color: var(--b-white); text-align: center; padding: 0.15em 0; font-size: 0.9em; }
+
+.bios-popup {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  min-width: 16em; max-width: 90%;
+  background: var(--b-blue); color: var(--b-white);
+  border: 0.15em double var(--b-white); padding: 0.4em 0.8em 0.6em;
+  box-shadow: 0.5em 0.5em 0 #000;
+}
+.bios-popup-title { text-align: center; border-bottom: 0.1em solid var(--b-white); margin-bottom: 0.3em; }
+.bios-popup ul { list-style: none; margin: 0; padding: 0; }
+.bios-popup li { padding: 0 0.4em; white-space: nowrap; }
+.bios-popup li.sel, .bios-choices .sel { background: var(--b-white); color: var(--b-blue); }
+.bios-popup.confirm p { margin: 0.4em 0 0.8em; text-align: center; }
+.bios-choices { display: flex; justify-content: center; gap: 2em; }
+.bios-choices span { padding: 0 0.4em; }
+
+/* ---- one-time Boot Menu ---- */
+.bootmenu-wrap { display: grid; place-items: center; }
+.bootmenu { border: 0.15em solid #c8c8c8; min-width: 24em; max-width: 92%; }
+.bootmenu-title { background: #c8c8c8; color: #000; padding: 0.2em 0.6em; }
+.bootmenu ul { list-style: none; margin: 0; padding: 0.5em 0; }
+.bootmenu li { padding: 0.1em 0.8em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bootmenu li.sel { background: #c8c8c8; color: #000; }
+.bootmenu-help { border-top: 0.1em solid #c8c8c8; padding: 0.4em 0.8em; font-size: 0.9em; }
+
+/* ---- the customer's old Windows (lock screen) ---- */
+.oldwin {
+  height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 1.4em 2em 2.4em;
+  background: radial-gradient(ellipse at 70% 30%, #3f7fd8, #0b2a66 60%, #061536);
+  color: #fff; font-family: var(--f-win);
+}
+.oldwin-time { font-size: 4.2em; font-weight: 300; line-height: 1; }
+.oldwin-date { font-size: 1.5em; font-weight: 300; }
+
+/* ---- Windows 11 Setup (24H2): first screen ---- */
+.setup { height: 100%; display: grid; place-items: center; background: linear-gradient(135deg, #1a2a6c, #3b2f8f 55%, #6a3fa0); font-family: var(--f-win); }
+.setup-win { width: 78%; background: #fff; color: #1b1b1b; border-radius: 0.5em; padding: 1em 1.4em 1.2em; box-shadow: 0 0.6em 2em rgba(0, 0, 0, 0.4); }
+.setup-head { font-size: 0.8em; color: #5d5d5d; margin-bottom: 0.6em; }
+.setup-win h2 { font-size: 1.5em; font-weight: 600; margin: 0 0 0.8em; }
+.setup-win label { display: grid; gap: 0.2em; margin-bottom: 0.7em; font-size: 0.9em; }
+.setup-select { border: 0.08em solid #8a8a8a; border-radius: 0.25em; padding: 0.3em 0.6em; }
+.setup-foot { display: flex; justify-content: flex-end; }
+.setup-next { background: #0067c0; color: #fff; border-radius: 0.25em; padding: 0.3em 1.6em; }
+
+/* ---- status line and on-screen keys ---- */
+.pc-status { min-height: 1.6em; margin: 6px 2px 0; font-size: 14px; color: var(--yellow); font-family: var(--f-body); }
+.keybar { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding-top: 6px; }
+.key {
+  min-width: 44px; min-height: 44px; padding: 0 8px;
+  border: 0; border-radius: 4px;
+  background: #e8ecf3; color: var(--navy);
+  border-bottom: var(--px) solid #9aa5b8;
+  font-family: Consolas, 'Courier New', monospace; font-weight: 700; font-size: 16px;
+  touch-action: manipulation;
+}
+.key.wide { min-width: 56px; }
+/* Arrows and +/− are tiny in monospace fonts; draw them larger in the UI font. */
+.key.glyph { font-family: var(--f-body); font-size: 22px; line-height: 1; }
+.key:active { transform: translateY(var(--px)); border-bottom-width: 0; margin-bottom: var(--px); }
+
+.monitor-actions .btn { white-space: nowrap; }
+
+@media (max-width: 520px) {
+  .monitor.pc-monitor { padding: 8px 8px 10px; }
+  .sim-tag-more { display: none; }
+  .keybar { gap: 4px; }
+  .key { min-width: 40px; font-size: 15px; padding: 0 6px; }
+}
+
+/* Phones on their side: height is scarce, so the keys move to the right of the screen. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .monitor.pc-monitor {
+    --pc-chrome: 64px;
+    width: 100%; padding: 6px 10px 8px;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px;
+    grid-template-areas: 'bar bar' 'screen keys' 'status keys';
+  }
+  .pc-monitor .monitor-bar { grid-area: bar; padding-bottom: 6px; }
+  .pc-monitor .pc { grid-area: screen; }
+  .pc-monitor .pc-status { grid-area: status; margin-top: 2px; font-size: 13px; }
+  .pc-monitor .keybar {
+    grid-area: keys; align-self: center; padding: 0;
+    display: grid; grid-template-columns: repeat(3, 48px); gap: 6px;
+  }
+  .pc-monitor .key { min-width: 0; min-height: 42px; padding: 0; font-size: 14px; }
+  .pc-monitor .key.glyph { font-size: 20px; }
+}

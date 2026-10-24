@@ -55,12 +55,15 @@ test.describe('content viewer (?view=content)', () => {
   });
 });
 
-test('a Windows 10 case is labelled with its version and the end-of-support warning', async ({ page }) => {
+test('every case installs Windows 11, and the requirements table shows Windows 11 only', async ({ page }) => {
   await page.goto('/?view=content#cases');
-  const c4 = page.getByTestId('case-adv-old-office-pc');
-  await expect(c4).toContainText('Windows 10');
-  await expect(c4).toContainText('หมดการอัปเดตความปลอดภัยแล้ว');
-  await expect(c4.getByTestId('solution')).toContainText('Rufus');
+  const office = page.getByTestId('case-adv-old-office-pc');
+  await expect(office).toContainText('ลง Windows 11');
+  await expect(office.getByTestId('solution')).toContainText('Rufus');
+  await page.goto('/?view=content#overview');
+  const table = page.locator('table.v-req');
+  await expect(table).toContainText('UEFI อย่างเดียว');
+  await expect(table).not.toContainText('Windows 10');
 });
 
 test('the tab follows the #hash: shared links, editing the address, and Back all work', async ({ page }) => {

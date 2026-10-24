@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { ACTIONS, ACTION_IDS } from '../core/actions';
 import { brandShows, conflicts, generateCase, solve } from '../core/cases';
 import { applyPatch, healthyMachine, matches, type Machine, type MachinePatch } from '../core/machine';
+import { DRIVES, OPTION_VALUES } from '../core/pc';
 import { BLOCKER_IDS, findBlockers, hardwareLimits } from '../core/requirements';
 import {
   BIOS_SETTINGS,
@@ -134,7 +135,46 @@ function checkBrands(brands: readonly Brand[], errors: string[], warnings: strin
     if (b.pages.some((p) => p.items.some((i) => i.advancedOnly)) && !b.quirks.hasAdvancedMode) {
       errors.push(`${where}: items are advancedOnly but quirks.hasAdvancedMode is false`);
     }
+    if (b.phase === 'mvp' && !b.menu) errors.push(`${where}: MVP brand has no playable "menu"`);
+    if (b.menu) checkMenu(b, where, shown, errors, warnings);
   }
+}
+
+/** The playable menu must be well-linked, editable by src/core/pc.ts, and offer the same settings as `pages`. */
+function checkMenu(b: Brand, where: string, shown: ReadonlySet<string>, errors: string[], warnings: string[]): void {
+  const menu = b.menu!;
+  const exists = (id: string, from: string) => menu.menus[id] || errors.push(`${where}: ${from} links to unknown menu "${id}"`);
+  menu.tabs.forEach((t) => exists(t.menu, `tab ${t.label}`));
+  const inMenu = new Set<string>();
+  const reached = new Set(menu.tabs.map((t) => t.menu));
+  for (const [id, page] of Object.entries(menu.menus)) {
+    for (const r of page.rows) {
+      const at = `menu "${id}" row "${r.label}"`;
+      if (r.type === 'submenu') exists(r.menu, at) && reached.add(r.menu);
+      if (r.type === 'option') {
+        inMenu.add(r.setting);
+        const allowed = OPTION_VALUES[r.setting];
+        if (!allowed) errors.push(`${where}: ${at}: setting ${r.setting} cannot be an option`);
+        else {
+          const bad = r.choices.filter((c) => !allowed.includes(c.value));
+          if (bad.length) errors.push(`${where}: ${at}: ${r.setting} cannot be ${bad.map((c) => JSON.stringify(c.value)).join(', ')} (allowed: ${allowed.join(', ')})`);
+          dupes(r.choices.map((c) => String(c.value)), `${where}: ${at}: duplicate choice`, errors);
+        }
+      }
+      if (r.type === 'drive' || r.type === 'bootDevice') {
+        inMenu.add('bootOrder');
+        if (r.slot >= DRIVES.length) errors.push(`${where}: ${at}: slot ${r.slot} but the machine has ${DRIVES.length} drives`);
+      }
+    }
+  }
+  for (const id of Object.keys(menu.menus)) if (!reached.has(id)) warnings.push(`${where}: menu "${id}" cannot be reached from any tab`);
+  if (!Object.values(menu.menus).some((p) => p.rows.some((r) => r.type === 'exit' && r.action === 'save'))) {
+    errors.push(`${where}: menu has no "Save Changes and Exit" row`);
+  }
+  const notPlayable = [...shown].filter((s) => !inMenu.has(s));
+  const notListed = [...inMenu].filter((s) => !shown.has(s));
+  if (notPlayable.length) errors.push(`${where}: pages list ${notPlayable.join(', ')} but the playable menu has no row for it`);
+  if (notListed.length) errors.push(`${where}: the playable menu edits ${notListed.join(', ')} but pages do not list it`);
 }
 
 function checkProblems(parsed: ParsedContent, checkLo: (w: string, l: readonly string[]) => void, errors: string[]): void {
@@ -151,12 +191,12 @@ function checkProblems(parsed: ParsedContent, checkLo: (w: string, l: readonly s
     // It may reveal a follow-up blocker (legacy -> UEFI exposes an MBR disk); whole cases are solved separately.
     for (const f of p.fixes.filter((x) => ACTION_IDS.includes(x))) {
       const works = parsed.brands.some((brand) =>
-        p.targets.some((target) => [false, true].some((hasData) => {
-          const start = applyPatch(applyPatch({ ...healthyMachine(brand.id, target), diskHasData: hasData }, p.requires), p.patch);
+        [false, true].some((hasData) => {
+          const start = applyPatch(applyPatch({ ...healthyMachine(brand.id), diskHasData: hasData }, p.requires), p.patch);
           if (!findBlockers(start).includes(p.blocker as never)) return false;
           const cleared = (m: Machine) => !findBlockers(m).includes(p.blocker as never);
           return solve(start, brand, { keepData: false, allowed: new Set([...prep, f]), maxDepth: 3, until: cleared }) !== null;
-        })),
+        }),
       );
       if (!works) errors.push(`${where}: fix "${f}" does not clear blocker ${p.blocker} on any brand`);
     }
@@ -202,9 +242,7 @@ function checkCases(
     if (!refsOk) continue;
 
     const fixed = c.problems.fixed.map((id) => parsed.problems.find((p) => p.id === id)!);
-    for (const p of fixed) if (!p.targets.includes(c.targetOs)) errors.push(`${where}: problem ${p.id} does not apply to ${c.targetOs} (targets: ${p.targets.join(', ')})`);
     const pool = c.problems.pool.map((id) => parsed.problems.find((p) => p.id === id)!);
-    if (c.problems.extra[1] > 0 && !pool.some((p) => p.targets.includes(c.targetOs))) errors.push(`${where}: no pool problem applies to ${c.targetOs}`);
     // The first five cases are the textbook part of the game: topics beyond the book belong in later cases.
     const beyond = [...fixed, ...pool].filter((p) => p.source === 'extra').map((p) => p.id);
     if (c.order <= 5 && beyond.length) warnings.push(`${where}: เคสช่วงต้นใช้เรื่องนอกหนังสือ (${beyond.join(', ')}) ควรย้ายไปเคสขั้นสูง`);

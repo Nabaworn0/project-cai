@@ -99,29 +99,18 @@ test('tapping the technician changes their expression', async ({ page }) => {
   await expect(page.locator('.narration')).toContainText('ดีใจ');
 });
 
-test('the simulated screen opens from the PC, accepts Thai typing, and closes', async ({ page }) => {
+test("the PC on the counter opens the customer's screen; only the close button closes it (Esc belongs to the BIOS)", async ({ page }) => {
   await openShop(page);
   await tapAt(page, 'pcAt');
   const dialog = page.getByRole('dialog', { name: 'หน้าจอจำลอง' });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByText('Where do you want to install Windows?')).toBeVisible();
-
-  await dialog.getByText('Drive 0 Partition 2', { exact: true }).click();
-  await expect(dialog.locator('tr.sel')).toContainText('Partition 2');
-
-  await dialog.getByRole('textbox').fill('ช่างฝึกหัด Bew');
-  await expect(dialog.getByTestId('echo')).toHaveText('ช่างฝึกหัด Bew');
-
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  expect(overflow).toBeLessThanOrEqual(0);
-
+  await expect(dialog.getByText('Press F2 to enter SETUP, F8 for Boot Menu')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeVisible();
   await dialog.getByRole('button', { name: 'ปิด' }).click();
   await expect(dialog).toBeHidden();
-
   await page.getByRole('button', { name: 'เปิดหน้าจอจำลอง' }).click();
   await expect(dialog).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(dialog).toBeHidden();
 });
 
 test('installable PWA that keeps working offline', async ({ page, context }, info) => {

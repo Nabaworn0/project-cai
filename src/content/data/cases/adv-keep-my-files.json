@@ -44,7 +44,6 @@
     "partition"
   ],
   "timeLimitSec": 300,
-  "targetOs": "win11",
   "diagnosis": {
     "choicesTh": [
       "ฮาร์ดดิสก์เสีย",

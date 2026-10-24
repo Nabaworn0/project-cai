@@ -5,7 +5,9 @@ import { useEffect, useState } from 'preact/hooks';
 import { bus } from '../core/bus';
 import type { Expression } from '../game/art/technician';
 import type { ShopLayout } from '../game/scenes/ShopScene';
-import { SimScreen } from './SimScreen';
+import { generateCase } from '../core/cases';
+import { loadContent } from '../content';
+import { PcScreen } from './sim/PcScreen';
 
 const EXPRESSION_TH: Record<Expression, string> = {
   neutral: 'ปกติ',
@@ -14,7 +16,11 @@ const EXPRESSION_TH: Record<Expression, string> = {
   surprised: 'ตกใจ',
 };
 
-const WELCOME = 'ยินดีต้อนรับสู่ร้านซ่อมคอม คุณคือช่างประจำร้าน แตะตัวช่างเพื่อเปลี่ยนสีหน้า หรือแตะคอมบนเคาน์เตอร์เพื่อเปิดหน้าจอจำลอง';
+const WELCOME = 'ยินดีต้อนรับสู่ร้านซ่อมคอม คุณคือช่างประจำร้าน แตะคอมบนเคาน์เตอร์เพื่อเปิดเครื่องของลูกค้า (ทดลองหน้าจอ BIOS ของเคส 1)';
+
+// Until the case flow exists (case1-plan task E), the PC on the counter is case 1's machine.
+const content = loadContent();
+const case1 = generateCase(content.cases[0]!, content, String(Date.now()));
 
 export function App() {
   const [ready, setReady] = useState(false);
@@ -47,7 +53,7 @@ export function App() {
 
       <header class="hud">
         <h1 class="chip brand">
-          ร้านซ่อมคอม <small>รอบ 0</small>
+          ร้านซ่อมคอม <small>รอบ 1</small>
         </h1>
         <div class="chip sim-badge" role="status" title="ทุกหน้าจอในเกมเป็นการจำลอง ไม่ได้ติดตั้งระบบจริง">
           โหมดจำลอง
@@ -64,7 +70,9 @@ export function App() {
       )}
 
       {simOpen && (
-        <SimScreen
+        <PcScreen
+          brand={case1.brand}
+          machine={case1.machine}
           onClose={() => {
             setSimOpen(false);
             bus.emit('ui:close-sim', {});
