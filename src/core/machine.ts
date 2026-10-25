@@ -1,12 +1,14 @@
 // The customer's computer as the game sees it. Flat on purpose: content files patch
 // fields by name ("diskStyle": "mbr"), and the validator checks those names against this shape.
 
+import type { Edition } from './setup';
+
 export type BootMode = 'uefi' | 'legacy';
 export type DiskStyle = 'mbr' | 'gpt';
 export type TpmVersion = 'none' | '1.2' | '2.0';
 export type SataMode = 'ahci' | 'raid';
-/** What the install USB was made from (Rufus Boot selection). */
-export type UsbOs = 'win11' | 'win10' | 'ubuntu';
+/** What the install USB was made from (Rufus Boot selection); 'empty' once Setup's own partition was deleted (case 3 trap). */
+export type UsbOs = 'win11' | 'win10' | 'ubuntu' | 'empty';
 export interface Machine {
   brand: string;
   bootMode: BootMode;
@@ -35,6 +37,8 @@ export interface Machine {
   productKey: boolean;
   /** Setup was told "I don't have a product key"; Windows is activated later. */
   activateLater: boolean;
+  /** The Windows edition the PC has (on the work ticket): without a key, Setup must be told the same one. */
+  windowsEdition: Edition;
   missingDrivers: string[];
 }
 
@@ -63,6 +67,7 @@ export function healthyMachine(brand: string): Machine {
     diskHasData: false,
     productKey: true,
     activateLater: false,
+    windowsEdition: 'Windows 11 Home',
     missingDrivers: [],
   };
 }

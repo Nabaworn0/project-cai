@@ -203,6 +203,9 @@ function checkProblems(parsed: ParsedContent, checkLo: (w: string, l: readonly s
   }
 }
 
+/** Repairs done on Setup's later pages, not before it. */
+const SETUP_FIXES: readonly string[] = ['setup-delete-all', 'skip-product-key'];
+
 function checkCases(
   parsed: ParsedContent,
   seeds: number,
@@ -248,6 +251,9 @@ function checkCases(
 
     const fixed = c.problems.fixed.map((id) => parsed.problems.find((p) => p.id === id)!);
     const pool = c.problems.pool.map((id) => parsed.problems.find((p) => p.id === id)!);
+    // Problems fixed inside Setup (product key, partitions) only show after its first page.
+    const inSetup = [...fixed, ...pool].filter((p) => p.fixes.some((f) => SETUP_FIXES.includes(f))).map((p) => p.id);
+    if (c.goal === 'setup' && inSetup.length) errors.push(`${where}: ${inSetup.join(', ')} show only past Setup's first page; set "goal": "install"`);
     // The first five cases are the textbook part of the game: topics beyond the book belong in later cases.
     const beyond = [...fixed, ...pool].filter((p) => p.source === 'extra').map((p) => p.id);
     if (c.order <= 5 && beyond.length) warnings.push(`${where}: เคสช่วงต้นใช้เรื่องนอกหนังสือ (${beyond.join(', ')}) ควรย้ายไปเคสขั้นสูง`);

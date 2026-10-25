@@ -3,6 +3,7 @@
   "order": 7,
   "difficulty": 2,
   "titleTh": "USB ไม่ขึ้นในเมนูบูต",
+  "goal": "install",
   "lo": [
     "LO2",
     "LO3"

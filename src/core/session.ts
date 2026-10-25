@@ -41,6 +41,8 @@ export interface Session {
   route: string | null;
   /** The working USB was made with Rufus' Windows 11 checks removed: noted in the log, never scored (case2-plan decision 4). */
   bypassedChecks: boolean;
+  /** No key, and Setup was told another edition than the PC had: noted in the log, never scored (case3-plan decision 3). */
+  wrongEdition: boolean;
   hints: readonly string[];
   hintsUsed: number;
 }
@@ -51,7 +53,7 @@ export type SessionEvent =
   | { type: 'diagnose'; choice: number }
   | { type: 'mistake' }
   | { type: 'hint' }
-  | { type: 'repaired'; route: string; bypassedChecks?: boolean }
+  | { type: 'repaired'; route: string; bypassedChecks?: boolean; wrongEdition?: boolean }
   | { type: 'answer'; choice: number };
 
 export interface LogEntry {
@@ -82,6 +84,7 @@ export function startSession(gc: GeneratedCase): Session {
     mistakes: 0,
     route: null,
     bypassedChecks: false,
+    wrongEdition: false,
     // Two hints per machine (the brief), taken from the hidden problems in order.
     hints: gc.problems.flatMap((p) => p.hintsTh).slice(0, SCORING.hintLimit),
     hintsUsed: 0,
@@ -132,7 +135,7 @@ export function step(gc: GeneratedCase, s: Session, e: SessionEvent): Session {
     case 'repaired': {
       if (s.stage !== 'repair' || s.route) fail('not repairing');
       if (!e.route) fail('no route given');
-      return { ...s, route: e.route, bypassedChecks: !!e.bypassedChecks };
+      return { ...s, route: e.route, bypassedChecks: !!e.bypassedChecks, wrongEdition: !!e.wrongEdition };
     }
     case 'answer': {
       if (s.stage !== 'explain') fail('wrong stage');
@@ -173,6 +176,7 @@ export function summarize(gc: GeneratedCase, s: Session): Summary {
 
   const log: LogEntry[] = gc.problems.map((p) => ({ textTh: p.explainTh, bookPage: p.bookPage }));
   if (s.bypassedChecks) log.push({ textTh: BYPASS_NOTE_TH });
+  if (s.wrongEdition) log.push({ textTh: EDITION_NOTE_TH });
   return { stars, lostTh, coins, satisfaction, mistakes: s.mistakes, log };
 }
 
@@ -188,5 +192,9 @@ export function customerMood(gc: GeneratedCase, s: Session): CustomerMood {
 /** Tech log note for a stick made with Rufus' "remove requirement" box ticked. */
 export const BYPASS_NOTE_TH =
   'USB นี้ทำแบบติ๊กยกเลิกการตรวจ TPM/Secure Boot ใน Rufus: ลงได้ แต่เป็นการติดตั้งที่ไมโครซอฟต์ไม่รองรับ เครื่องที่ผ่านข้อกำหนดอยู่แล้วไม่ต้องติ๊ก';
+
+/** Tech log note when Setup was told another edition than the PC had (no product key). */
+export const EDITION_NOTE_TH =
+  'ตอนไม่มีคีย์ เลือกรุ่น Windows ไม่ตรงกับที่เครื่องเคยใช้: ลงได้ แต่ Windows จะไม่ Activate เองอัตโนมัติ ต้องเลือกรุ่นให้ตรงกับใบงาน';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));

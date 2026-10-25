@@ -1,10 +1,12 @@
 // The simulated monitor showing the customer's PC (src/core/pc.ts). Keys come from the real keyboard
 // or the on-screen key bar (phones have no F keys); both send the same names. The bar always shows
 // every key, so it never gives away which one is needed, except in a practice case (coach).
+// Windows Setup is tapped instead (SetupScreen): while it is up the key bar is hidden.
 
 import type { ComponentChildren } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { powerOn, press, restart, timeout, type Effect, type Key, type Pc } from '../../core/pc';
+import { powerOn, press, restart, setupAction, timeout, type Effect, type Key, type Pc } from '../../core/pc';
+import type { SetupAction } from '../../core/setup';
 import type { Machine } from '../../core/machine';
 import type { Brand } from '../../content/schema';
 import { play, reducedMotion } from '../sound';
@@ -20,6 +22,7 @@ import {
   SetupLanguageScreen,
   SetupWin10Screen,
 } from './screens';
+import { SetupScreen } from './SetupScreen';
 import './sim.css';
 
 /** How long the "fixed" banner stays over the Setup screen, and how long a mistake shakes the screen. */
@@ -43,7 +46,12 @@ interface Props {
   footer?: ComponentChildren;
   /** Practice case: the POST screen gets a Thai subtitle and its setup/boot-menu keys light up. */
   coach?: boolean;
+  /** Where the repair is done (the case's goal): reaching Setup (cases 1–2), or Windows installed (case 3 on). */
+  goal?: 'setup' | 'install';
 }
+
+/** How often the "Installing Windows 11" bar moves. */
+const INSTALL_TICK_MS = 100;
 
 const KEY_BAR: { key: Key; label: string; name: string }[] = [
   { key: 'Esc', label: 'Esc', name: 'Esc' },
@@ -82,24 +90,31 @@ const EFFECT_TH: Record<string, string> = {
   'wrong-image': 'บูตจาก USB ได้ แต่ในนั้นไม่ใช่ Windows 11 (นับว่าพลาด)',
   'legacy-boot': 'บูตแบบ Legacy (CSM) ซึ่ง Windows 11 ไม่รองรับ (นับว่าพลาด)',
   'reached-setup': 'บูตจาก USB สำเร็จ เข้าหน้าติดตั้ง Windows แล้ว',
+  'no-backup-check': 'ลบข้อมูลในดิสก์ก่อนถามลูกค้าเรื่องสำรองข้อมูล (นับว่าพลาด)',
+  'deleted-installer': 'ลบพาร์ทิชันของแฟลชไดรฟ์ติดตั้งทิ้ง ต้องไปทำ USB ใหม่ (นับว่าพลาด)',
+  installed: 'ติดตั้ง Windows 11 เสร็จแล้ว',
 };
+/** Reaching Setup when the job is to install: only the start. */
+const SETUP_STARTED_TH = 'บูตจาก USB สำเร็จ ทำ Setup ต่อจนติดตั้งเสร็จ';
 
-export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, footer, coach }: Props) {
+export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, footer, coach, goal = 'setup' }: Props) {
   const [pc, setPc] = useState<Pc>(() => initial ?? powerOn(machine));
   const [status, setStatus] = useState('');
   const [win, setWin] = useState(false);
   const [shaking, setShaking] = useState(false);
   const screenRef = useRef<HTMLDivElement>(null);
   // Latest values for the window key listener and timers, without re-subscribing on every render.
-  const latest = useRef({ pc, brand, onEffect, onPc });
-  latest.current = { pc, brand, onEffect, onPc };
+  const latest = useRef({ pc, brand, onEffect, onPc, goal });
+  latest.current = { pc, brand, onEffect, onPc, goal };
 
   const apply = (r: { pc: Pc; effects: Effect[] }) => {
     latest.current.pc = r.pc;
     setPc(r.pc);
     latest.current.onPc?.(r.pc);
     for (const e of r.effects) {
-      setStatus(EFFECT_TH[e.type === 'mistake' ? e.reason : e.type] ?? '');
+      // The goal decides which effect is the win: reaching Setup, or the finished install.
+      const win = e.type === (latest.current.goal === 'install' ? 'installed' : 'reached-setup');
+      setStatus(e.type === 'reached-setup' && !win ? SETUP_STARTED_TH : (EFFECT_TH[e.type === 'mistake' ? e.reason : e.type] ?? ''));
       if (e.type === 'mistake') {
         play('mistake');
         if (!reducedMotion()) {
@@ -107,16 +122,24 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
           setShaking(false);
           requestAnimationFrame(() => setShaking(true));
         }
-      } else {
+      } else if (win) {
         play('fixed');
         setWin(true);
-      }
+      } else play('right');
       latest.current.onEffect?.(e);
     }
   };
   const send = (key: Key) => {
     play('key');
     apply(press(latest.current.brand, latest.current.pc, key));
+  };
+  const tapSetup = (a: SetupAction) => {
+    play('key');
+    apply(setupAction(latest.current.pc, a));
+  };
+  const restartPc = () => {
+    setStatus('');
+    apply({ pc: restart(latest.current.pc), effects: [] });
   };
 
   useEffect(() => {
@@ -134,6 +157,8 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
     // Focus the screen, not a button: Enter must reach the PC rather than click something.
     screenRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
+      // Setup is a mouse program: Enter and Tab work its buttons the browser's own way.
+      if (latest.current.goal === 'install' && latest.current.pc.screen.kind === 'setup') return;
       const key = FROM_KEYBOARD[e.key];
       // "Press any key" really takes any key.
       const anyKey = latest.current.pc.screen.kind === 'press-any-key' && e.key.length > 0 && !e.ctrlKey && !e.metaKey && !e.altKey;
@@ -158,12 +183,23 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
     return () => delete document.body.dataset.pcScreen;
   }, [pc.screen.kind]);
 
+  // "Installing Windows 11" fills on a timer, like Rufus copying.
+  const setupPage = goal === 'install' && pc.screen.kind === 'setup' ? pc.screen.setup.page : null;
+  useEffect(() => {
+    if (setupPage) document.body.dataset.setupPage = setupPage;
+    else delete document.body.dataset.setupPage;
+    if (setupPage !== 'installing') return;
+    const t = setInterval(() => apply(setupAction(latest.current.pc, { type: 'tick', ms: INSTALL_TICK_MS })), INSTALL_TICK_MS);
+    return () => clearInterval(t);
+  }, [setupPage]);
+  useEffect(() => () => delete document.body.dataset.setupPage, []);
+
   const s = pc.screen;
   const cue = coach && s.kind === 'post';
   const cueKeys: readonly string[] = cue ? [brand.keys.setup[0]!, brand.keys.bootMenu[0]!] : [];
   return (
     <div class="sim-backdrop" role="dialog" aria-modal="true" aria-label="หน้าจอจำลอง">
-      <div class="monitor pc-monitor">
+      <div class={`monitor pc-monitor${setupPage ? ' setup-mode' : ''}`}>
         <div class="monitor-bar">
           <span class="sim-tag">
             โหมดจำลอง<span class="sim-tag-more"> · ไม่ได้ติดตั้งจริง</span>
@@ -172,10 +208,7 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
             <button
               class="btn ghost small"
               type="button"
-              onClick={() => {
-                setStatus('');
-                apply({ pc: restart(latest.current.pc), effects: [] });
-              }}
+              onClick={restartPc}
             >
               รีสตาร์ตเครื่อง
             </button>
@@ -191,7 +224,7 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
           {s.kind === 'press-any-key' && <PressAnyKeyScreen />}
           {s.kind === 'no-boot' && <NoBootScreen />}
           {s.kind === 'old-windows' && <OldWindowsScreen />}
-          {s.kind === 'setup' && <SetupLanguageScreen />}
+          {s.kind === 'setup' && (goal === 'install' ? <SetupScreen setup={s.setup} onAction={tapSetup} onRestart={restartPc} /> : <SetupLanguageScreen />)}
           {s.kind === 'setup-win10' && <SetupWin10Screen />}
           {s.kind === 'grub' && <GrubScreen />}
           {s.kind === 'cant-run' && <CantRunScreen />}
@@ -212,7 +245,7 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
           </p>
           {footer}
         </div>
-        <div class="keybar" role="toolbar" aria-label="ปุ่มคีย์บอร์ด">
+        <div class="keybar" role="toolbar" aria-label="ปุ่มคีย์บอร์ด" hidden={!!setupPage}>
           {KEY_BAR.map((k) => (
             <button
               key={k.key}

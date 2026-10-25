@@ -233,3 +233,9 @@ test('the playable BIOS menu is checked against the engine and the settings list
   delete get(files, 'brands/classic.json').menu;
   hasError(files, 'MVP brand has no playable "menu"');
 });
+
+test("a problem fixed past Setup's first page needs a case that goes on to install", () => {
+  const files = real();
+  delete get(files, 'cases/c03-red-text.json').goal;
+  hasError(files, "uefi-mbr, no-product-key show only past Setup's first page");
+});

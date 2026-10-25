@@ -3,6 +3,7 @@
   "order": 6,
   "difficulty": 4,
   "titleTh": "ห้ามลบงานหนู",
+  "goal": "install",
   "lo": [
     "LO4",
     "LO6"

@@ -184,14 +184,21 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     // After the fix the PC is just for looking: a later mistake does not count against the player.
     const cur = latest.current.s;
     if (cur.stage !== 'repair' || cur.route) return;
-    act(e.type === 'mistake' ? { type: 'mistake' } : { type: 'repaired', route: e.route, bypassedChecks: e.bypassedChecks });
+    // The case is fixed at its goal: Setup's first page (cases 1–2), or Windows installed (case 3 on).
+    const goal = latest.current.gc.template.goal;
+    if (e.type === 'reached-setup' && goal !== 'setup') return;
+    if (e.type === 'installed' && goal !== 'install') return;
+    if (e.type === 'mistake') act({ type: 'mistake' });
+    else if (e.type === 'reached-setup') act({ type: 'repaired', route: e.route, bypassedChecks: e.bypassedChecks });
+    else act({ type: 'repaired', route: 'install', bypassedChecks: pcRef.current?.machine.usbBypassChecks, wrongEdition: e.wrongEdition });
     const r = latest.current.gc.template.customer.reactionsTh;
     const coachNow = latest.current.gc.template.coach;
     if (e.type === 'mistake' && coachNow && latest.current.s.mistakes === 1) setNudge(coachNow.firstMistakeTh);
-    if (e.type === 'reached-setup') {
+    if (e.type !== 'mistake') {
       setNudge(null);
       setSaid(reactionLine(r, 'fixed'));
-    } else if (e.reason === 'no-boot-device') setSaid(reactionLine(r, 'no-boot'));
+    } else if (e.reason === 'no-backup-check' || e.reason === 'deleted-installer') setSaid(null); // case 3 lines come with task D
+    else if (e.reason === 'no-boot-device') setSaid(reactionLine(r, 'no-boot'));
     else if (e.reason === 'wrong-image') setSaid(reactionLine(r, 'wrong-image'));
     else if (e.reason === 'legacy-boot') setSaid(reactionLine(r, 'cant-run'));
     else setSaid(reactionLine(r, 'old-windows', ++oldWindowsCount.current));
@@ -294,6 +301,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
         onPc={(pc) => (pcRef.current = pc)}
         onEffect={onEffect}
         coach={!!coach}
+        goal={gc.template.goal}
         onClose={closeScreens}
         footer={
           <div class="pc-footer">

@@ -139,6 +139,9 @@ export const CaseSchema = z.object({
   /** Step 4: the customer asks "why?" and the player picks the right explanation. */
   customerQuestions: z.array(CaseQuestionSchema).min(1),
   coach: CoachSchema.optional(),
+  /** When the repair is done: the USB reaches Setup's first page (cases 1–2), or Windows is installed (case 3 on:
+   *  the problem shows on a later Setup page). */
+  goal: z.enum(['setup', 'install']).default('setup'),
   /** Notes for whoever builds/plays the case (traps, what to watch); not shown to students. */
   designNotesTh: z.array(th).default([]),
   brands: z.array(id).min(1),

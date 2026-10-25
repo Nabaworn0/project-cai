@@ -6,7 +6,23 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { generateCase } from '../src/core/cases';
 import { healthyMachine, type Machine } from '../src/core/machine';
-import { biosView, bootMenuEntries, DRIVES, insertUsb, KEYS, powerOn, press, restart, timeout, type Effect, type Key, type Pc } from '../src/core/pc';
+import {
+  biosView,
+  bootMenuEntries,
+  confirmBackup,
+  DRIVES,
+  insertUsb,
+  KEYS,
+  powerOn,
+  press,
+  restart,
+  setupAction,
+  timeout,
+  type Effect,
+  type Key,
+  type Pc,
+} from '../src/core/pc';
+import { INSTALL_MS, type SetupAction } from '../src/core/setup';
 import { createRng } from '../src/core/rng';
 import { BrandSchema, CaseSchema, ProblemsSchema } from '../src/content/schema';
 
@@ -158,7 +174,7 @@ test('saved settings survive restarts; only unsaved edits are lost', () => {
 });
 
 test('a USB made for the wrong boot mode is skipped at boot and missing from the Boot Menu (case 2)', () => {
-  const m: Machine = { ...healthyMachine('classic'), usbScheme: 'mbr' };
+  const m: Machine = { ...healthyMachine('classic'), usbScheme: 'mbr', diskHasData: true };
   assert.equal(m.usbFirst, true);
   assert.equal(run(powerOn(m), 'timeout').pc.screen.kind, 'old-windows');
   assert.ok(!bootMenuEntries(powerOn(m)).some((e) => e.target === 'usb'));
@@ -294,4 +310,112 @@ test('plugging a stick in keeps the saved BIOS settings and drops unsaved ones',
 test("case 1 is unchanged: Somsri's stick is the right one", () => {
   assert.equal(somsriPc.usbOs, 'win11');
   assert.equal(somsriPc.usbBypassChecks, false);
+});
+
+// ---- case 3: Windows 11 Setup on the PC (src/core/setup.ts drives the pages) ----
+
+/** Lung Chai's PC: UEFI, the USB first already, an MBR disk with his old Windows on it. */
+const chaiPc: Machine = { ...healthyMachine('classic'), storageGB: 500, diskStyle: 'mbr', diskHasData: true };
+const GOOD_STICK = { scheme: 'gpt' as const, os: 'win11' as const, bypassChecks: false };
+
+function tap(start: Pc, ...actions: SetupAction[]): { pc: Pc; effects: Effect[] } {
+  let pc = start;
+  const effects: Effect[] = [];
+  for (const a of actions) {
+    const r = setupAction(pc, a);
+    pc = r.pc;
+    effects.push(...r.effects);
+  }
+  return { pc, effects };
+}
+const NEXT: SetupAction = { type: 'next' };
+const TO_LOCATION: SetupAction[] = [NEXT, NEXT, { type: 'agree', on: true }, NEXT, { type: 'enter-key' }, NEXT, { type: 'accept' }];
+const wipe = (id: string): SetupAction[] => [{ type: 'select', id }, { type: 'delete' }, { type: 'ok' }];
+const INSTALL: SetupAction[] = [{ type: 'select', id: '1-free' }, NEXT, { type: 'install' }, { type: 'tick', ms: INSTALL_MS }];
+/** Power on, let POST boot the USB, press a key: Setup's first page. */
+const toSetup = (pc: Pc) => run(pc, 'timeout', 'Enter').pc;
+const setupOf = (pc: Pc) => (pc.screen.kind === 'setup' ? pc.screen.setup : assert.fail(`not in Setup: ${pc.screen.kind}`));
+
+test('case 3 content: the generated PC boots the USB straight into Setup, which shows the MBR disk', () => {
+  const c03 = CaseSchema.parse(data('cases/c03-red-text.json'));
+  assert.equal(c03.goal, 'install');
+  const m = generateCase(c03, { problems, brands: [classic] }, 'seed-3').machine;
+  const pc = tap(toSetup(powerOn(m)), ...TO_LOCATION.slice(0, 4)).pc;
+  assert.equal(setupOf(pc).page, 'product-key');
+  assert.equal(setupOf(pc).diskStyle, 'mbr');
+  assert.equal(setupOf(pc).hasKey, m.productKey);
+});
+
+test('the textbook fix on the PC: installed, the disk is GPT now, and the old Windows is gone', () => {
+  const pc = confirmBackup(toSetup(powerOn(chaiPc)));
+  const r = tap(pc, ...TO_LOCATION, ...wipe('1-2'), ...wipe('1-1'), ...INSTALL);
+  assert.deepEqual(r.effects, [{ type: 'installed', wrongEdition: false, activateLater: false }]);
+  assert.equal(r.pc.machine.diskStyle, 'gpt');
+  assert.equal(r.pc.machine.diskHasData, false);
+  assert.equal(setupOf(r.pc).page, 'done');
+});
+
+test('deleting the stick in Setup: one mistake, then the PC passes over the empty stick without a second one', () => {
+  const r = tap(toSetup(powerOn(chaiPc)), ...TO_LOCATION, ...wipe('0-1'));
+  assert.deepEqual(r.effects, [{ type: 'mistake', reason: 'deleted-installer' }]);
+  assert.equal(r.pc.machine.usbOs, 'empty');
+  const again = run(restart(r.pc), 'timeout');
+  assert.equal(again.pc.screen.kind, 'old-windows');
+  assert.deepEqual(again.effects, [], 'the stick was the mistake, not the boot order');
+  assert.ok(!bootMenuEntries(again.pc).some((e) => e.target === 'usb'), 'an empty stick is not in the Boot Menu');
+});
+
+test('with the old Windows deleted and the stick empty, the PC has nothing to boot (still no extra mistake)', () => {
+  const pc = confirmBackup(toSetup(powerOn(chaiPc)));
+  const r = tap(pc, ...TO_LOCATION, ...wipe('1-2'), ...wipe('0-1'));
+  assert.equal(r.pc.machine.diskHasData, false);
+  const again = run(restart(r.pc), 'timeout');
+  assert.equal(again.pc.screen.kind, 'no-boot');
+  assert.deepEqual(again.effects, []);
+});
+
+test('a stick made again in Rufus boots Setup again, which remembers the backup answer and the blame', () => {
+  // Asked first: wiping the disk after the new stick costs nothing.
+  const asked = tap(confirmBackup(toSetup(powerOn(chaiPc))), ...TO_LOCATION, ...wipe('0-1')).pc;
+  const fresh = toSetup(insertUsb(asked, GOOD_STICK));
+  assert.equal(setupOf(fresh).backupConfirmed, true);
+  assert.deepEqual(tap(fresh, ...TO_LOCATION, ...wipe('1-2'), ...wipe('1-1')).effects, []);
+
+  // Not asked and already blamed once: no second backup mistake after the new stick.
+  const blamed = tap(toSetup(powerOn(chaiPc)), ...TO_LOCATION, ...wipe('1-1'), ...wipe('0-1'));
+  assert.deepEqual(
+    blamed.effects.map((e) => e.type === 'mistake' && e.reason),
+    ['no-backup-check', 'deleted-installer'],
+  );
+  const later = tap(toSetup(insertUsb(blamed.pc, GOOD_STICK)), ...TO_LOCATION, ...wipe('1-2'));
+  assert.deepEqual(later.effects, []);
+});
+
+test('the backup answer given before Setup starts is passed to it', () => {
+  const pc = toSetup(confirmBackup(powerOn(chaiPc)));
+  assert.equal(setupOf(pc).backupConfirmed, true);
+});
+
+test('no key and another edition: installed with the edition noted, activation left for later', () => {
+  const pc = toSetup(powerOn({ ...chaiPc, productKey: false, diskHasData: false }));
+  const r = tap(
+    pc,
+    NEXT,
+    NEXT,
+    { type: 'agree', on: true },
+    NEXT,
+    { type: 'no-key' },
+    { type: 'pick-edition', edition: 'Windows 11 Pro' },
+    NEXT,
+    { type: 'accept' },
+    ...INSTALL,
+  );
+  assert.deepEqual(r.effects, [{ type: 'installed', wrongEdition: true, activateLater: true }]);
+  assert.equal(r.pc.machine.windowsEdition, 'Windows 11 Pro');
+  assert.equal(r.pc.machine.activateLater, true);
+});
+
+test('Setup taps do nothing on other screens', () => {
+  const pc = powerOn(chaiPc);
+  assert.deepEqual(setupAction(pc, NEXT), { pc, effects: [] });
 });

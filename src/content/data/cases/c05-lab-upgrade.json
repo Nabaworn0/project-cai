@@ -3,6 +3,7 @@
   "order": 5,
   "difficulty": 4,
   "titleTh": "อัปเครื่องแล็บเป็น Windows 11",
+  "goal": "install",
   "lo": ["LO1", "LO2", "LO3", "LO4"],
   "customer": {
     "id": "wilai",

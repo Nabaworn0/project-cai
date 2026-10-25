@@ -7,7 +7,7 @@
 import type { DiskStyle, UsbOs } from './machine';
 
 /** What an ISO installs; only Windows 11 is the right one for these customers. */
-export type IsoOs = UsbOs;
+export type IsoOs = Exclude<UsbOs, 'empty'>;
 
 export interface IsoFile {
   name: string;
@@ -26,7 +26,7 @@ export const ISO_FILES: readonly IsoFile[] = [
 /** The install USB as it is right now. */
 export interface Usb {
   scheme: DiskStyle;
-  os: IsoOs;
+  os: UsbOs;
   label: string;
   /** Rufus was told to remove the Windows 11 checks (TPM, Secure Boot, RAM): an install Microsoft does not support. */
   bypassChecks: boolean;

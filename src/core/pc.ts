@@ -1,11 +1,13 @@
-// The customer's PC from power-on to the first Windows Setup screen: POST, the BIOS setup screen,
-// the one-time Boot Menu, "Press any key to boot", and what the machine boots into, which depends on
-// what is on the install USB (case 2: the stick can be remade on the shop laptop, src/core/rufus.ts).
+// The customer's PC from power-on to Windows installed: POST, the BIOS setup screen, the one-time
+// Boot Menu, "Press any key to boot", what the machine boots into, which depends on what is on the
+// install USB (case 2: the stick can be remade on the shop laptop, src/core/rufus.ts), and Windows 11
+// Setup itself (case 3, src/core/setup.ts), whose partition page can wipe the PC's disk or the stick.
 // Pure data in, data out (no DOM): the simulated screens only render `biosView` / `bootMenuEntries`
 // and send keys; the case flow listens to the returned effects. Real wording: docs/real-screens.md.
 
 import type { Machine, UsbOs } from './machine';
 import type { BiosMenu, BiosSetting, Brand, MenuRow } from '../content/schema';
+import { act as setupAct, openSetup, type Setup, type SetupAction, type SetupMistake } from './setup';
 
 /** Keys the simulated screens understand (the on-screen key bar sends the same names). */
 export const KEYS = ['Esc', 'F2', 'F8', 'F10', 'Delete', 'Enter', 'Up', 'Down', 'Left', 'Right', 'Plus', 'Minus'] as const;
@@ -41,7 +43,8 @@ export type Screen =
   | { kind: 'press-any-key'; via: Route }
   | { kind: 'old-windows' }
   | { kind: 'no-boot' }
-  | { kind: 'setup' }
+  /** Windows 11 Setup, page by page (src/core/setup.ts). */
+  | { kind: 'setup'; setup: Setup }
   /** Wrong image on the stick: the Windows 10 installer, or Ubuntu's GNU GRUB menu (case 2 traps). */
   | { kind: 'setup-win10' }
   | { kind: 'grub' }
@@ -57,13 +60,17 @@ export type MistakeReason =
   /** The stick holds Windows 10 or Ubuntu instead of Windows 11. */
   | 'wrong-image'
   /** The stick booted only because CSM (legacy BIOS) was turned on; Windows 11 needs UEFI. */
-  | 'legacy-boot';
+  | 'legacy-boot'
+  /** On Setup's partition page (case 3). */
+  | SetupMistake;
 
 export type Effect =
   /** The player made the machine boot the wrong thing. Waiting too long at "Press any key" is not a mistake. */
   | { type: 'mistake'; reason: MistakeReason }
   /** `bypassedChecks`: the stick was made with Rufus' "remove requirement" box ticked (not a mistake, but noted). */
-  | { type: 'reached-setup'; route: Route; bypassedChecks: boolean };
+  | { type: 'reached-setup'; route: Route; bypassedChecks: boolean }
+  /** Setup finished installing Windows. `wrongEdition`: no key, and another edition than the PC had (noted, not a mistake). */
+  | { type: 'installed'; wrongEdition: boolean; activateLater: boolean };
 
 export interface Pc {
   /** The machine as the rest of the game sees it (saved settings already applied). */
@@ -73,6 +80,8 @@ export interface Pc {
   /** The settings being edited on the setup screen. */
   draft: Firmware;
   screen: Screen;
+  /** Asked the customer about a backup / already blamed for wiping without asking: kept when Setup starts again. */
+  backup: { confirmed: boolean; blamed: boolean };
 }
 
 export interface Result {
@@ -108,14 +117,14 @@ export function bootOrder(fw: Firmware): DriveId[] {
   return fw.bootSlots.includes('hdd') ? [...fw.hddOrder] : [];
 }
 
-/** Same rule as the usb-scheme-mismatch blocker: Rufus GPT boots UEFI only, MBR boots legacy only (textbook p.47). */
+/** Same rule as the usb-scheme-mismatch blocker: Rufus GPT boots UEFI only, MBR boots legacy only (textbook p.47). A wiped stick never boots. */
 export function usbBoots(m: Machine): boolean {
-  return (m.bootMode === 'uefi') === (m.usbScheme === 'gpt');
+  return m.usbOs !== 'empty' && (m.bootMode === 'uefi') === (m.usbScheme === 'gpt');
 }
 
 export function powerOn(m: Machine): Pc {
   const fw = firmwareOf(m);
-  return { machine: m, saved: fw, draft: fw, screen: { kind: 'post' } };
+  return { machine: m, saved: fw, draft: fw, screen: { kind: 'post' }, backup: { confirmed: false, blamed: false } };
 }
 
 const done = (pc: Pc, effects: Effect[] = []): Result => ({ pc, effects });
@@ -135,9 +144,12 @@ function boot(pc: Pc, skipUsb = false): Result {
   const order = bootOrder(pc.saved).filter((d) => !(skipUsb && d === 'usb'));
   const first = order.find((d) => d === 'ssd' || usbBoots(pc.machine));
   // Timing out at "Press any key" is not the player's mistake: the machine just carries on (decision 3, case1-plan).
-  const blame = (reason: 'booted-old-windows' | 'no-boot-device'): Effect[] => (skipUsb ? [] : [{ type: 'mistake', reason }]);
+  // Nor is a wiped stick being passed over: wiping it was the mistake, counted when it happened.
+  const excused = skipUsb || pc.machine.usbOs === 'empty';
+  const blame = (reason: 'booted-old-windows' | 'no-boot-device'): Effect[] => (excused ? [] : [{ type: 'mistake', reason }]);
   if (first === 'usb') return bootUsb(pc, 'bios');
-  if (first === 'ssd') return done({ ...pc, screen: { kind: 'old-windows' } }, blame('booted-old-windows'));
+  // A disk whose old Windows was deleted in Setup has nothing left to start.
+  if (first === 'ssd' && pc.machine.diskHasData) return done({ ...pc, screen: { kind: 'old-windows' } }, blame('booted-old-windows'));
   return done({ ...pc, screen: { kind: 'no-boot' } }, blame('no-boot-device'));
 }
 
@@ -152,7 +164,40 @@ function startInstaller(pc: Pc, via: Route): Result {
   const m = pc.machine;
   if (m.usbOs !== 'win11') return done({ ...pc, screen: { kind: 'setup-win10' } }, [{ type: 'mistake', reason: 'wrong-image' }]);
   if (m.bootMode !== 'uefi') return done({ ...pc, screen: { kind: 'cant-run' } }, [{ type: 'mistake', reason: 'legacy-boot' }]);
-  return done({ ...pc, screen: { kind: 'setup' } }, [{ type: 'reached-setup', route: via, bypassedChecks: m.usbBypassChecks }]);
+  const setup = openSetup(m, { ticketEdition: m.windowsEdition, backup: pc.backup });
+  return done({ ...pc, screen: { kind: 'setup', setup } }, [{ type: 'reached-setup', route: via, bypassedChecks: m.usbBypassChecks }]);
+}
+
+/**
+ * A tap on the Setup screen. What Setup does to the disks lands on the machine: wiping the stick leaves it
+ * empty (it must be made again in Rufus), wiping the old Windows leaves the PC with nothing to boot, and a
+ * finished install leaves a fresh Windows on a disk of the right style.
+ */
+export function setupAction(pc: Pc, a: SetupAction): Result {
+  const s = pc.screen;
+  if (s.kind !== 'setup') return done(pc);
+  const r = setupAct(s.setup, a);
+  let m = pc.machine;
+  const effects: Effect[] = [];
+  for (const e of r.effects) {
+    if (e.type === 'mistake') effects.push({ type: 'mistake', reason: e.reason });
+    else if (e.type === 'usb-wiped') m = { ...m, usbOs: 'empty' };
+    else {
+      m = { ...m, diskStyle: e.diskStyle, activateLater: e.activateLater, windowsEdition: e.edition };
+      effects.push({ type: 'installed', wrongEdition: e.wrongEdition, activateLater: e.activateLater });
+    }
+  }
+  // The old Windows is gone once its partition is deleted or formatted (a new install is not "old" either).
+  if (!r.setup.parts.some((p) => p.data)) m = { ...m, diskHasData: false };
+  const backup = { confirmed: r.setup.backupConfirmed, blamed: r.setup.backupBlamed };
+  return done({ ...pc, machine: m, backup, screen: { kind: 'setup', setup: r.setup } }, effects);
+}
+
+/** The customer said the files are backed up (the case flow's "ask" button): remembered even if Setup restarts. */
+export function confirmBackup(pc: Pc): Pc {
+  const backup = { ...pc.backup, confirmed: true };
+  if (pc.screen.kind !== 'setup') return { ...pc, backup };
+  return { ...setupAction(pc, { type: 'backup-confirmed' }).pc, backup };
 }
 
 /** The screen's own timer ran out (POST continues, "Press any key" moves on). Other screens ignore it. */
@@ -364,7 +409,8 @@ export function biosView(brand: Brand, pc: Pc): BiosView | null {
     return choicesOf(pc, r)[currentChoice(pc, r)] ?? '';
   };
   let popup: BiosView['popup'] = null;
-  if (s.popup?.kind === 'confirm') popup = { kind: 'confirm', text: s.popup.action === 'save' ? menu.saveDialog : menu.discardDialog, cursor: s.popup.cursor };
+  if (s.popup?.kind === 'confirm')
+    popup = { kind: 'confirm', text: s.popup.action === 'save' ? menu.saveDialog : menu.discardDialog, cursor: s.popup.cursor };
   else if (s.popup?.kind === 'choose' && row && editable(row)) {
     popup = { kind: 'choose', title: row.label, options: choicesOf(pc, row), cursor: s.popup.cursor };
   }
@@ -396,7 +442,8 @@ export function bootMenuEntries(pc: Pc): BootMenuEntry[] {
     .map((d) => ({
       target: d,
       // The BIOS lists the stick as "USB: Flash Disk"; the boot menu names the device itself ("UEFI: USB Flash Disk").
-      label: d === 'usb' ? `${uefi ? 'UEFI: ' : ''}USB Flash Disk 16GB` : uefi ? `Windows Boot Manager (${driveLabel(m, 'ssd')})` : driveLabel(m, 'ssd'),
+      label:
+        d === 'usb' ? `${uefi ? 'UEFI: ' : ''}USB Flash Disk 16GB` : uefi ? `Windows Boot Manager (${driveLabel(m, 'ssd')})` : driveLabel(m, 'ssd'),
     }));
   return [...entries, { label: 'Enter Setup', target: 'setup' }];
 }

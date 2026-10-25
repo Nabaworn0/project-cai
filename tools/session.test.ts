@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { generateCase, nextCase } from '../src/core/cases';
-import { BYPASS_NOTE_TH, blockedNext, currentQuestion, customerMood, SCORING, shownHints, startSession, step, summarize, type Session, type SessionEvent } from '../src/core/session';
+import { BYPASS_NOTE_TH, EDITION_NOTE_TH, blockedNext, currentQuestion, customerMood, SCORING, shownHints, startSession, step, summarize, type Session, type SessionEvent } from '../src/core/session';
 import { BrandSchema, CaseSchema, ProblemsSchema } from '../src/content/schema';
 
 const data = (path: string) => JSON.parse(readFileSync(new URL(`../src/content/data/${path}`, import.meta.url), 'utf8'));
@@ -18,7 +18,9 @@ const play = (events: SessionEvent[], s: Session = startSession(gc)) => events.r
 const NEXT: SessionEvent = { type: 'next' };
 
 /** A whole case. Repair mistakes and hints are inserted before the repair finishes. */
-function playCase(o: { diagnosis?: number; mistakes?: number; hints?: number; route?: string; bypassedChecks?: boolean; answers?: number[] } = {}) {
+function playCase(
+  o: { diagnosis?: number; mistakes?: number; hints?: number; route?: string; bypassedChecks?: boolean; wrongEdition?: boolean; answers?: number[] } = {},
+) {
   return play([
     NEXT, // intro -> ticket
     NEXT, // ticket -> diagnose
@@ -26,7 +28,7 @@ function playCase(o: { diagnosis?: number; mistakes?: number; hints?: number; ro
     NEXT, // -> repair
     ...Array.from({ length: o.mistakes ?? 0 }, (): SessionEvent => ({ type: 'mistake' })),
     ...Array.from({ length: o.hints ?? 0 }, (): SessionEvent => ({ type: 'hint' })),
-    { type: 'repaired', route: o.route ?? 'bios', bypassedChecks: o.bypassedChecks },
+    { type: 'repaired', route: o.route ?? 'bios', bypassedChecks: o.bypassedChecks, wrongEdition: o.wrongEdition },
     NEXT, // -> explain
     ...(o.answers ?? right.answers).map((choice): SessionEvent => ({ type: 'answer', choice })),
     NEXT, // -> summary
@@ -160,4 +162,11 @@ test("a USB made with Rufus' checks removed is noted in the tech log but costs n
   assert.equal(bypassed.satisfaction, clean.satisfaction);
   assert.deepEqual(bypassed.log, [...clean.log, { textTh: BYPASS_NOTE_TH }]);
   assert.ok(!clean.log.some((l) => l.textTh === BYPASS_NOTE_TH));
+});
+
+test('another edition than the PC had (no key) is noted in the tech log but costs nothing', () => {
+  const clean = summarize(gc, playCase({ route: 'install' }));
+  const wrong = summarize(gc, playCase({ route: 'install', wrongEdition: true }));
+  assert.equal(wrong.stars, 3);
+  assert.deepEqual(wrong.log, [...clean.log, { textTh: EDITION_NOTE_TH }]);
 });
