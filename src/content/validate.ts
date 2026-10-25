@@ -29,6 +29,7 @@ import {
   type Quiz,
 } from './schema';
 import { WIN11_CHECK_IDS } from '../core/win11check';
+import { nameError } from '../core/oobe';
 
 export const MINIGAME_IDS = ['boot-order', 'mbr-gpt', 'win11-check', 'usb-prep', 'partition', 'drivers'] as const;
 
@@ -260,6 +261,10 @@ function checkCases(
     if (c.problems.extra[1] > c.problems.pool.length) errors.push(`${where}: extra max ${c.problems.extra[1]} is larger than the pool`);
     if (c.problems.extra[1] > 2) warnings.push(`${where}: up to ${c.problems.extra[1]} extra hidden problems (the design allows 0–2)`);
     if (c.customer.keepData && !c.machine.diskHasData) errors.push(`${where}: customer wants to keep files but machine.diskHasData is false`);
+    if (c.customer.filesNotNeeded && c.customer.keepData) errors.push(`${where}: customer cannot both keep the files and not need them`);
+    if (c.goal === 'desktop' && !c.deviceName) errors.push(`${where}: goal "desktop" needs the deviceName on the ticket`);
+    if (c.deviceName && c.goal !== 'desktop') errors.push(`${where}: deviceName is only used when the goal is "desktop"`);
+    if (c.deviceName && nameError(c.deviceName)) errors.push(`${where}: deviceName ${c.deviceName} breaks Windows' naming rule (${nameError(c.deviceName)})`);
     dupes([...c.problems.fixed, ...c.problems.pool], `${where}: problem listed twice`, errors);
     if (c.order === 1 && (c.problems.fixed.length > 1 || c.problems.extra[1] > 0)) warnings.push(`${where}: the first customer should be easy (one fixed problem)`);
     if (!refsOk) continue;

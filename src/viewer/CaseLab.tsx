@@ -91,7 +91,9 @@ export function CaseLab({ template, customer, lib, objectives }: Props) {
         <ReactionList
           r={template.customer.reactionsTh}
           remakesUsb={[...template.problems.fixed, ...template.problems.pool].some((id) => lib.problems.find((p) => p.id === id)?.fixes.includes('remake-usb'))}
-          installs={template.goal === 'install'}
+          installs={template.goal !== 'setup'}
+          desktop={template.goal === 'desktop'}
+          asksBackup={!template.customer.filesNotNeeded}
           refuses={[...template.problems.fixed, ...template.problems.pool].some((id) =>
             ['tpm-disabled', 'secure-boot-off', 'legacy-boot'].includes(lib.problems.find((p) => p.id === id)?.blocker ?? ''),
           )}
@@ -209,7 +211,21 @@ function Question({ title, q }: { title: string; q: CaseQuestion }) {
 }
 
 /** The customer's lines during the repair; generic ones (src/core/reactions.ts) are marked so writers see what is missing. */
-function ReactionList({ r, remakesUsb, installs, refuses }: { r: Reactions; remakesUsb: boolean; installs: boolean; refuses: boolean }) {
+function ReactionList({
+  r,
+  remakesUsb,
+  installs,
+  refuses,
+  desktop,
+  asksBackup,
+}: {
+  r: Reactions;
+  remakesUsb: boolean;
+  installs: boolean;
+  refuses: boolean;
+  desktop: boolean;
+  asksBackup: boolean;
+}) {
   const own = (has: boolean) => (has ? null : <span class="v-badge warn">ใช้ประโยคกลาง</span>);
   return (
     <div data-testid="reactions">
@@ -248,12 +264,31 @@ function ReactionList({ r, remakesUsb, installs, refuses }: { r: Reactions; rema
           <>
             <dt>บูตถึงหน้า Setup (ยังไม่จบ)</dt>
             <dd>“{r.reachedSetupTh ?? GENERIC_REACTIONS.reachedSetupTh}” {own(!!r.reachedSetupTh)}</dd>
-            <dt>ตอบเมื่อถามเรื่องสำรองข้อมูล</dt>
-            <dd>“{r.backupTh ?? GENERIC_REACTIONS.backupTh}” {own(!!r.backupTh)}</dd>
-            <dt>ลบดิสก์ก่อนถามเรื่องสำรอง (พลาด)</dt>
-            <dd>“{r.noBackupTh ?? GENERIC_REACTIONS.noBackupTh}” {own(!!r.noBackupTh)}</dd>
+            {/* A customer who said up front the files are not needed is not asked (case 5). */}
+            {asksBackup && (
+              <>
+                <dt>ตอบเมื่อถามเรื่องสำรองข้อมูล</dt>
+                <dd>“{r.backupTh ?? GENERIC_REACTIONS.backupTh}” {own(!!r.backupTh)}</dd>
+                <dt>ลบดิสก์ก่อนถามเรื่องสำรอง (พลาด)</dt>
+                <dd>“{r.noBackupTh ?? GENERIC_REACTIONS.noBackupTh}” {own(!!r.noBackupTh)}</dd>
+              </>
+            )}
             <dt>ลบพาร์ทิชันของ USB (พลาด)</dt>
             <dd>“{r.lostInstallerTh ?? GENERIC_REACTIONS.lostInstallerTh}” {own(!!r.lostInstallerTh)}</dd>
+          </>
+        )}
+        {desktop && (
+          <>
+            <dt>ติดตั้งเสร็จ (ยังต้องตั้งค่าต่อ)</dt>
+            <dd>“{r.installedTh ?? GENERIC_REACTIONS.installedTh}” {own(!!r.installedTh)}</dd>
+            <dt>ยื่นเครื่องให้ลงชื่อบัญชีเอง</dt>
+            <dd>“{r.handedOverTh ?? GENERIC_REACTIONS.handedOverTh}” {own(!!r.handedOverTh)}</dd>
+            <dt>ช่างพิมพ์บัญชีแทน / ขอรหัสผ่าน (พลาด)</dt>
+            <dd>“{r.accountTrapTh ?? GENERIC_REACTIONS.accountTrapTh}” {own(!!r.accountTrapTh)}</dd>
+            <dt>ตอบเมื่อถามเรื่องความเป็นส่วนตัว</dt>
+            <dd>“{r.privacyAskedTh ?? GENERIC_REACTIONS.privacyAskedTh}” {own(!!r.privacyAskedTh)}</dd>
+            <dt>ถึงเดสก์ท็อปแต่ไม่มีแป้นพิมพ์ไทย</dt>
+            <dd>“{r.noThaiKeyboardTh ?? GENERIC_REACTIONS.noThaiKeyboardTh}” {own(!!r.noThaiKeyboardTh)}</dd>
           </>
         )}
         <dt>ซ่อมสำเร็จ</dt>

@@ -253,3 +253,18 @@ test('the Windows 11 requirements table: every row once, and the file must exist
   const without = real().filter((f) => f.path !== 'win11-check.json');
   hasError(without, 'win11-check.json: missing, but used by c04-security-chip');
 });
+
+test('case 5 rules: the "desktop" goal needs a valid PC name on the ticket; filesNotNeeded cannot go with keepData', () => {
+  let files = real();
+  delete get(files, 'cases/c05-lab-upgrade.json').deviceName;
+  hasError(files, 'needs the deviceName');
+  files = real();
+  get(files, 'cases/c05-lab-upgrade.json').deviceName = 'LAB PC 01';
+  hasError(files, "breaks Windows' naming rule (chars)");
+  files = real();
+  get(files, 'cases/c04-security-chip.json').deviceName = 'TON-PC';
+  hasError(files, 'only used when the goal is "desktop"');
+  files = real();
+  get(files, 'cases/c05-lab-upgrade.json').customer.keepData = true;
+  hasError(files, 'both keep the files and not need them');
+});

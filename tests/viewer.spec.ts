@@ -93,7 +93,8 @@ test("each case shows the customer's lines during the repair, and marks the ones
   const somsri = page.getByTestId('case-c01-boot-order').getByTestId('reactions');
   await expect(somsri).toContainText('เหมือนที่ป้าเจอเลย');
   await expect(somsri).not.toContainText('ใช้ประโยคกลาง');
-  // Beam has every line of his own, including the case 2 ones (wrong image, "can't run"); so do Lung Chai (case 3) and Ton (case 4); case 5 is still generic.
+  // Beam has every line of his own, including the case 2 ones (wrong image, "can't run"); so do Lung Chai (case 3), Ton (case 4)
+  // and Teacher Wilai (case 5, with the first-time setup lines and without the backup question).
   const beam = page.getByTestId('case-c02-rufus-scheme').getByTestId('reactions');
   await expect(beam).toContainText('นี่มันไม่ใช่ Windows 11');
   await expect(beam).not.toContainText('ใช้ประโยคกลาง');
@@ -103,5 +104,8 @@ test("each case shows the customer's lines during the repair, and marks the ones
   const ton = page.getByTestId('case-c04-security-chip').getByTestId('reactions');
   await expect(ton).toContainText('ขึ้นว่าลงไม่ได้ซ้ำด้วยเหตุผลเดิม');
   await expect(ton).not.toContainText('ใช้ประโยคกลาง');
-  await expect(page.getByTestId('case-c05-lab-upgrade').getByTestId('reactions')).toContainText('ใช้ประโยคกลาง');
+  const wilai = page.getByTestId('case-c05-lab-upgrade').getByTestId('reactions');
+  await expect(wilai).toContainText('ยื่นเครื่องให้ลงชื่อบัญชีเอง');
+  await expect(wilai).not.toContainText('ตอบเมื่อถามเรื่องสำรองข้อมูล');
+  await expect(wilai).not.toContainText('ใช้ประโยคกลาง');
 });

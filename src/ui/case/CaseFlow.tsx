@@ -4,7 +4,8 @@
 // the customer's expression in step. The install USB is one stick shared by both: whatever Rufus writes
 // goes back into the customer's PC (docs/case2-plan.md). From case 3 the job goes on through Windows Setup
 // to the install: the player asks the customer about a backup before wiping the disk, and a stick wiped
-// in Setup brings out the shop laptop to make it again (docs/case3-plan.md).
+// in Setup brings out the shop laptop to make it again (docs/case3-plan.md). Case 5 goes on past the install
+// to Windows' first-time setup and the desktop: the customer signs in themself (docs/case5-plan.md).
 
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { bus } from '../../core/bus';
@@ -43,7 +44,7 @@ interface Props {
 }
 
 /** Cases whose screens exist so far (Rufus came with case 2, Setup and its partition page with case 3). */
-const PLAYABLE = ['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip'];
+const PLAYABLE = ['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip', 'c05-lab-upgrade'];
 
 /**
  * The next customer: case 1, then 2, then 3, then mixed (nextCase). The first one can be chosen with ?case=<id>
@@ -65,11 +66,19 @@ function usbOf(gc: GeneratedCase): Usb {
   return { scheme: m.usbScheme, os: m.usbOs, label, bypassChecks: m.usbBypassChecks };
 }
 
-/** Cases whose fix is remaking the stick get the shop laptop (others get it once the stick is wiped in Setup). */
-const needsLaptop = (gc: GeneratedCase) => gc.problems.some((p) => p.fixes.includes('remake-usb'));
+/** Cases whose fix is remaking the stick, or whose stick is MBR (Windows 11 needs GPT), get the shop laptop
+ *  (others get it once the stick is wiped in Setup). */
+const needsLaptop = (gc: GeneratedCase) => gc.problems.some((p) => p.fixes.includes('remake-usb')) || gc.machine.usbScheme === 'mbr';
 
-/** Installs onto a disk that still holds the customer's files: ask about a backup before wiping it. */
-const asksBackup = (gc: GeneratedCase) => gc.template.goal === 'install' && gc.machine.diskHasData;
+/** Installs onto a disk that still holds the customer's files: ask about a backup before wiping it, unless the
+ *  customer already said the files are not needed (case 5). */
+const asksBackup = (gc: GeneratedCase) => gc.template.goal !== 'setup' && gc.machine.diskHasData && !gc.template.customer.filesNotNeeded;
+
+/** The customer's PC as it comes in, with the stick they brought (and their word on the files, when given up front). */
+function startPc(gc: GeneratedCase, usb: Usb): Pc {
+  const pc = insertUsb(powerOn(gc.machine), usb);
+  return gc.template.customer.filesNotNeeded ? confirmBackup(pc) : pc;
+}
 
 /** What Rufus finds on a stick whose partition Setup deleted. */
 const WIPED_LABEL = 'NO_LABEL';
@@ -97,6 +106,8 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   const [askedBackup, setAskedBackup] = useState(false);
   const [stickWiped, setStickWiped] = useState(false);
   const wipedRef = useRef(false);
+  /** Case 5: the install finished (with or without the right edition); the repair ends on the desktop. */
+  const installedRef = useRef<{ wrongEdition: boolean } | null>(null);
   /** The customer is walking out: further "next customer" taps are ignored. */
   const leaving = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -214,20 +225,39 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       setSaid(reactionLine(r, 'reached-setup'));
       return;
     }
+    if (e.type === 'installed' && goal === 'desktop') {
+      installedRef.current = { wrongEdition: e.wrongEdition };
+      setNudge(null);
+      setSaid(reactionLine(r, 'installed'));
+      return;
+    }
     if (e.type === 'installed' && goal !== 'install') return;
+    if (e.type === 'oobe-note') {
+      if (e.note === 'handed-over') setSaid(reactionLine(r, 'handed-over'));
+      if (e.note === 'privacy-asked') setSaid(reactionLine(r, 'privacy-asked'));
+      return;
+    }
+    if (e.type === 'legacy-no-boot') {
+      setSaid(reactionLine(r, 'no-boot'));
+      return;
+    }
     if (e.type === 'cant-run') {
       setSaid(reactionLine(r, 'cant-run'));
       return;
     }
+    const bypassedChecks = pcRef.current?.machine.usbBypassChecks;
     if (e.type === 'mistake') act({ type: 'mistake' });
     else if (e.type === 'reached-setup') act({ type: 'repaired', route: e.route, bypassedChecks: e.bypassedChecks });
-    else act({ type: 'repaired', route: 'install', bypassedChecks: pcRef.current?.machine.usbBypassChecks, wrongEdition: e.wrongEdition });
+    else if (e.type === 'desktop')
+      act({ type: 'repaired', route: 'desktop', bypassedChecks, wrongEdition: installedRef.current?.wrongEdition, oobe: e.result });
+    else act({ type: 'repaired', route: 'install', bypassedChecks, wrongEdition: e.wrongEdition });
     const coachNow = latest.current.gc.template.coach;
     if (e.type === 'mistake' && coachNow && latest.current.s.mistakes === 1) setNudge(coachNow.firstMistakeTh);
     if (e.type !== 'mistake') {
       setNudge(null);
-      setSaid(reactionLine(r, 'fixed'));
+      setSaid(reactionLine(r, e.type === 'desktop' && !e.result.thaiKeyboard ? 'no-thai-keyboard' : 'fixed'));
     } else if (e.reason === 'no-backup-check') setSaid(reactionLine(r, 'no-backup'));
+    else if (e.reason === 'typed-for-customer' || e.reason === 'asked-password') setSaid(reactionLine(r, 'account-trap'));
     else if (e.reason === 'deleted-installer') {
       wipedRef.current = true;
       setStickWiped(true);
@@ -265,6 +295,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       setAskedBackup(false);
       setStickWiped(false);
       wipedRef.current = false;
+      installedRef.current = null;
       setFeedback(null);
       setS(startSession(g));
       setGc(g);
@@ -349,11 +380,12 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       <PcScreen
         brand={gc.brand}
         machine={gc.machine}
-        initial={pcRef.current ?? insertUsb(powerOn(gc.machine), usbRef.current)}
+        initial={pcRef.current ?? startPc(gc, usbRef.current)}
         onPc={(pc) => (pcRef.current = pc)}
         onEffect={onEffect}
         coach={!!coach}
         goal={gc.template.goal}
+        customerName={name}
         backupAsked={askedBackup}
         onClose={closeScreens}
         footer={
@@ -472,9 +504,11 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
         <>
           <p class="ask">
             {s.route
-              ? gc.template.goal === 'install'
-                ? 'ติดตั้ง Windows 11 เสร็จแล้ว กลับไปคุยกับลูกค้า'
-                : 'บูตจาก USB ได้แล้ว กลับไปคุยกับลูกค้า'
+              ? gc.template.goal === 'desktop'
+                ? 'ติดตั้งและตั้งค่า Windows 11 จนถึงเดสก์ท็อปแล้ว กลับไปคุยกับลูกค้า'
+                : gc.template.goal === 'install'
+                  ? 'ติดตั้ง Windows 11 เสร็จแล้ว กลับไปคุยกับลูกค้า'
+                  : 'บูตจาก USB ได้แล้ว กลับไปคุยกับลูกค้า'
               : gc.template.repairTh
                 ? gc.template.repairTh
                 : gc.template.goal === 'install'

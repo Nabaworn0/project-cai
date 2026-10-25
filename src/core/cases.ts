@@ -63,6 +63,7 @@ export function generateCase(template: Case, lib: CaseLibrary, seed: string, det
     storageGB: detail.pick(template.machine.storageGB),
     cpu: detail.pick(template.machine.cpu),
     diskHasData: template.machine.diskHasData,
+    ...(template.machine.windowsEdition && { windowsEdition: template.machine.windowsEdition }),
   };
 
   const byId = (pid: string): Problem => {

@@ -13,6 +13,7 @@ import {
   DRIVES,
   insertUsb,
   KEYS,
+  oobeAction,
   powerOn,
   press,
   restart,
@@ -22,8 +23,9 @@ import {
   type Key,
   type Pc,
 } from '../src/core/pc';
-import { INSTALL_MS, type SetupAction } from '../src/core/setup';
+import { INSTALL_MS, locationError, type SetupAction } from '../src/core/setup';
 import { CANT_RUN_REASONS, cantRunReasons } from '../src/core/requirements';
+import { CUSTOMER_MS, FINISHING_MS, UPDATES_MS, type OobeAction } from '../src/core/oobe';
 import { createRng } from '../src/core/rng';
 import { BrandSchema, CaseSchema, ProblemsSchema } from '../src/content/schema';
 
@@ -493,4 +495,142 @@ test('the reasons follow the machine: processor, TPM missing or off, legacy, mem
   assert.deepEqual(cantRunReasons(bypass), []);
   assert.deepEqual(cantRunReasons({ ...bypass, bootMode: 'legacy' }), [CANT_RUN_REASONS.secureBoot], 'legacy is refused either way');
   assert.deepEqual(cantRunReasons({ ...bypass, cpuWin11: false }), [CANT_RUN_REASONS.cpu], 'the processor is still checked');
+});
+
+// ---- case 5: Teacher Wilai's lab PC came in legacy (CSM on, Secure Boot off, MBR disk and stick) ----
+
+const c05 = CaseSchema.parse(data('cases/c05-lab-upgrade.json'));
+/** s1: legacy only · s3: no product key too · s5: TPM off too. */
+const wilaiPc = (seed: 's1' | 's3' | 's5') => generateCase(c05, { problems, brands: [classic] }, seed).machine;
+/** F2, Boot, Boot Settings Configuration, CSM Support = Disabled, then over to Security, Secure Boot = Enabled (inside the BIOS). */
+const UEFI_ON: Key[] = [...TO_BOOT_TAB, 'Enter', 'Minus', 'Esc', 'Right', 'Enter', 'Enter', 'Up', 'Enter'];
+
+test('case 5 content: the lab PC is legacy with an MBR disk holding Windows 10 and an MBR stick; s5 has TPM off', () => {
+  const m = wilaiPc('s1');
+  assert.deepEqual([m.bootMode, m.secureBoot, m.diskStyle, m.usbScheme, m.diskHasData, m.usbFirst], ['legacy', false, 'mbr', 'mbr', true, true]);
+  assert.equal(wilaiPc('s5').tpmEnabled, false);
+  assert.equal(wilaiPc('s3').productKey, false);
+});
+
+test('case 5: the first "can\'t run" on a PC that came in legacy is what the teacher saw; the same again is a mistake', () => {
+  const first = run(powerOn(wilaiPc('s1')), ...BOOT);
+  assert.deepEqual(screenOf(first.pc), { kind: 'cant-run', reasons: [CANT_RUN_REASONS.secureBoot] });
+  assert.deepEqual(first.effects, [{ type: 'cant-run', reasons: [CANT_RUN_REASONS.secureBoot] }]);
+  assert.deepEqual(run(restart(first.pc), ...BOOT).effects, [{ type: 'mistake', reason: 'still-cant-run' }]);
+  // Secure Boot turned on but CSM left on: still legacy, still the same line.
+  const sbOnly = run(restart(first.pc), 'F2', 'Right', 'Right', 'Right', 'Right', 'Enter', 'Enter', 'Up', 'Enter', ...SAVE, ...BOOT);
+  assert.equal(sbOnly.pc.machine.bootMode, 'legacy');
+  assert.deepEqual(sbOnly.effects, [{ type: 'mistake', reason: 'still-cant-run' }]);
+});
+
+test('case 5: CSM off leaves nothing to boot (legacy Windows, MBR stick): free once, then a mistake; the Boot Menu lists neither', () => {
+  const first = run(powerOn(wilaiPc('s1')), ...BOOT).pc;
+  const uefi = run(restart(first), ...UEFI_ON, ...SAVE).pc;
+  assert.deepEqual([uefi.machine.bootMode, uefi.machine.secureBoot], ['uefi', true]);
+  assert.deepEqual(bootMenuEntries(uefi).map((e) => e.target), ['setup'], 'no UEFI entry for the old Windows, and the MBR stick does not show');
+  const dark = run(uefi, 'timeout');
+  assert.equal(screenOf(dark.pc).kind, 'no-boot');
+  assert.deepEqual(dark.effects, [{ type: 'legacy-no-boot' }]);
+  assert.deepEqual(run(restart(dark.pc), 'timeout').effects, [{ type: 'mistake', reason: 'no-boot-device' }]);
+  assert.deepEqual(run(restart(dark.pc), 'F8', 'Esc').effects, [{ type: 'mistake', reason: 'no-boot-device' }], 'Boot Menu Esc boots the defaults');
+});
+
+test('case 5: the stick remade as GPT boots and Setup starts; the MBR disk shows the red text, deleted and installed', () => {
+  const first = run(powerOn(wilaiPc('s1')), ...BOOT).pc;
+  const dark = run(restart(first), ...UEFI_ON, ...SAVE, 'timeout').pc;
+  const setup = run(insertUsb(dark, STICK), ...BOOT);
+  assert.equal(screenOf(setup.pc).kind, 'setup');
+  assert.deepEqual(setup.effects, [{ type: 'reached-setup', route: 'bios', bypassedChecks: false }]);
+  const atLocation = tap(confirmBackup(setup.pc), ...TO_LOCATION, { type: 'select', id: '1-2' }).pc;
+  assert.match(locationError(setupOf(atLocation)) ?? '', /MBR partition table/);
+  const done = tap(atLocation, ...wipe('1-1'), ...wipe('1-2'), ...INSTALL);
+  assert.ok(done.effects.some((e) => e.type === 'installed'));
+  assert.equal(done.pc.machine.diskStyle, 'gpt');
+});
+
+test('case 5: CSM off but Secure Boot forgotten: the GPT stick is refused for Secure Boot again, progress (no mistake)', () => {
+  const first = run(powerOn(wilaiPc('s1')), ...BOOT).pc;
+  const csmOff = run(restart(first), ...TO_BOOT_TAB, 'Enter', 'Minus', ...SAVE, 'timeout').pc;
+  const r = run(insertUsb(csmOff, STICK), ...BOOT);
+  assert.deepEqual(screenOf(r.pc), { kind: 'cant-run', reasons: [CANT_RUN_REASONS.secureBoot] });
+  assert.deepEqual(r.effects, [{ type: 'cant-run', reasons: [CANT_RUN_REASONS.secureBoot] }]);
+  assert.deepEqual(run(restart(r.pc), ...BOOT).effects, [{ type: 'mistake', reason: 'still-cant-run' }], 'the same in UEFI again counts');
+});
+
+test('case 5 with TPM off too: both reasons in legacy; TPM, CSM and Secure Boot fixed in one visit, and Setup starts', () => {
+  const first = run(powerOn(wilaiPc('s5')), ...BOOT);
+  assert.deepEqual(screenOf(first.pc), { kind: 'cant-run', reasons: [CANT_RUN_REASONS.tpm, CANT_RUN_REASONS.secureBoot] });
+  assert.deepEqual(first.effects, [{ type: 'cant-run', reasons: [CANT_RUN_REASONS.tpm, CANT_RUN_REASONS.secureBoot] }]);
+  const all = run(restart(first.pc), ...TPM_ON, 'Esc', 'Right', 'Right', 'Enter', 'Minus', 'Esc', 'Right', 'Enter', 'Enter', 'Up', 'Enter', ...SAVE);
+  assert.deepEqual([all.pc.machine.tpmEnabled, all.pc.machine.bootMode, all.pc.machine.secureBoot], [true, 'uefi', true]);
+  assert.equal(screenOf(run(insertUsb(all.pc, STICK), ...BOOT).pc).kind, 'setup');
+});
+
+test('a PC that came in with UEFI keeps its old Windows bootable with CSM on, and a legacy boot there is still a mistake', () => {
+  const r = run(powerOn(tonPc('s1')), ...CSM_ON);
+  assert.equal(r.pc.arrivedIn, 'uefi');
+  assert.ok(bootMenuEntries(r.pc).some((e) => e.target === 'ssd'));
+});
+
+// ---- case 5: after the install the PC restarts into the new Windows' first-time setup (src/core/oobe.ts) ----
+
+/** Lung Chai's PC with a blank disk: Setup straight to the finished install. */
+function installed(): Pc {
+  const pc = toSetup(powerOn({ ...chaiPc, diskHasData: false }));
+  const r = tap(pc, ...TO_LOCATION, ...INSTALL);
+  assert.equal(setupOf(r.pc).page, 'done');
+  return r.pc;
+}
+
+test('the install leaves the new Windows on the disk; the PC restarts by itself and, with the stick left first, asks "Press any key"', () => {
+  const pc = installed();
+  assert.equal(pc.fresh?.page, 'region');
+  assert.equal(pc.fresh?.edition, pc.machine.windowsEdition);
+  const again = run(pc, 'timeout');
+  assert.equal(screenOf(again.pc).kind, 'post');
+  assert.equal(screenOf(run(again.pc, 'timeout').pc).kind, 'press-any-key');
+  // Letting it time out boots the disk: first-time setup, not the old Windows and no mistake.
+  const first = run(again.pc, 'timeout', 'timeout');
+  assert.deepEqual(screenOf(first.pc), { kind: 'oobe', oobe: pc.fresh });
+  assert.deepEqual(first.effects, []);
+});
+
+test('the Boot Menu entry for the disk starts the new Windows too, without a mistake', () => {
+  const pc = run(installed(), 'timeout', 'F8').pc;
+  const i = bootMenuEntries(pc).findIndex((e) => e.target === 'ssd');
+  const r = run(pc, ...(Array(i).fill('Down') as Key[]), 'Enter');
+  assert.equal(screenOf(r.pc).kind, 'oobe');
+  assert.deepEqual(r.effects, []);
+});
+
+test('first-time setup through the PC: its effects come out as notes and the desktop; a restart picks up where it was', () => {
+  const oobe = run(installed(), 'timeout', 'timeout', 'timeout').pc;
+  const tapO = (start: Pc, ...as: OobeAction[]) => {
+    let pc = start;
+    const effects: Effect[] = [];
+    for (const a of as) {
+      const r = oobeAction(pc, a);
+      pc = r.pc;
+      effects.push(...r.effects);
+    }
+    return { pc, effects };
+  };
+  const named = tapO(oobe, { type: 'pick-region', region: 'Thailand' }, { type: 'yes' }, { type: 'yes' }, { type: 'skip' }, { type: 'plug-cable' }, { type: 'next' }, { type: 'tick', ms: UPDATES_MS }, { type: 'skip' });
+  assert.equal(named.pc.fresh?.page, 'account');
+  const back = run(restart(named.pc), 'timeout', 'timeout');
+  const resumed = screenOf(back.pc);
+  assert.equal(resumed.kind === 'oobe' ? resumed.oobe.page : resumed.kind, 'account', 'resumed after a restart');
+  const r = tapO(back.pc, { type: 'ask-password' }, { type: 'hand-over' }, { type: 'tick', ms: CUSTOMER_MS }, { type: 'tick', ms: CUSTOMER_MS }, { type: 'ask-privacy' }, { type: 'accept' }, { type: 'skip' }, { type: 'skip' }, { type: 'skip' }, { type: 'tick', ms: FINISHING_MS });
+  assert.deepEqual(
+    r.effects.map((e) => (e.type === 'oobe-note' ? e.note : e.type === 'mistake' ? e.reason : e.type)),
+    ['asked-password', 'handed-over', 'handed-back', 'privacy-asked', 'desktop'],
+  );
+  assert.equal(r.pc.fresh?.page, 'desktop');
+  const later = screenOf(run(restart(r.pc), 'timeout', 'timeout').pc);
+  assert.equal(later.kind === 'oobe' ? later.oobe.page : later.kind, 'desktop', 'the desktop again after a restart');
+});
+
+test('first-time setup taps do nothing on other screens', () => {
+  const pc = powerOn(chaiPc);
+  assert.deepEqual(oobeAction(pc, { type: 'yes' }), { pc, effects: [] });
 });

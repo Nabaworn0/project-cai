@@ -4,6 +4,7 @@
 
 import { z } from 'zod';
 import { WIN11_CHECK_IDS } from '../core/win11check';
+import { EDITIONS } from '../core/setup';
 
 const id = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'ids are lowercase-kebab-case');
 const loId = z.string().regex(/^LO\d+$/, 'objective ids look like LO1');
@@ -114,6 +115,16 @@ const ReactionsSchema = z
     noBackupTh: th.optional(),
     /** The install USB's own partition was deleted in Setup (a mistake). */
     lostInstallerTh: th.optional(),
+    /** Windows is installed, but the job goes on to first-time setup (cases whose goal is "desktop"). */
+    installedTh: th.optional(),
+    /** The technician handed the PC over to sign in to the customer's own account (first-time setup). */
+    handedOverTh: th.optional(),
+    /** The technician typed the customer's account for them or asked for the password (a mistake). */
+    accountTrapTh: th.optional(),
+    /** Asked which privacy settings they want: the customer's answer. */
+    privacyAskedTh: th.optional(),
+    /** The desktop came up without a Thai keyboard layout. */
+    noThaiKeyboardTh: th.optional(),
     /** Goodbye on the summary, by stars: [1 star, 2 stars, 3 stars]. */
     goodbyeTh: z.tuple([th, th, th]).optional(),
   })
@@ -163,6 +174,9 @@ export const CaseSchema = z.object({
     lineTh: th,
     /** The customer wants their files kept: destructive repairs lose points. */
     keepData: z.boolean(),
+    /** The customer said when they came in that the old files are not needed (case 5): no backup question,
+     *  and deleting the old partitions is not a mistake. */
+    filesNotNeeded: z.boolean().default(false),
     reactionsTh: ReactionsSchema.default({}),
   }).strict(),
   /** Step 2 of a case: the player guesses the cause before touching anything. */
@@ -170,9 +184,11 @@ export const CaseSchema = z.object({
   /** Step 4: the customer asks "why?" and the player picks the right explanation. */
   customerQuestions: z.array(CaseQuestionSchema).min(1),
   coach: CoachSchema.optional(),
-  /** When the repair is done: the USB reaches Setup's first page (cases 1–2), or Windows is installed (case 3 on:
-   *  the problem shows on a later Setup page). */
-  goal: z.enum(['setup', 'install']).default('setup'),
+  /** When the repair is done: the USB reaches Setup's first page (cases 1–2), Windows is installed (cases 3–4:
+   *  the problem shows on a later Setup page), or first-time setup reaches the desktop (case 5). */
+  goal: z.enum(['setup', 'install', 'desktop']).default('setup'),
+  /** The PC's name on the ticket, typed on first-time setup's "Let's name your device" (goal "desktop"). */
+  deviceName: z.string().optional(),
   /** What the panel asks for during the repair, when the generic "make it boot from the USB" does not fit. */
   repairTh: th.optional(),
   /** A photo the customer brings of the error (stage "guess the cause"): the screen text of one of its fixed problems. */
@@ -188,6 +204,8 @@ export const CaseSchema = z.object({
       /** The disk still holds the old Windows (needed for mbr2gpt). Separate from keepData:
        *  a customer may have an old install yet have backed their files up. */
       diskHasData: z.boolean().default(true),
+      /** The Windows edition on the ticket (what Setup must be told without a key). Default Windows 11 Home. */
+      windowsEdition: z.enum(EDITIONS).optional(),
     })
     .strict(),
   problems: z.object({

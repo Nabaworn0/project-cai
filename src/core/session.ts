@@ -4,6 +4,7 @@
 
 import type { GeneratedCase } from './cases';
 import { checkAnswer, WIN11_CHECK_IDS, type CheckAnswer, type CheckId } from './win11check';
+import type { OobeResult } from './oobe';
 
 export type Stage = 'intro' | 'ticket' | 'diagnose' | 'repair' | 'explain' | 'summary';
 export const STAGES: readonly Stage[] = ['intro', 'ticket', 'diagnose', 'repair', 'explain', 'summary'];
@@ -20,6 +21,8 @@ export const SCORING = {
   repairCoins: 100,
   /** Coins for each right answer in the Windows 11 requirements table (practice: wrong ones cost nothing). */
   checkCoin: 10,
+  /** Coins for asking the customer about the privacy settings on first-time setup (case 5). */
+  privacyCoin: 10,
   /** Bonus coins by hints used: none, one, two. */
   hintBonus: [50, 25, 0],
   satisfaction: { perHint: 15, perMistake: 10, perWrongAnswer: 10 },
@@ -50,6 +53,8 @@ export interface Session {
   hintsUsed: number;
   /** The Windows 11 requirements table, for cases that have it (minigame "win11-check"): one answer per row. */
   checks: CheckResult[];
+  /** What was chosen on first-time setup (goal "desktop"): noted in the log, never scored. */
+  oobe: OobeResult | null;
 }
 
 export interface CheckResult {
@@ -64,7 +69,7 @@ export type SessionEvent =
   | { type: 'diagnose'; choice: number }
   | { type: 'mistake' }
   | { type: 'hint' }
-  | { type: 'repaired'; route: string; bypassedChecks?: boolean; wrongEdition?: boolean }
+  | { type: 'repaired'; route: string; bypassedChecks?: boolean; wrongEdition?: boolean; oobe?: OobeResult }
   | { type: 'answer'; choice: number }
   | { type: 'check'; id: CheckId; answer: CheckAnswer };
 
@@ -103,6 +108,7 @@ export function startSession(gc: GeneratedCase): Session {
     hints: gc.problems.flatMap((p) => p.hintsTh).slice(0, SCORING.hintLimit),
     hintsUsed: 0,
     checks: [],
+    oobe: null,
   };
 }
 
@@ -155,7 +161,7 @@ export function step(gc: GeneratedCase, s: Session, e: SessionEvent): Session {
     case 'repaired': {
       if (s.stage !== 'repair' || s.route) fail('not repairing');
       if (!e.route) fail('no route given');
-      return { ...s, route: e.route, bypassedChecks: !!e.bypassedChecks, wrongEdition: !!e.wrongEdition };
+      return { ...s, route: e.route, bypassedChecks: !!e.bypassedChecks, wrongEdition: !!e.wrongEdition, oobe: e.oobe ?? null };
     }
     case 'check': {
       if (s.stage !== 'ticket' || !hasCheck(gc)) fail('no requirements table here');
@@ -198,11 +204,16 @@ export function summarize(gc: GeneratedCase, s: Session): Summary {
   const { perHint, perMistake, perWrongAnswer } = SCORING.satisfaction;
   const satisfaction = clamp(100 - s.hintsUsed * perHint - s.mistakes * perMistake - wrongAnswers * perWrongAnswer, 0, 100);
   const right = s.checks.filter((c) => c.correct).length;
-  const coins = SCORING.repairCoins + (SCORING.hintBonus[Math.min(s.hintsUsed, SCORING.hintBonus.length - 1)] ?? 0) + right * SCORING.checkCoin;
+  const coins =
+    SCORING.repairCoins +
+    (SCORING.hintBonus[Math.min(s.hintsUsed, SCORING.hintBonus.length - 1)] ?? 0) +
+    right * SCORING.checkCoin +
+    (s.oobe?.privacyAsked ? SCORING.privacyCoin : 0);
 
   const log: LogEntry[] = gc.problems.map((p) => ({ textTh: p.explainTh, bookPage: p.bookPage }));
   if (s.bypassedChecks) log.push({ textTh: BYPASS_NOTE_TH });
   if (s.wrongEdition) log.push({ textTh: EDITION_NOTE_TH });
+  if (s.oobe) log.push(...oobeNotes(s.oobe, gc.template.deviceName));
   const check = hasCheck(gc) ? { correct: right, total: WIN11_CHECK_IDS.length } : null;
   return { stars, lostTh, coins, satisfaction, mistakes: s.mistakes, log, check };
 }
@@ -215,6 +226,30 @@ export function customerMood(gc: GeneratedCase, s: Session): CustomerMood {
   }
   return s.route ? 'happy' : 'worried';
 }
+
+/** Tech log notes on first-time setup: what was done well or left out (case5-plan section 2: none cost a star). */
+export function oobeNotes(o: OobeResult, ticketName: string | undefined): LogEntry[] {
+  const out: string[] = [];
+  if (o.region !== 'Thailand') out.push(`ตั้งประเทศเป็น ${o.region} แทน Thailand: เวลา ร้านค้าแอป และรูปแบบวันที่จะไม่ตรงกับเมืองไทย`);
+  if (!o.thaiKeyboard) out.push(OOBE_NOTES_TH.noThai);
+  if (o.deviceName === null) out.push(`ข้ามการตั้งชื่อเครื่อง Windows ตั้งชื่อสุ่มให้ ใบงานให้ตั้งเป็น ${ticketName ?? '-'} เพื่อให้รู้ว่าเป็นเครื่องไหนในห้องแล็บ`);
+  else if (ticketName && o.deviceName.toUpperCase() !== ticketName.toUpperCase())
+    out.push(`ตั้งชื่อเครื่องเป็น ${o.deviceName} ไม่ตรงกับใบงาน (${ticketName}) เปลี่ยนได้ทีหลังใน Settings > System > About`);
+  if (o.setupType === 'work') out.push(OOBE_NOTES_TH.work);
+  out.push(o.privacyAsked ? OOBE_NOTES_TH.privacyAsked : OOBE_NOTES_TH.privacyNotAsked);
+  if (o.extras.length) out.push(OOBE_NOTES_TH.extras);
+  out.push(OOBE_NOTES_TH.account);
+  return out.map((textTh) => ({ textTh }));
+}
+
+export const OOBE_NOTES_TH = {
+  noThai: 'ไม่ได้เพิ่มแป้นพิมพ์ภาษาไทย ผู้ใช้จะพิมพ์ไทยไม่ได้ เพิ่มได้ในหน้า "Want to add a second keyboard layout?" หรือทีหลังใน Settings > Time & language',
+  work: 'เลือก "Set up for work or school" ซึ่งใช้กับบัญชีขององค์กร เครื่องที่ครูใช้บัญชีส่วนตัวควรเลือก "Set up for personal use"',
+  privacyAsked: 'ถามลูกค้าก่อนตั้งค่าความเป็นส่วนตัว: ข้อมูลตำแหน่ง โฆษณา และข้อมูลการใช้งานเป็นของลูกค้า ให้ลูกค้าเลือกเอง',
+  privacyNotAsked: 'หน้าความเป็นส่วนตัวควรถามลูกค้าก่อนกด Accept: ตำแหน่ง Find my device ข้อมูลการใช้งาน และ Advertising ID เป็นเรื่องที่ลูกค้าควรเลือกเอง',
+  extras: 'สมัครบริการเสริม (ปรับแต่งโฆษณา OneDrive หรือโทรศัพท์) ที่ลูกค้าไม่ได้ขอ ควรกด Skip แล้วให้ลูกค้าตัดสินใจเอง',
+  account: 'บัญชี Microsoft และ PIN เป็นของลูกค้า ช่างยื่นเครื่องให้ลูกค้าพิมพ์เอง ไม่จดและไม่ถามรหัสผ่าน',
+} as const;
 
 /** Tech log note for a stick made with Rufus' "remove requirement" box ticked. */
 export const BYPASS_NOTE_TH =

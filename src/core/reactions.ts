@@ -4,7 +4,22 @@
 
 import type { Reactions } from '../content/schema';
 
-export type ReactionEvent = 'old-windows' | 'no-boot' | 'wrong-image' | 'cant-run' | 'still-cant-run' | 'fixed' | 'reached-setup' | 'backup' | 'no-backup' | 'lost-installer';
+export type ReactionEvent =
+  | 'old-windows'
+  | 'no-boot'
+  | 'wrong-image'
+  | 'cant-run'
+  | 'still-cant-run'
+  | 'fixed'
+  | 'reached-setup'
+  | 'backup'
+  | 'no-backup'
+  | 'lost-installer'
+  | 'installed'
+  | 'handed-over'
+  | 'account-trap'
+  | 'privacy-asked'
+  | 'no-thai-keyboard';
 
 export const GENERIC_REACTIONS: Required<Reactions> = {
   oldWindowsTh: ['ยังขึ้นหน้าจอเดิมอยู่เลยนะ', 'เหมือนเดิมเลย ยังไม่ได้อีกเหรอ'],
@@ -17,6 +32,11 @@ export const GENERIC_REACTIONS: Required<Reactions> = {
   backupTh: 'สำรองไว้แล้ว ลบได้เลย',
   noBackupTh: 'เดี๋ยวก่อน ยังไม่ได้ถามเลยว่าข้อมูลเก็บไว้หรือยัง',
   lostInstallerTh: 'อ้าว ขึ้นข้อความผิดพลาด แฟลชไดรฟ์เป็นอะไรไปหรือเปล่า',
+    installedTh: 'ติดตั้งเสร็จแล้วเหรอ ยังต้องตั้งค่าอะไรต่ออีกไหม',
+    handedOverTh: 'อ๋อ ให้พิมพ์เองใช่ไหม ได้เลย',
+    accountTrapTh: 'เอ๊ะ บัญชีกับรหัสผ่านให้ช่างรู้ด้วยเหรอ ขอพิมพ์เองดีกว่านะ',
+    privacyAskedTh: 'ปิดโฆษณากับตำแหน่งไว้ก็ได้ ที่เหลือแล้วแต่ช่างเลย',
+    noThaiKeyboardTh: 'ได้แล้ว แต่พิมพ์ภาษาไทยได้หรือเปล่านะ',
   goodbyeTh: ['ได้แล้วก็ดี แต่ลุ้นอยู่นานเลยนะ', 'เรียบร้อยแล้ว ขอบคุณนะ', 'เก่งมาก ขอบคุณมากเลย ไว้มาใช้บริการอีกนะ'],
 };
 
@@ -34,6 +54,11 @@ export function reactionLine(r: Reactions, event: ReactionEvent, count = 1): str
   if (event === 'backup') return r.backupTh ?? GENERIC_REACTIONS.backupTh;
   if (event === 'no-backup') return r.noBackupTh ?? GENERIC_REACTIONS.noBackupTh;
   if (event === 'lost-installer') return r.lostInstallerTh ?? GENERIC_REACTIONS.lostInstallerTh;
+  if (event === 'installed') return r.installedTh ?? GENERIC_REACTIONS.installedTh;
+  if (event === 'handed-over') return r.handedOverTh ?? GENERIC_REACTIONS.handedOverTh;
+  if (event === 'account-trap') return r.accountTrapTh ?? GENERIC_REACTIONS.accountTrapTh;
+  if (event === 'privacy-asked') return r.privacyAskedTh ?? GENERIC_REACTIONS.privacyAskedTh;
+  if (event === 'no-thai-keyboard') return r.noThaiKeyboardTh ?? GENERIC_REACTIONS.noThaiKeyboardTh;
   return r.fixedTh ?? GENERIC_REACTIONS.fixedTh;
 }
 

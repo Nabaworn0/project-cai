@@ -1,7 +1,8 @@
 // The customer's PC from power-on to Windows installed: POST, the BIOS setup screen, the one-time
 // Boot Menu, "Press any key to boot", what the machine boots into, which depends on what is on the
 // install USB (case 2: the stick can be remade on the shop laptop, src/core/rufus.ts), and Windows 11
-// Setup itself (case 3, src/core/setup.ts), whose partition page can wipe the PC's disk or the stick.
+// Setup itself (case 3, src/core/setup.ts), whose partition page can wipe the PC's disk or the stick, and
+// after the install the new Windows' first-time setup up to the desktop (case 5, src/core/oobe.ts).
 // Pure data in, data out (no DOM): the simulated screens only render `biosView` / `bootMenuEntries`
 // and send keys; the case flow listens to the returned effects. Real wording: docs/real-screens.md.
 
@@ -9,6 +10,7 @@ import type { Machine, UsbOs } from './machine';
 import type { BiosMenu, BiosSetting, Brand, MenuRow } from '../content/schema';
 import { cantRunReasons } from './requirements';
 import { act as setupAct, openSetup, type Setup, type SetupAction, type SetupMistake } from './setup';
+import { act as oobeAct, openOobe, type Oobe, type OobeAction, type OobeMistake, type OobeResult } from './oobe';
 
 /** Keys the simulated screens understand (the on-screen key bar sends the same names). */
 export const KEYS = ['Esc', 'F2', 'F8', 'F10', 'Delete', 'Enter', 'Up', 'Down', 'Left', 'Right', 'Plus', 'Minus'] as const;
@@ -50,7 +52,9 @@ export type Screen =
   | { kind: 'setup-win10' }
   | { kind: 'grub' }
   /** Windows 11 Setup refused the PC: "This PC can't run Windows 11" with its reasons (case 4; case 2's CSM trap). */
-  | { kind: 'cant-run'; reasons: string[] };
+  | { kind: 'cant-run'; reasons: string[] }
+  /** The new Windows 11 starting for the first time: first-time setup, then the desktop (src/core/oobe.ts). */
+  | { kind: 'oobe'; oobe: Oobe };
 
 /** How the USB was reached: the saved boot order, or the one-time Boot Menu. Both are correct (case 1 design). */
 export type Route = 'bios' | 'boot-menu';
@@ -65,7 +69,9 @@ export type MistakeReason =
   /** "This PC can't run Windows 11" again with the very same reasons: nothing was fixed (e.g. left the BIOS with Esc). */
   | 'still-cant-run'
   /** On Setup's partition page (case 3). */
-  | SetupMistake;
+  | SetupMistake
+  /** On the account page of first-time setup (case 5). */
+  | OobeMistake;
 
 export type Effect =
   /** The player made the machine boot the wrong thing. Waiting too long at "Press any key" is not a mistake. */
@@ -74,8 +80,14 @@ export type Effect =
   | { type: 'reached-setup'; route: Route; bypassedChecks: boolean }
   /** Setup refused the PC for the first time, or with fewer reasons than before (progress, not a mistake). */
   | { type: 'cant-run'; reasons: string[] }
+  /** Case 5: CSM is off, so the legacy Windows and the MBR stick no longer start (seen once, not a mistake). */
+  | { type: 'legacy-no-boot' }
   /** Setup finished installing Windows. `wrongEdition`: no key, and another edition than the PC had (noted, not a mistake). */
-  | { type: 'installed'; wrongEdition: boolean; activateLater: boolean };
+  | { type: 'installed'; wrongEdition: boolean; activateLater: boolean }
+  /** First-time setup: the PC went to the customer and back, or the customer was asked about privacy. */
+  | { type: 'oobe-note'; note: 'handed-over' | 'handed-back' | 'privacy-asked' }
+  /** First-time setup finished: the Windows 11 desktop. */
+  | { type: 'desktop'; result: OobeResult };
 
 export interface Pc {
   /** The machine as the rest of the game sees it (saved settings already applied). */
@@ -87,8 +99,14 @@ export interface Pc {
   screen: Screen;
   /** Asked the customer about a backup / already blamed for wiping without asking: kept when Setup starts again. */
   backup: { confirmed: boolean; blamed: boolean };
-  /** The reasons on the last "can't run" screen, to tell a repeat from progress. */
-  lastCantRun: string[] | null;
+  /** The last "can't run" screen: its reasons and the boot mode it came up in, to tell a repeat from progress. */
+  lastCantRun: { reasons: string[]; bootMode: Machine['bootMode'] } | null;
+  /** The boot mode the PC came into the shop with: its old Windows was installed that way (case 5 arrives in legacy). */
+  arrivedIn: Machine['bootMode'];
+  /** Already met "no boot device" once because the legacy Windows cannot start with CSM off (case 5: free the first time). */
+  legacyNoBootSeen: boolean;
+  /** The Windows 11 just installed on the disk and how far its first-time setup has got (null before the install). */
+  fresh: Oobe | null;
 }
 
 export interface Result {
@@ -131,10 +149,31 @@ export function usbBoots(m: Machine): boolean {
 
 export function powerOn(m: Machine): Pc {
   const fw = firmwareOf(m);
-  return { machine: m, saved: fw, draft: fw, screen: { kind: 'post' }, backup: { confirmed: false, blamed: false }, lastCantRun: null };
+  return {
+    machine: m,
+    saved: fw,
+    draft: fw,
+    screen: { kind: 'post' },
+    backup: { confirmed: false, blamed: false },
+    lastCantRun: null,
+    arrivedIn: m.bootMode,
+    legacyNoBootSeen: false,
+    fresh: null,
+  };
 }
 
 const done = (pc: Pc, effects: Effect[] = []): Result => ({ pc, effects });
+
+/**
+ * Whether the old Windows on the disk still starts. CSM on boots both kinds; CSM off (UEFI only) cannot start
+ * a Windows that was installed in legacy mode (case 5: the lab PC came in legacy with an MBR disk).
+ */
+function oldWindowsBoots(pc: Pc): boolean {
+  return pc.machine.diskHasData && (pc.arrivedIn === 'uefi' || pc.machine.bootMode === 'legacy');
+}
+
+/** CSM was turned off on a PC whose old Windows was installed in legacy mode: that Windows can no longer start. */
+const legacyWindowsStranded = (pc: Pc) => pc.machine.diskHasData && !oldWindowsBoots(pc);
 
 /** The stick as Rufus left it, plugged back into this PC, which then starts again from POST. */
 export function insertUsb(pc: Pc, usb: { scheme: Machine['usbScheme']; os: UsbOs; bypassChecks: boolean }): Pc {
@@ -155,9 +194,18 @@ function boot(pc: Pc, skipUsb = false): Result {
   const excused = skipUsb || pc.machine.usbOs === 'empty';
   const blame = (reason: 'booted-old-windows' | 'no-boot-device'): Effect[] => (excused ? [] : [{ type: 'mistake', reason }]);
   if (first === 'usb') return bootUsb(pc, 'bios');
+  if (first === 'ssd' && pc.fresh) return bootFresh(pc);
   // A disk whose old Windows was deleted in Setup has nothing left to start.
-  if (first === 'ssd' && pc.machine.diskHasData) return done({ ...pc, screen: { kind: 'old-windows' } }, blame('booted-old-windows'));
+  if (first === 'ssd' && oldWindowsBoots(pc)) return done({ ...pc, screen: { kind: 'old-windows' } }, blame('booted-old-windows'));
+  // Case 5: CSM off leaves the legacy Windows (and the customer's MBR stick) unable to start. Seeing that once is
+  // part of the repair (the stick must be remade as GPT); meeting it again is a mistake.
+  if (first === 'ssd' && legacyWindowsStranded(pc) && !pc.legacyNoBootSeen) return done({ ...pc, legacyNoBootSeen: true, screen: { kind: 'no-boot' } }, [{ type: 'legacy-no-boot' }]);
   return done({ ...pc, screen: { kind: 'no-boot' } }, blame('no-boot-device'));
+}
+
+/** The new Windows starts from the disk: its first-time setup carries on where it was left (or the desktop). */
+function bootFresh(pc: Pc): Result {
+  return done({ ...pc, screen: { kind: 'oobe', oobe: pc.fresh! } });
 }
 
 /** Starting from the USB: Windows installers ask "Press any key"; Ubuntu goes straight to its GRUB menu. */
@@ -169,21 +217,25 @@ function bootUsb(pc: Pc, via: Route): Result {
 /**
  * A key at "Press any key": the installer on the stick starts. Windows 11 Setup first checks the PC (in the game
  * right away; where the real one does it is not confirmed, case4-plan decision 1). The first refusal is what the
- * customer saw, and fewer reasons is progress; the same reasons again, or booting in legacy mode, is a mistake.
+ * customer saw, and fewer reasons is progress; the same reasons again is a mistake, and so is booting in legacy
+ * mode on a PC that came in with UEFI (the player turned CSM on). A PC that came in legacy (case 5) is refused
+ * the first time as the customer saw it.
  */
 function startInstaller(pc: Pc, via: Route): Result {
   const m = pc.machine;
   if (m.usbOs !== 'win11') return done({ ...pc, screen: { kind: 'setup-win10' } }, [{ type: 'mistake', reason: 'wrong-image' }]);
   const reasons = cantRunReasons(m);
   if (reasons.length) {
-    const same = pc.lastCantRun !== null && reasons.length === pc.lastCantRun.length && reasons.every((r) => pc.lastCantRun!.includes(r));
+    // Turning CSM off is progress even when Secure Boot still gives the same line (case 5).
+    const last = pc.lastCantRun;
+    const same = last !== null && last.bootMode === m.bootMode && reasons.length === last.reasons.length && reasons.every((r) => last.reasons.includes(r));
     const effect: Effect =
-      m.bootMode !== 'uefi'
+      m.bootMode !== 'uefi' && pc.arrivedIn === 'uefi'
         ? { type: 'mistake', reason: 'legacy-boot' }
         : same
           ? { type: 'mistake', reason: 'still-cant-run' }
           : { type: 'cant-run', reasons };
-    return done({ ...pc, lastCantRun: reasons, screen: { kind: 'cant-run', reasons } }, [effect]);
+    return done({ ...pc, lastCantRun: { reasons, bootMode: m.bootMode }, screen: { kind: 'cant-run', reasons } }, [effect]);
   }
   const setup = openSetup(m, { ticketEdition: m.windowsEdition, backup: pc.backup });
   return done({ ...pc, screen: { kind: 'setup', setup } }, [{ type: 'reached-setup', route: via, bypassedChecks: m.usbBypassChecks }]);
@@ -199,19 +251,32 @@ export function setupAction(pc: Pc, a: SetupAction): Result {
   if (s.kind !== 'setup') return done(pc);
   const r = setupAct(s.setup, a);
   let m = pc.machine;
+  let fresh = pc.fresh;
   const effects: Effect[] = [];
   for (const e of r.effects) {
     if (e.type === 'mistake') effects.push({ type: 'mistake', reason: e.reason });
     else if (e.type === 'usb-wiped') m = { ...m, usbOs: 'empty' };
     else {
       m = { ...m, diskStyle: e.diskStyle, activateLater: e.activateLater, windowsEdition: e.edition };
+      fresh = openOobe(e.edition);
       effects.push({ type: 'installed', wrongEdition: e.wrongEdition, activateLater: e.activateLater });
     }
   }
   // The old Windows is gone once its partition is deleted or formatted (a new install is not "old" either).
   if (!r.setup.parts.some((p) => p.data)) m = { ...m, diskHasData: false };
   const backup = { confirmed: r.setup.backupConfirmed, blamed: r.setup.backupBlamed };
-  return done({ ...pc, machine: m, backup, screen: { kind: 'setup', setup: r.setup } }, effects);
+  return done({ ...pc, machine: m, backup, fresh, screen: { kind: 'setup', setup: r.setup } }, effects);
+}
+
+/** A tap (or the clock) on first-time setup. Its progress stays with the disk, so a restart picks it up again. */
+export function oobeAction(pc: Pc, a: OobeAction): Result {
+  const s = pc.screen;
+  if (s.kind !== 'oobe') return done(pc);
+  const r = oobeAct(s.oobe, a);
+  const effects: Effect[] = r.effects.map((e) =>
+    e.type === 'mistake' ? { type: 'mistake', reason: e.reason } : e.type === 'desktop' ? e : { type: 'oobe-note', note: e.type },
+  );
+  return done({ ...pc, fresh: r.oobe, screen: { kind: 'oobe', oobe: r.oobe } }, effects);
 }
 
 /** The customer said the files are backed up (the case flow's "ask" button): remembered even if Setup restarts. */
@@ -225,6 +290,8 @@ export function confirmBackup(pc: Pc): Pc {
 export function timeout(pc: Pc): Result {
   if (pc.screen.kind === 'post') return boot(pc);
   if (pc.screen.kind === 'press-any-key') return boot(pc, true);
+  // "Installing Windows 11" finished: the PC restarts by itself (a stick still first boots "Press any key" again).
+  if (pc.screen.kind === 'setup' && pc.screen.setup.page === 'done') return done(restart(pc));
   return done(pc);
 }
 
@@ -459,7 +526,8 @@ export function bootMenuEntries(pc: Pc): BootMenuEntry[] {
   const uefi = m.bootMode === 'uefi';
   // Lists every drive, even when Boot Device Priority has its slot disabled: that is what a one-time menu is for.
   const entries: BootMenuEntry[] = pc.saved.hddOrder
-    .filter((d) => d === 'ssd' || usbBoots(m))
+    // A legacy-installed Windows has no UEFI boot entry once CSM is off, so the menu does not list the disk.
+    .filter((d) => (d === 'ssd' ? !legacyWindowsStranded(pc) : usbBoots(m)))
     .map((d) => ({
       target: d,
       // The BIOS lists the stick as "USB: Flash Disk"; the boot menu names the device itself ("UEFI: USB Flash Disk").
@@ -479,5 +547,6 @@ function pressBootMenu(brand: Brand, pc: Pc, cursor: number, key: Key): Result {
   const target = entries[cursor]!.target;
   if (target === 'setup') return done({ ...pc, screen: openBios(menuOf(brand)) });
   if (target === 'usb') return bootUsb(pc, 'boot-menu');
+  if (pc.fresh) return bootFresh(pc);
   return done({ ...pc, screen: { kind: 'old-windows' } }, [{ type: 'mistake', reason: 'booted-old-windows' }]);
 }

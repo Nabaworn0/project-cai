@@ -444,3 +444,150 @@ input.setup-input { cursor: pointer; }
   .w11-foot { padding-top: 0.6em; }
   .w11-links { padding-top: 0.6em; }
 }
+
+/* ---- Windows 11 first-time setup (OobeScreen, case 5) and the desktop (Desktop) ----
+   The real 24H2 look: a pale blue bloom background, a big white card (picture left, question right,
+   buttons bottom right), accessibility and volume icons under it. Sizes in em from the screen's font size;
+   it shares Setup's tall screen without the key bar. Narrow screens stack the card and drop the picture. */
+.setup-mode .pc[data-screen='oobe'] {
+  aspect-ratio: auto; width: 100%;
+  height: min(calc(100dvh - var(--pc-chrome) - var(--safe-t) - var(--safe-b)), 640px); min-height: 300px;
+}
+.pc > .oobe-screen, .pc > .w11-desktop { font-size: clamp(13px, 1.55cqw, 15px); }
+.oobe-screen {
+  position: relative; height: 100%; display: flex; flex-direction: column; padding: 1.6em 2em 0.4em; overflow: auto; overscroll-behavior: contain;
+  color: #1b1b1b; font-family: var(--f-win); line-height: 1.35;
+  background: radial-gradient(60% 50% at 15% 100%, #b9cdf1 0%, transparent 70%), radial-gradient(50% 40% at 90% 95%, #c6d3f3 0%, transparent 70%),
+    linear-gradient(160deg, #e9f1fb 0%, #dbe7f7 55%, #e6eefa 100%);
+}
+.oobe-card {
+  position: relative; flex: 1 1 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5em;
+  min-height: 0; margin: 0 auto; width: 100%; max-width: 62em; padding: 2.8em 2.6em 1.8em;
+  background: rgba(250, 252, 255, 0.92); border-radius: 0.6em; box-shadow: 0 0.2em 1.4em rgba(40, 70, 120, 0.14);
+}
+.oobe-art { display: grid; place-items: center; }
+.oobe-art svg { width: min(100%, 13em); height: auto; }
+.oobe-main { display: flex; flex-direction: column; min-height: 0; }
+.pc .oobe-title { margin: 0 0 0.8em; font-family: var(--f-win); font-weight: 600; font-size: 1.75em; line-height: 1.2; color: #1b1b1b; }
+.oobe-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 0.6em; }
+.oobe-text { margin: 0; color: #5b5b5b; font-size: 0.95em; }
+.oobe-buttons { display: flex; justify-content: flex-end; align-items: center; gap: 0.8em; padding-top: 1em; }
+.oobe-btn {
+  min-width: 7.6em; min-height: 2.4em; padding: 0 1.2em; font: inherit; color: #1b1b1b;
+  background: #fbfbfb; border: 1px solid #d1d1d1; border-radius: 0.3em; cursor: pointer;
+}
+.oobe-btn.primary { color: #fff; background: #0067c0; border-color: #0067c0; }
+.oobe-btn:disabled { color: #9c9c9c; background: #e3e3e3; border-color: #e3e3e3; cursor: default; }
+.oobe-btn.add { align-self: flex-end; }
+.oobe-link { padding: 0 0.6em; font: inherit; color: #005a9e; background: none; border: 0; cursor: pointer; }
+span.oobe-link { cursor: default; }
+.oobe-a { color: #005a9e; }
+.oobe-back { position: absolute; top: 0.9em; left: 0.9em; display: grid; place-items: center; width: 2.2em; height: 2.2em; background: none; border: 0; border-radius: 0.3em; cursor: pointer; }
+.oobe-back svg { width: 1.2em; height: 1.2em; fill: none; stroke: #1b1b1b; stroke-width: 1.4; }
+.oobe-list { display: flex; flex-direction: column; max-height: 17em; overflow-y: auto; }
+.oobe-list button {
+  min-height: 2.6em; padding: 0 1.2em; text-align: left; font: inherit; color: #1b1b1b; background: none; border: 0; border-radius: 0.2em; cursor: pointer;
+}
+.oobe-list button.sel { color: #fff; background: #0067c0; }
+.oobe-input {
+  display: flex; align-items: center; width: 100%; min-height: 2.4em; padding: 0 0.7em; text-align: left;
+  font: inherit; color: #1b1b1b; background: #fff; border: 1px solid #c8c8c8; border-bottom: 2px solid #8a8a8a; border-radius: 0.25em;
+}
+button.oobe-input { cursor: text; }
+.oobe-input .ph, .oobe-input::placeholder { color: #7a7a7a; }
+.oobe-input.pin { letter-spacing: 0.2em; }
+.oobe-rules { margin: 0.2em 0 0; padding: 0; list-style: none; font-size: 0.92em; }
+.oobe-rules li.broken { color: #c42b1c; }
+.oobe-choices { display: grid; gap: 0.5em; }
+.oobe-choice {
+  display: grid; gap: 0.3em; padding: 0.9em 1em; text-align: left; font: inherit; color: #1b1b1b;
+  background: #fff; border: 1px solid #e0e0e0; border-radius: 0.3em; cursor: pointer;
+}
+.oobe-choice span { font-size: 0.9em; color: #5b5b5b; }
+.oobe-choice.sel { color: #fff; background: #0067c0; border-color: #0067c0; }
+.oobe-choice.sel span { color: #dbe9f8; }
+.oobe-ms { display: flex; align-items: center; gap: 0.4em; margin: 0; font-size: 1.15em; font-weight: 600; color: #5e5e5e; }
+.oobe-mslogo { width: 1.1em; height: 1.1em; }
+.pc .oobe-sub { margin: 0.2em 0 0; font-size: 1.25em; font-weight: 600; }
+.oobe-small { margin: 0; font-size: 0.9em; }
+.oobe-check { display: flex; align-items: center; gap: 0.5em; font-size: 0.92em; }
+.oobe-net { display: flex; align-items: center; gap: 0.8em; padding: 0.7em 0.9em; border-radius: 0.3em; background: #fff; border: 1px solid #e0e0e0; }
+.oobe-net svg { width: 1.6em; height: 1.6em; fill: none; stroke: #5b5b5b; stroke-width: 1.5; }
+.oobe-net.on svg { stroke: #0067c0; }
+.oobe-net span { display: grid; }
+.oobe-net small { color: #6b6b6b; }
+.oobe-scroll { flex: 1 1 auto; min-height: 6em; overflow-y: auto; padding-right: 0.4em; display: grid; gap: 0.9em; align-content: start; }
+.oobe-priv { display: grid; gap: 0.25em; }
+.oobe-priv span { font-size: 0.88em; color: #5b5b5b; }
+.oobe-toggle { display: inline-flex; align-items: center; gap: 0.5em; width: fit-content; min-height: 1.8em; padding: 0; font: inherit; color: #1b1b1b; background: none; border: 0; cursor: pointer; }
+.oobe-toggle i { position: relative; width: 2.5em; height: 1.25em; border: 1px solid #5b5b5b; border-radius: 1em; background: #fff; }
+.oobe-toggle i::after { content: ''; position: absolute; top: 0.18em; left: 0.2em; width: 0.8em; height: 0.8em; border-radius: 50%; background: #5b5b5b; }
+.oobe-toggle.on i { background: #0067c0; border-color: #0067c0; }
+.oobe-toggle.on i::after { left: auto; right: 0.2em; background: #fff; }
+.oobe-scroll.uses { gap: 0.3em; }
+.oobe-use { display: flex; align-items: center; justify-content: space-between; gap: 0.8em; padding: 0.6em 0.8em; background: #fff; border: 1px solid #e3e3e3; border-radius: 0.3em; }
+.oobe-use span { display: grid; }
+.oobe-use small { color: #5b5b5b; }
+.oobe-use input { width: 1.2em; height: 1.2em; flex: none; }
+.oobe-qr { width: 7em; height: 7em; align-self: center; margin-top: 0.6em; fill: #000; }
+.oobe-tray { display: flex; justify-content: flex-end; gap: 1.4em; padding: 0.5em 1em 0.2em; }
+.oobe-tray svg { width: 1.2em; height: 1.2em; fill: none; stroke: #2b2b2b; stroke-width: 1.3; }
+.oobe-screen.wait { justify-content: center; align-items: center; text-align: center; }
+.oobe-screen.wait.dark { background: radial-gradient(60% 60% at 50% 60%, #12376e 0%, #0a1d3d 70%); color: #fff; }
+.pc .oobe-screen.wait.dark .oobe-title, .oobe-screen.wait.dark .oobe-text { color: #fff; }
+.oobe-waiting { display: grid; justify-items: center; gap: 0.6em; }
+.oobe-spinner { width: 2.4em; height: 2.4em; margin-top: 1em; border: 0.22em solid transparent; border-top-color: currentColor; border-radius: 50%; animation: oobe-spin 1s linear infinite; }
+.oobe-screen.wait:not(.dark) .oobe-spinner { color: #0067c0; }
+@keyframes oobe-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .oobe-spinner { animation-duration: 4s; } }
+.oobe-screen :focus-visible { outline: 2px solid #1b1b1b; outline-offset: 1px; }
+
+/* Game controls under the screen during first-time setup (plug the cable, hand the PC over, ask the customer),
+   and the choices that pop up when the technician taps the customer's account field. */
+.oobe-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.oobe-pop { position: absolute; inset: 0; z-index: 3; display: flex; padding: 10px; background: rgba(10, 20, 40, 0.5); }
+.oobe-pop-card {
+  margin: auto; width: min(100%, 360px); display: grid; gap: 8px; padding: 14px;
+  font-family: var(--f-body); font-size: 15px; line-height: 1.5; color: var(--ink); background: var(--cream); border: var(--px) solid var(--navy); border-radius: 0;
+}
+.oobe-pop-card p { margin: 0 0 4px; }
+
+.w11-desktop { position: relative; height: 100%; overflow: hidden; font-family: var(--f-win); color: #fff; }
+.desk-bloom { position: absolute; inset: 0; width: 100%; height: 100%; }
+.desk-icons { position: relative; display: grid; gap: 1em; padding: 0.8em; width: fit-content; }
+.desk-icon { display: grid; justify-items: center; gap: 0.2em; width: 5.5em; font-size: 0.85em; text-align: center; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.desk-icon svg { width: 2.6em; height: 2.6em; }
+.taskbar {
+  position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center;
+  height: 3.3em; padding: 0 0.8em; color: #1b1b1b; background: rgba(238, 243, 250, 0.88); border-top: 1px solid rgba(255, 255, 255, 0.6);
+}
+.tb-mid { display: flex; align-items: center; gap: 0.35em; }
+.tb-icon { display: grid; place-items: center; width: 2.6em; height: 2.6em; border-radius: 0.3em; }
+.tb-icon svg { width: 1.7em; height: 1.7em; }
+.tb-search { display: flex; align-items: center; gap: 0.5em; height: 2.2em; padding: 0 1em; margin: 0 0.2em; font-size: 0.9em; color: #5b5b5b; background: #fff; border: 1px solid #e3e3e3; border-radius: 1.2em; }
+.tb-search svg { width: 1em; height: 1em; fill: none; stroke: #1b1b1b; stroke-width: 1.5; }
+.tb-tray { position: absolute; right: 0.8em; display: flex; align-items: center; gap: 0.7em; }
+.tb-tray > svg { width: 1.1em; height: 1.1em; fill: none; stroke: #1b1b1b; stroke-width: 1.3; }
+.tb-clock { display: grid; justify-items: end; font-size: 0.8em; line-height: 1.25; }
+
+@media (pointer: coarse) {
+  .oobe-btn, .oobe-link, .oobe-list button, .oobe-input, .oobe-toggle, .oobe-back { min-height: 32px; }
+}
+/* Phones upright: the card fills the screen, the picture goes, the question sits on top. */
+@container (max-width: 520px) {
+  .oobe-screen { padding: 0.5em 0.5em 0.2em; }
+  .oobe-card { grid-template-columns: 1fr; padding: 2.6em 1.1em 1em; }
+  .oobe-art { display: none; }
+  .pc .oobe-title { font-size: 1.45em; }
+  .oobe-btn { min-width: 5.5em; }
+  .oobe-btn, .oobe-link, .oobe-list button, .oobe-input, .oobe-toggle { min-height: 32px; }
+  .tb-search, .tb-tray > svg { display: none; }
+  .tb-mid { gap: 0; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .pc-monitor.setup-mode .pc[data-screen='oobe'] { width: 100%; height: 100%; min-height: 0; align-self: stretch; }
+  .oobe-screen { padding: 0.5em 0.8em 0.2em; }
+  .oobe-card { padding: 1.4em 1.6em 0.8em; }
+  .pc .oobe-title { font-size: 1.45em; margin-bottom: 0.5em; }
+  .oobe-tray { display: none; }
+}

@@ -120,6 +120,26 @@ Rufus เปลี่ยนเป็นภาษาไทยเองถ้า W
 - ข้อความเหตุผลในบทความไม่มีจุดท้ายประโยค เกมใช้ตามนั้น
 - **วิธีตรวจกับเครื่องจริง (ถ้าครูสะดวก 5 นาที):** ปิด TPM ใน BIOS ของเครื่องแล็บ 1 เครื่อง → บูต USB Windows 11 → ถ่ายรูปหน้านี้ → เปิด TPM คืน
 
+## 3.5 หน้าตั้งค่าเริ่มต้นหลังติดตั้ง (OOBE, Windows 11 24H2) · เคส 5
+
+สืบค้น 25 ต.ค. 2026 จากคู่มือขั้นตอนพร้อมภาพหน้าจอจริงของ 24H2 (ภาพเก็บไว้นอกโปรเจกต์ ใช้ดูเทียบเท่านั้น)
+
+| หน้า | ที่ยืนยันจากภาพจริง ✅ | ที่ยังไม่ยืนยัน ⚠️ |
+|---|---|---|
+| หน้าตา | พื้นฟ้าอ่อน การ์ดขาวมุมมน ภาพซ้าย คำถามขวา ปุ่มน้ำเงินขวาล่าง ไอคอนช่วยการเข้าถึงและเสียงใต้การ์ด ลูกศรย้อนกลับมุมซ้ายบน (บางหน้า) | ภาพประกอบในเกมวาดเองแบบใกล้เคียง |
+| ประเทศ | "Is this the right country or region?" · ปุ่ม Yes · รายการเลือกแถบน้ำเงิน | |
+| คีย์บอร์ด | "Is this the right keyboard layout or input method?" · Yes · "Want to add a second keyboard layout?" · Add layout / Skip | ขั้นตอนหลังกด Add layout (ของจริงเลือกภาษาก่อน แล้วเลือกแบบ) |
+| เน็ต | ต่อสายแลนแล้วเชื่อมเอง ไม่ต้องกด · ไม่มีสายต้องเลือก Wi‑Fi | ข้อความหน้า "Let's connect you to a network" ตอนไม่มีสาย |
+| ชื่อเครื่อง | "Let's name your device" · ข้อความอธิบาย · กฎ 3 ข้อใต้ช่อง (ไม่ใช่ตัวเลขล้วน · ไม่เกิน 15 ตัว · ห้ามเว้นวรรคและอักขระพิเศษ ยกเว้น - — – _) · Skip for now / Next · **ตั้งชื่อแล้วเครื่องรีสตาร์ต** (เกมไม่ได้ทำการรีสตาร์ตนี้) | |
+| แบบการใช้ (Pro) | "How would you like to set up this device?" · Set up for personal use / Set up for work or school พร้อมคำอธิบาย | |
+| บัญชี | "Let's add your Microsoft account" · โลโก้ Microsoft · Sign in · ช่อง "Email, phone, or Skype" · No account? Create one! · Learn More / Next | ลิงก์ Sign-in options ตัดเหลือบางส่วน |
+| PIN | **"Set up a PIN"** (ไม่ใช่ Create a PIN) · ช่อง 2 ช่อง · Include letters and symbols · Cancel / OK | |
+| ความเป็นส่วนตัว | "Choose privacy settings for your device" · ข้อความนำ · Tailored experiences และ Advertising ID คำต่อคำ · สวิตช์ Yes · Learn more / Accept | คำอธิบาย Location, Find my device, Diagnostic data, Inking & typing (เขียนสั้นลงจากความรู้) |
+| ปรับแต่ง | "Let's customize your experience" · รายการ Development, Entertainment, Gaming, School … · Skip / Accept | Creativity, Business |
+| โทรศัพท์ · OneDrive | มีหน้าเชื่อมโทรศัพท์ Android และ OneDrive กด Skip ได้ | ชื่อหัวข้อและข้อความทั้งสองหน้า · ปุ่ม "Only save files to this PC" |
+| ที่ตัดออก | หน้ากู้คืนจากเครื่องเก่า (Set up as a new PC) · หน้า Edge (Not now) · ข้อเสนอ Microsoft 365 / Game Pass | |
+| ท้ายสุด | | หน้า "This might take a few minutes" สีเข้ม และเดสก์ท็อป (วาดเองแบบใกล้เคียง) |
+
 ## 4. ที่ยังต่างจากเครื่องในแล็บได้
 
 - **ยี่ห้อ BIOS ของเครื่องแล็บ** ยังไม่รู้ ตอนนี้เกมใช้ AMIBIOS ตามหนังสือ ถ้าครูบอกยี่ห้อเมนบอร์ดหรือรุ่นเครื่องได้ ผมหาคู่มือมาเทียบได้

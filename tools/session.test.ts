@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { generateCase, nextCase } from '../src/core/cases';
-import { BYPASS_NOTE_TH, EDITION_NOTE_TH, blockedNext, currentQuestion, customerMood, SCORING, shownHints, startSession, step, summarize, type Session, type SessionEvent } from '../src/core/session';
+import { BYPASS_NOTE_TH, EDITION_NOTE_TH, OOBE_NOTES_TH, oobeNotes, blockedNext, currentQuestion, customerMood, SCORING, shownHints, startSession, step, summarize, type Session, type SessionEvent } from '../src/core/session';
 import { BrandSchema, CaseSchema, ProblemsSchema } from '../src/content/schema';
 
 const data = (path: string) => JSON.parse(readFileSync(new URL(`../src/content/data/${path}`, import.meta.url), 'utf8'));
@@ -169,4 +169,70 @@ test('another edition than the PC had (no key) is noted in the tech log but cost
   const wrong = summarize(gc, playCase({ route: 'install', wrongEdition: true }));
   assert.equal(wrong.stars, 3);
   assert.deepEqual(wrong.log, [...clean.log, { textTh: EDITION_NOTE_TH }]);
+});
+
+// ---- case 5: first-time setup is noted in the technician's log, never scored (case5-plan section 2) ----
+
+const c05 = CaseSchema.parse(data('cases/c05-lab-upgrade.json'));
+const gc5 = generateCase(c05, lib, 's1');
+const GOOD_OOBE = {
+  region: 'Thailand',
+  thaiKeyboard: true,
+  deviceName: 'LAB-PC01',
+  setupType: 'personal',
+  privacyAsked: true,
+  privacy: { location: false, 'find-device': true, diagnostic: true, inking: true, tailored: true, ads: false },
+  extras: [],
+} as const;
+function playDesktop(oobe: Parameters<typeof oobeNotes>[0]) {
+  const events: SessionEvent[] = [
+    NEXT,
+    ...(['cpu', 'ram', 'storage', 'secure-boot', 'tpm'] as const).map((id): SessionEvent => ({ type: 'check', id, answer: 'bios' })),
+    NEXT,
+    { type: 'diagnose', choice: c05.diagnosis.answer },
+    NEXT,
+    { type: 'repaired', route: 'desktop', oobe },
+    NEXT,
+    ...c05.customerQuestions.map((q): SessionEvent => ({ type: 'answer', choice: q.answer })),
+    NEXT,
+  ];
+  return events.reduce((acc, e) => step(gc5, acc, e), startSession(gc5));
+}
+
+test('case 5 done well: 3 stars, privacy asked earns its coins, and the log keeps the account note', () => {
+  const s = playDesktop({ ...GOOD_OOBE, extras: [] });
+  assert.deepEqual(s.oobe?.deviceName, 'LAB-PC01');
+  const sum = summarize(gc5, s);
+  assert.equal(sum.stars, 3);
+  const notAsked = summarize(gc5, playDesktop({ ...GOOD_OOBE, extras: [], privacyAsked: false }));
+  assert.equal(sum.coins - notAsked.coins, SCORING.privacyCoin);
+  const log = sum.log.map((l) => l.textTh);
+  assert.ok(log.includes(OOBE_NOTES_TH.privacyAsked));
+  assert.ok(log.includes(OOBE_NOTES_TH.account));
+  assert.ok(!log.includes(OOBE_NOTES_TH.noThai));
+});
+
+test('case 5 left-outs are noted but cost no star: no Thai keyboard, another name, work setup, extras, not asked', () => {
+  const s = playDesktop({ ...GOOD_OOBE, region: 'United States', thaiKeyboard: false, deviceName: 'PC1', setupType: 'work', privacyAsked: false, extras: ['onedrive'] });
+  const sum = summarize(gc5, s);
+  assert.equal(sum.stars, 3);
+  const log = sum.log.map((l) => l.textTh).join('\n');
+  for (const t of [OOBE_NOTES_TH.noThai, OOBE_NOTES_TH.work, OOBE_NOTES_TH.privacyNotAsked, OOBE_NOTES_TH.extras]) assert.ok(log.includes(t), t);
+  assert.match(log, /United States/);
+  assert.match(log, /PC1 ไม่ตรงกับใบงาน \(LAB-PC01\)/);
+  const skipped = oobeNotes({ ...GOOD_OOBE, extras: [], deviceName: null }, 'LAB-PC01').map((l) => l.textTh).join('\n');
+  assert.match(skipped, /ข้ามการตั้งชื่อเครื่อง/);
+  assert.equal(oobeNotes({ ...GOOD_OOBE, extras: [], deviceName: 'lab-pc01' }, 'LAB-PC01').length, 2, 'names are not case-sensitive');
+});
+
+test('cases without first-time setup log nothing about it', () => {
+  assert.equal(playCase().oobe, null);
+  assert.ok(!summarize(gc, playCase()).log.some((l) => l.textTh === OOBE_NOTES_TH.account));
+});
+
+test('case 5 content: Windows 11 Pro on the ticket, the PC name, and no backup question', () => {
+  assert.equal(gc5.machine.windowsEdition, 'Windows 11 Pro');
+  assert.equal(c05.deviceName, 'LAB-PC01');
+  assert.equal(c05.customer.filesNotNeeded, true);
+  assert.equal(c05.goal, 'desktop');
 });

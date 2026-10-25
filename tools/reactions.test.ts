@@ -73,3 +73,19 @@ test("case 4: Ton has his own lines for the first refusal and for the same refus
   assert.notEqual(ton.cantRunTh, ton.stillCantRunTh);
   assert.equal(reactionLine({}, 'still-cant-run'), GENERIC_REACTIONS.stillCantRunTh);
 });
+
+test('case 5: Teacher Wilai has her own lines for first-time setup; others fall back to generic ones', () => {
+  const raw = JSON.parse(readFileSync(new URL('../src/content/data/cases/c05-lab-upgrade.json', import.meta.url), 'utf8'));
+  const wilai = CaseSchema.parse(raw).customer.reactionsTh;
+  for (const [event, key] of [
+    ['installed', 'installedTh'],
+    ['handed-over', 'handedOverTh'],
+    ['account-trap', 'accountTrapTh'],
+    ['privacy-asked', 'privacyAskedTh'],
+    ['no-thai-keyboard', 'noThaiKeyboardTh'],
+  ] as const) {
+    assert.equal(reactionLine(wilai, event), wilai[key]);
+    assert.equal(reactionLine({}, event), GENERIC_REACTIONS[key]);
+    assert.notEqual(wilai[key], GENERIC_REACTIONS[key]);
+  }
+});
