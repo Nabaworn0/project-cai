@@ -3,6 +3,7 @@
 // Flow and scoring: docs/case1-plan.md sections 1 and 3, from the brief's stars-and-hints rules.
 
 import type { GeneratedCase } from './cases';
+import { checkAnswer, WIN11_CHECK_IDS, type CheckAnswer, type CheckId } from './win11check';
 
 export type Stage = 'intro' | 'ticket' | 'diagnose' | 'repair' | 'explain' | 'summary';
 export const STAGES: readonly Stage[] = ['intro', 'ticket', 'diagnose', 'repair', 'explain', 'summary'];
@@ -17,6 +18,8 @@ export const SCORING = {
   /** Repair mistakes allowed before a star is lost ("more than one mistake" costs a star). */
   freeMistakes: 1,
   repairCoins: 100,
+  /** Coins for each right answer in the Windows 11 requirements table (practice: wrong ones cost nothing). */
+  checkCoin: 10,
   /** Bonus coins by hints used: none, one, two. */
   hintBonus: [50, 25, 0],
   satisfaction: { perHint: 15, perMistake: 10, perWrongAnswer: 10 },
@@ -45,6 +48,14 @@ export interface Session {
   wrongEdition: boolean;
   hints: readonly string[];
   hintsUsed: number;
+  /** The Windows 11 requirements table, for cases that have it (minigame "win11-check"): one answer per row. */
+  checks: CheckResult[];
+}
+
+export interface CheckResult {
+  id: CheckId;
+  answer: CheckAnswer;
+  correct: boolean;
 }
 
 export type SessionEvent =
@@ -54,7 +65,8 @@ export type SessionEvent =
   | { type: 'mistake' }
   | { type: 'hint' }
   | { type: 'repaired'; route: string; bypassedChecks?: boolean; wrongEdition?: boolean }
-  | { type: 'answer'; choice: number };
+  | { type: 'answer'; choice: number }
+  | { type: 'check'; id: CheckId; answer: CheckAnswer };
 
 export interface LogEntry {
   textTh: string;
@@ -72,6 +84,8 @@ export interface Summary {
   mistakes: number;
   /** The technician's log: what this case taught, with the textbook pages. */
   log: LogEntry[];
+  /** Right answers in the requirements table, when the case has one. */
+  check: { correct: number; total: number } | null;
 }
 
 export function startSession(gc: GeneratedCase): Session {
@@ -88,12 +102,18 @@ export function startSession(gc: GeneratedCase): Session {
     // Two hints per machine (the brief), taken from the hidden problems in order.
     hints: gc.problems.flatMap((p) => p.hintsTh).slice(0, SCORING.hintLimit),
     hintsUsed: 0,
+    checks: [],
   };
 }
 
+/** The case has the Windows 11 requirements table on its ticket. */
+export const hasCheck = (gc: GeneratedCase) => gc.template.minigames.includes('win11-check');
+
 /** Why `next` is not allowed yet, or null when the stage is done. */
-export function blockedNext(s: Session): string | null {
+export function blockedNext(s: Session, gc?: GeneratedCase): string | null {
   switch (s.stage) {
+    case 'ticket':
+      return gc && hasCheck(gc) && s.checks.length < WIN11_CHECK_IDS.length ? 'answer every row of the requirements table first' : null;
     case 'diagnose':
       return s.diagnosis ? null : 'answer the diagnosis first';
     case 'repair':
@@ -114,7 +134,7 @@ export function step(gc: GeneratedCase, s: Session, e: SessionEvent): Session {
   };
   switch (e.type) {
     case 'next': {
-      const why = blockedNext(s);
+      const why = blockedNext(s, gc);
       if (why) fail(why);
       return { ...s, stage: STAGES[STAGES.indexOf(s.stage) + 1]! };
     }
@@ -136,6 +156,11 @@ export function step(gc: GeneratedCase, s: Session, e: SessionEvent): Session {
       if (s.stage !== 'repair' || s.route) fail('not repairing');
       if (!e.route) fail('no route given');
       return { ...s, route: e.route, bypassedChecks: !!e.bypassedChecks, wrongEdition: !!e.wrongEdition };
+    }
+    case 'check': {
+      if (s.stage !== 'ticket' || !hasCheck(gc)) fail('no requirements table here');
+      if (s.checks.some((c) => c.id === e.id)) fail('row already answered');
+      return { ...s, checks: [...s.checks, { id: e.id, answer: e.answer, correct: e.answer === checkAnswer(e.id, gc.machine) }] };
     }
     case 'answer': {
       if (s.stage !== 'explain') fail('wrong stage');
@@ -172,12 +197,14 @@ export function summarize(gc: GeneratedCase, s: Session): Summary {
   const wrongAnswers = [s.diagnosis, ...s.answers].filter((a) => a && !a.correct).length;
   const { perHint, perMistake, perWrongAnswer } = SCORING.satisfaction;
   const satisfaction = clamp(100 - s.hintsUsed * perHint - s.mistakes * perMistake - wrongAnswers * perWrongAnswer, 0, 100);
-  const coins = SCORING.repairCoins + (SCORING.hintBonus[Math.min(s.hintsUsed, SCORING.hintBonus.length - 1)] ?? 0);
+  const right = s.checks.filter((c) => c.correct).length;
+  const coins = SCORING.repairCoins + (SCORING.hintBonus[Math.min(s.hintsUsed, SCORING.hintBonus.length - 1)] ?? 0) + right * SCORING.checkCoin;
 
   const log: LogEntry[] = gc.problems.map((p) => ({ textTh: p.explainTh, bookPage: p.bookPage }));
   if (s.bypassedChecks) log.push({ textTh: BYPASS_NOTE_TH });
   if (s.wrongEdition) log.push({ textTh: EDITION_NOTE_TH });
-  return { stars, lostTh, coins, satisfaction, mistakes: s.mistakes, log };
+  const check = hasCheck(gc) ? { correct: right, total: WIN11_CHECK_IDS.length } : null;
+  return { stars, lostTh, coins, satisfaction, mistakes: s.mistakes, log, check };
 }
 
 /** How the customer looks: worried until the PC is fixed, pleased while asking, then by the result. */

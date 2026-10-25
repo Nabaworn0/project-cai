@@ -150,3 +150,18 @@
   box-shadow: inset 0 0 0 1px #c8c8c8, 4px 4px 0 rgba(0, 0, 0, 0.25); transform: rotate(-1deg);
 }
 .error-photo figcaption { margin-top: 6px; font-size: 13px; color: var(--navy); }
+
+/* Case 4: the Windows 11 requirements table under the ticket (Win11Check.tsx). One card per requirement,
+   so it reads the same on a phone held upright. */
+.w11check { margin-top: 10px; display: grid; gap: 8px; }
+.w11check .ask { margin: 0; }
+.w11check-row { padding: 8px 10px; background: #fff; box-shadow: inset 0 0 0 2px var(--navy); }
+.w11check-need { font-weight: 700; color: var(--navy); }
+.w11check-value { margin: 2px 0 6px; font-size: 14px; }
+.w11check-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.w11check-choices .btn { min-height: 36px; }
+.w11check-choices .btn.right, .w11check-choices .btn.right-answer { background: var(--teal); color: #fff; opacity: 1; }
+.w11check-choices .btn.wrong { background: var(--coral); color: #fff; opacity: 1; }
+.w11check-feedback { margin: 6px 0 0; font-size: 14px; }
+.w11check-feedback.ok { color: #1d6b4f; }
+.w11check-feedback.no { color: #a33a2a; }

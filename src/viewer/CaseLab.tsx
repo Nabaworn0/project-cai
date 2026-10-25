@@ -92,6 +92,9 @@ export function CaseLab({ template, customer, lib, objectives }: Props) {
           r={template.customer.reactionsTh}
           remakesUsb={[...template.problems.fixed, ...template.problems.pool].some((id) => lib.problems.find((p) => p.id === id)?.fixes.includes('remake-usb'))}
           installs={template.goal === 'install'}
+          refuses={[...template.problems.fixed, ...template.problems.pool].some((id) =>
+            ['tpm-disabled', 'secure-boot-off', 'legacy-boot'].includes(lib.problems.find((p) => p.id === id)?.blocker ?? ''),
+          )}
         />
         {template.designNotesTh.length > 0 && (
           <>
@@ -206,7 +209,7 @@ function Question({ title, q }: { title: string; q: CaseQuestion }) {
 }
 
 /** The customer's lines during the repair; generic ones (src/core/reactions.ts) are marked so writers see what is missing. */
-function ReactionList({ r, remakesUsb, installs }: { r: Reactions; remakesUsb: boolean; installs: boolean }) {
+function ReactionList({ r, remakesUsb, installs, refuses }: { r: Reactions; remakesUsb: boolean; installs: boolean; refuses: boolean }) {
   const own = (has: boolean) => (has ? null : <span class="v-badge warn">ใช้ประโยคกลาง</span>);
   return (
     <div data-testid="reactions">
@@ -226,6 +229,19 @@ function ReactionList({ r, remakesUsb, installs }: { r: Reactions; remakesUsb: b
             <dd>“{r.wrongImageTh ?? GENERIC_REACTIONS.wrongImageTh}” {own(!!r.wrongImageTh)}</dd>
             <dt>ขึ้นว่าลง Windows 11 ไม่ได้ (พลาด)</dt>
             <dd>“{r.cantRunTh ?? GENERIC_REACTIONS.cantRunTh}” {own(!!r.cantRunTh)}</dd>
+          </>
+        )}
+        {/* Cases whose PC Setup refuses (TPM / Secure Boot off, legacy): the first refusal, then the same one again. */}
+        {refuses && (
+          <>
+            {!remakesUsb && !installs && (
+              <>
+                <dt>ขึ้นว่าลง Windows 11 ไม่ได้ (ครั้งแรก)</dt>
+                <dd>“{r.cantRunTh ?? GENERIC_REACTIONS.cantRunTh}” {own(!!r.cantRunTh)}</dd>
+              </>
+            )}
+            <dt>ขึ้นว่าลงไม่ได้ซ้ำด้วยเหตุผลเดิม (พลาด)</dt>
+            <dd>“{r.stillCantRunTh ?? GENERIC_REACTIONS.stillCantRunTh}” {own(!!r.stillCantRunTh)}</dd>
           </>
         )}
         {installs && (

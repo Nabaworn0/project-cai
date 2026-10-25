@@ -3,6 +3,7 @@
 // tools/validate-content.ts checks it against these schemas and against the game rules.
 
 import { z } from 'zod';
+import { WIN11_CHECK_IDS } from '../core/win11check';
 
 const id = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'ids are lowercase-kebab-case');
 const loId = z.string().regex(/^LO\d+$/, 'objective ids look like LO1');
@@ -99,8 +100,10 @@ const ReactionsSchema = z
     noBootTh: th.optional(),
     /** The USB held the wrong image: the Windows 10 installer or Ubuntu came up (case 2). */
     wrongImageTh: th.optional(),
-    /** Windows 11 Setup said "This PC can't run Windows 11" (booted in legacy/CSM mode). */
+    /** Windows 11 Setup said "This PC can't run Windows 11" (booted in legacy/CSM mode, or TPM / Secure Boot off). */
     cantRunTh: th.optional(),
+    /** The same refusal again with the same reasons: nothing was fixed (case 4). */
+    stillCantRunTh: th.optional(),
     /** The USB booted: the problem is fixed. */
     fixedTh: th.optional(),
     /** Setup came up, but the job goes on to the install (cases whose goal is "install"). */
@@ -128,6 +131,26 @@ const CoachSchema = z
   })
   .strict();
 
+/** The Windows 11 requirements table on the work ticket (win11-check.json, case4-plan section 3). */
+export const Win11CheckSchema = z
+  .object({
+    rows: z
+      .array(
+        z
+          .object({
+            id: z.enum(WIN11_CHECK_IDS),
+            /** What Windows 11 needs, in Thai. */
+            requirementTh: th,
+            /** How to tell from the ticket, or why only the BIOS can tell. */
+            explainTh: th,
+          })
+          .strict(),
+      )
+      .min(1),
+  })
+  .strict();
+export type Win11Check = z.infer<typeof Win11CheckSchema>;
+
 export const CaseSchema = z.object({
   id,
   order: z.number().int().positive(),
@@ -150,6 +173,8 @@ export const CaseSchema = z.object({
   /** When the repair is done: the USB reaches Setup's first page (cases 1–2), or Windows is installed (case 3 on:
    *  the problem shows on a later Setup page). */
   goal: z.enum(['setup', 'install']).default('setup'),
+  /** What the panel asks for during the repair, when the generic "make it boot from the USB" does not fit. */
+  repairTh: th.optional(),
   /** A photo the customer brings of the error (stage "guess the cause"): the screen text of one of its fixed problems. */
   diagnosisPhoto: z.object({ problem: id, captionTh: th }).strict().optional(),
   /** Notes for whoever builds/plays the case (traps, what to watch); not shown to students. */

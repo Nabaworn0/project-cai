@@ -1,6 +1,19 @@
 // Game-side content loader: every JSON file under ./data is bundled at build time.
 
-import { BrandSchema, CaseSchema, CustomersSchema, ObjectivesSchema, ProblemsSchema, type Brand, type Case, type Customer, type Objectives, type Problem } from './schema';
+import {
+  BrandSchema,
+  CaseSchema,
+  CustomersSchema,
+  ObjectivesSchema,
+  ProblemsSchema,
+  Win11CheckSchema,
+  type Brand,
+  type Case,
+  type Customer,
+  type Objectives,
+  type Problem,
+  type Win11Check,
+} from './schema';
 import type { ContentFile } from './validate';
 
 const raw = import.meta.glob<unknown>('./data/**/*.json', { eager: true, import: 'default' });
@@ -17,6 +30,7 @@ export interface Content {
   brands: Brand[];
   cases: Case[];
   customers: Customer[];
+  win11Check: Win11Check;
 }
 
 /** Parses (and so applies schema defaults to) the bundled content. Bad content fails loudly at startup. */
@@ -27,5 +41,6 @@ export function loadContent(): Content {
     brands: pick('brands/').map((d) => BrandSchema.parse(d)),
     cases: pick('cases/').map((d) => CaseSchema.parse(d)).sort((a, b) => a.order - b.order),
     customers: CustomersSchema.parse(raw['./data/customers.json']),
+    win11Check: Win11CheckSchema.parse(raw['./data/win11-check.json']),
   };
 }

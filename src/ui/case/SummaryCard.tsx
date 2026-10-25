@@ -13,7 +13,7 @@ const COUNT_MS = 500;
 export const SUMMARY_REVEAL_MS = STAR_START_MS + SCORING.maxStars * STAR_STEP_MS + COUNT_MS;
 
 export function SummaryCard({ summary }: { summary: Summary }) {
-  const { stars, lostTh, coins, satisfaction, mistakes, log } = summary;
+  const { stars, lostTh, coins, satisfaction, mistakes, log, check } = summary;
   const [lit, setLit] = useState(0);
   const [counted, setCounted] = useState(0);
 
@@ -61,6 +61,11 @@ export function SummaryCard({ summary }: { summary: Summary }) {
       ) : (
         // The first mistake is free: say so rather than "no mistakes".
         <p class="lost">{mistakes ? `พลาด ${mistakes} ครั้ง (ครั้งแรกไม่เสียดาว)` : 'ซ่อมได้ไม่พลาดเลย'}</p>
+      )}
+      {check && (
+        <p class="lost" data-testid="check-score">
+          เทียบข้อกำหนด Windows 11 ถูก {check.correct}/{check.total} ข้อ (+{check.correct * SCORING.checkCoin} เหรียญ)
+        </p>
       )}
       <dl class="summary-stats">
         <dt>เหรียญ</dt>

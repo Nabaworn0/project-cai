@@ -12,6 +12,7 @@ import {
   BIOS_SETTINGS,
   BrandSchema,
   CardsSchema,
+  Win11CheckSchema,
   CaseSchema,
   CustomersSchema,
   ObjectivesSchema,
@@ -19,6 +20,7 @@ import {
   QuizSchema,
   type Brand,
   type Cards,
+  type Win11Check,
   type Case,
   type CaseQuestion,
   type Customer,
@@ -26,6 +28,7 @@ import {
   type Problem,
   type Quiz,
 } from './schema';
+import { WIN11_CHECK_IDS } from '../core/win11check';
 
 export const MINIGAME_IDS = ['boot-order', 'mbr-gpt', 'win11-check', 'usb-prep', 'partition', 'drivers'] as const;
 
@@ -49,6 +52,7 @@ export interface ParsedContent {
   customers: Customer[];
   quizzes: Quiz[];
   cards?: Cards;
+  win11Check?: Win11Check;
 }
 
 export function validateContent(files: readonly ContentFile[], opts: { seedsPerCase?: number } = {}): Report {
@@ -72,6 +76,7 @@ export function validateContent(files: readonly ContentFile[], opts: { seedsPerC
   const generated = checkCases(parsed, seeds, checkLo, errors, warnings);
   checkQuizzes(parsed.quizzes, checkLo, errors, warnings);
   checkCards(parsed, errors, warnings);
+  checkWin11Check(parsed, errors);
 
   return {
     errors,
@@ -101,10 +106,11 @@ export function parseAll(files: readonly ContentFile[], errors: string[]): Parse
     else if (f.path === 'problems.json') out.problems = parse(ProblemsSchema, f) ?? [];
     else if (f.path === 'cards.json') out.cards = parse(CardsSchema, f);
     else if (f.path === 'customers.json') out.customers = parse(CustomersSchema, f) ?? [];
+    else if (f.path === 'win11-check.json') out.win11Check = parse(Win11CheckSchema, f);
     else if (f.path.startsWith('brands/')) push(out.brands, parse(BrandSchema, f), f.path, errors);
     else if (f.path.startsWith('cases/')) push(out.cases, parse(CaseSchema, f), f.path, errors);
     else if (f.path.startsWith('quizzes/')) push(out.quizzes, parse(QuizSchema, f), f.path, errors);
-    else errors.push(`${f.path}: not a known content file (expected objectives, problems, customers, cards, brands/, cases/, quizzes/)`);
+    else errors.push(`${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, brands/, cases/, quizzes/)`);
   }
   return out;
 }
@@ -201,6 +207,15 @@ function checkProblems(parsed: ParsedContent, checkLo: (w: string, l: readonly s
       if (!works) errors.push(`${where}: fix "${f}" does not clear blocker ${p.blocker} on any brand`);
     }
   }
+}
+
+/** The requirements table has every row once, and exists when a case uses it. */
+function checkWin11Check(parsed: ParsedContent, errors: string[]): void {
+  const rows = parsed.win11Check?.rows ?? [];
+  dupes(rows.map((r) => r.id), 'win11-check.json: duplicate row', errors);
+  for (const id of WIN11_CHECK_IDS) if (parsed.win11Check && !rows.some((r) => r.id === id)) errors.push(`win11-check.json: missing row ${id}`);
+  const users = parsed.cases.filter((c) => c.minigames.includes('win11-check')).map((c) => c.id);
+  if (users.length && !parsed.win11Check) errors.push(`win11-check.json: missing, but used by ${users.join(', ')}`);
 }
 
 /** Repairs done on Setup's later pages, not before it. */

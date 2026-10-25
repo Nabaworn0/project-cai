@@ -64,3 +64,12 @@ test("case 3: Lung Chai has his own lines for Setup, the backup question and bot
     assert.equal(reactionLine({}, event), GENERIC_REACTIONS[key]);
   }
 });
+
+test("case 4: Ton has his own lines for the first refusal and for the same refusal again", () => {
+  const raw = JSON.parse(readFileSync(new URL('../src/content/data/cases/c04-security-chip.json', import.meta.url), 'utf8'));
+  const ton = CaseSchema.parse(raw).customer.reactionsTh;
+  assert.equal(reactionLine(ton, 'cant-run'), ton.cantRunTh);
+  assert.equal(reactionLine(ton, 'still-cant-run'), ton.stillCantRunTh);
+  assert.notEqual(ton.cantRunTh, ton.stillCantRunTh);
+  assert.equal(reactionLine({}, 'still-cant-run'), GENERIC_REACTIONS.stillCantRunTh);
+});

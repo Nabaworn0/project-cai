@@ -13,8 +13,10 @@ import { confirmBackup, insertUsb, powerOn, type Effect, type Pc } from '../../c
 import { ISO_FILES, openRufus, type Rufus, type RufusEffect, type Usb } from '../../core/rufus';
 import { goodbyeLine, reactionLine } from '../../core/reactions';
 import {
+  blockedNext,
   currentQuestion,
   customerMood,
+  hasCheck,
   shownHints,
   startSession,
   step,
@@ -29,6 +31,7 @@ import { RufusScreen } from '../sim/RufusScreen';
 import { play } from '../sound';
 import { ChoiceList, Feedback } from './parts';
 import { SummaryCard } from './SummaryCard';
+import { Win11CheckTable } from './Win11Check';
 import { TicketCard } from './TicketCard';
 
 interface Props {
@@ -40,7 +43,7 @@ interface Props {
 }
 
 /** Cases whose screens exist so far (Rufus came with case 2, Setup and its partition page with case 3). */
-const PLAYABLE = ['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text'];
+const PLAYABLE = ['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip'];
 
 /**
  * The next customer: case 1, then 2, then 3, then mixed (nextCase). The first one can be chosen with ?case=<id>
@@ -232,7 +235,8 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     }
     else if (e.reason === 'no-boot-device') setSaid(reactionLine(r, 'no-boot'));
     else if (e.reason === 'wrong-image') setSaid(reactionLine(r, 'wrong-image'));
-    else if (e.reason === 'legacy-boot' || e.reason === 'still-cant-run') setSaid(reactionLine(r, 'cant-run'));
+    else if (e.reason === 'legacy-boot') setSaid(reactionLine(r, 'cant-run'));
+    else if (e.reason === 'still-cant-run') setSaid(reactionLine(r, 'still-cant-run'));
     else setSaid(reactionLine(r, 'old-windows', ++oldWindowsCount.current));
   };
 
@@ -405,8 +409,19 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       body = (
         <>
           <TicketCard gc={gc} customerName={name} />
+          {hasCheck(gc) && (
+            <Win11CheckTable
+              rows={content.win11Check.rows}
+              machine={gc.machine}
+              answers={s.checks}
+              onAnswer={(id, answer) => {
+                const next = act({ type: 'check', id, answer });
+                play(next.checks.at(-1)!.correct ? 'right' : 'mistake');
+              }}
+            />
+          )}
           <div class="actions">
-            <button class="btn" type="button" onClick={() => act({ type: 'next' })}>
+            <button class="btn" type="button" disabled={!!blockedNext(s, gc)} onClick={() => act({ type: 'next' })}>
               รับงาน
             </button>
           </div>
@@ -460,8 +475,10 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
               ? gc.template.goal === 'install'
                 ? 'ติดตั้ง Windows 11 เสร็จแล้ว กลับไปคุยกับลูกค้า'
                 : 'บูตจาก USB ได้แล้ว กลับไปคุยกับลูกค้า'
-              : gc.template.goal === 'install'
-                ? 'แตะคอมบนเคาน์เตอร์เพื่อเปิดเครื่องของลูกค้า แล้วติดตั้ง Windows 11 ให้เสร็จ'
+              : gc.template.repairTh
+                ? gc.template.repairTh
+                : gc.template.goal === 'install'
+                  ? 'แตะคอมบนเคาน์เตอร์เพื่อเปิดเครื่องของลูกค้า แล้วติดตั้ง Windows 11 ให้เสร็จ'
                 : needsLaptop(gc)
                   ? 'มีเครื่องลูกค้ากับโน้ตบุ๊กของร้านบนเคาน์เตอร์ แตะเครื่องที่จะใช้ แล้วทำให้เครื่องลูกค้าบูตจาก USB'
                   : 'แตะคอมบนเคาน์เตอร์เพื่อเปิดเครื่องของลูกค้า แล้วทำให้เครื่องบูตจาก USB'}

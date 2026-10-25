@@ -245,3 +245,11 @@ test('the photo at "guess the cause" must show the screen text of a fixed proble
   get(files, 'cases/c03-red-text.json').diagnosisPhoto.problem = 'no-product-key';
   hasError(files, 'diagnosisPhoto must name a fixed problem that has screenText');
 });
+
+test('the Windows 11 requirements table: every row once, and the file must exist when a case uses it', () => {
+  const files = real();
+  get(files, 'win11-check.json').rows.pop();
+  hasError(files, 'win11-check.json: missing row tpm');
+  const without = real().filter((f) => f.path !== 'win11-check.json');
+  hasError(without, 'win11-check.json: missing, but used by c04-security-chip');
+});

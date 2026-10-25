@@ -1,0 +1,29 @@
+{
+  "rows": [
+    {
+      "id": "cpu",
+      "requirementTh": "CPU 64 บิต ความเร็ว 1 GHz ขึ้นไป 2 คอร์ขึ้นไป และเป็นรุ่นที่รองรับ",
+      "explainTh": "ดูชื่อรุ่น CPU ในใบงาน แล้วเทียบกับรายชื่อรุ่นที่รองรับ (Intel Core รุ่นที่ 8 ขึ้นไป · AMD Ryzen 2000 ขึ้นไป)"
+    },
+    {
+      "id": "ram",
+      "requirementTh": "RAM 4 GB ขึ้นไป",
+      "explainTh": "ใบงานบอกขนาด RAM ไว้แล้ว เทียบกับ 4 GB ได้เลย"
+    },
+    {
+      "id": "storage",
+      "requirementTh": "พื้นที่เก็บข้อมูล 64 GB ขึ้นไป",
+      "explainTh": "ใบงานบอกขนาดดิสก์ไว้แล้ว เทียบกับ 64 GB ได้เลย"
+    },
+    {
+      "id": "secure-boot",
+      "requirementTh": "เฟิร์มแวร์ UEFI ที่รองรับ Secure Boot",
+      "explainTh": "ใบงานไม่ได้บอกว่าเปิด Secure Boot ไว้หรือไม่ ต้องเข้า BIOS ไปดู (Security → Secure Boot)"
+    },
+    {
+      "id": "tpm",
+      "requirementTh": "TPM 2.0",
+      "explainTh": "เครื่องอาจมีชิป TPM แต่ถูกปิดไว้ ต้องเข้า BIOS ไปดู (Advanced → Trusted Computing) บางยี่ห้อเรียก PTT หรือ fTPM"
+    }
+  ]
+}

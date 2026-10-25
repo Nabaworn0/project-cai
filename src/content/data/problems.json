@@ -71,7 +71,7 @@
     "patch": { "secureBoot": false },
     "fixes": ["enable-secure-boot"],
     "symptomTh": "ตัวติดตั้งบอกว่าเครื่องไม่ผ่านข้อกำหนด ทั้งที่เครื่องค่อนข้างใหม่",
-    "screenText": "This PC must support Secure Boot.",
+    "screenText": "The PC must support Secure Boot",
     "explainTh": "Windows 11 ต้องเปิด Secure Boot ใน UEFI (Windows 10 ไม่บังคับ) บางยี่ห้อต้องตั้งรหัสผ่านผู้ดูแล BIOS ก่อนจึงจะเปลี่ยนค่าได้",
     "hintsTh": ["ข้อกำหนดข้อไหนของ Windows 11 ที่ยังไม่ผ่าน", "เปิด Secure Boot ในแท็บ Boot หรือ Security ของ BIOS"]
   },
@@ -83,7 +83,7 @@
     "patch": { "tpmEnabled": false },
     "fixes": ["enable-tpm"],
     "symptomTh": "ตัวติดตั้งบอกว่าเครื่องไม่ผ่านข้อกำหนด เรื่องชิปความปลอดภัย",
-    "screenText": "This PC must support TPM 2.0.",
+    "screenText": "The PC must support TPM 2.0",
     "explainTh": "เครื่องมีชิป TPM 2.0 (หรือ fTPM/PTT ใน CPU) แต่ปิดไว้ใน BIOS Windows 11 บังคับต้องเปิด (Windows 10 ไม่บังคับ)",
     "hintsTh": ["ชิปความปลอดภัยที่ Windows 11 ต้องการชื่ออะไร", "หาเมนู TPM, PTT หรือ fTPM ใน BIOS แล้วเปิดใช้งาน"]
   },
