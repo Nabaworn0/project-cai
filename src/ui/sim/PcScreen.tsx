@@ -91,6 +91,8 @@ const EFFECT_TH: Record<string, string> = {
   'no-boot-device': 'เครื่องหาอุปกรณ์บูตไม่เจอ (นับว่าพลาด)',
   'wrong-image': 'บูตจาก USB ได้ แต่ในนั้นไม่ใช่ Windows 11 (นับว่าพลาด)',
   'legacy-boot': 'บูตแบบ Legacy (CSM) ซึ่ง Windows 11 ไม่รองรับ (นับว่าพลาด)',
+  'cant-run': 'ตัวติดตั้งตรวจแล้วว่าเครื่องยังไม่ผ่านข้อกำหนด อ่านเหตุผลบนจอ แล้วรีสตาร์ตเครื่องเข้า BIOS',
+  'still-cant-run': 'ขึ้นหน้าเดิมด้วยเหตุผลเดิม ยังไม่ได้แก้ค่าที่ถูกต้อง หรือยังไม่ได้บันทึก (นับว่าพลาด)',
   'reached-setup': 'บูตจาก USB สำเร็จ เข้าหน้าติดตั้ง Windows แล้ว',
   'no-backup-check': 'ลบข้อมูลในดิสก์ก่อนถามลูกค้าเรื่องสำรองข้อมูล (นับว่าพลาด)',
   'deleted-installer': 'ลบพาร์ทิชันของแฟลชไดรฟ์ติดตั้งทิ้ง ต้องไปทำ USB ใหม่ (นับว่าพลาด)',
@@ -127,7 +129,7 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
       } else if (win) {
         play('fixed');
         setWin(true);
-      } else play('right');
+      } else if (e.type === 'reached-setup') play('right');
       latest.current.onEffect?.(e);
     }
   };
@@ -195,6 +197,9 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
     return () => clearInterval(t);
   }, [setupPage]);
   useEffect(() => () => delete document.body.dataset.setupPage, []);
+  // Any Setup window (tapped pages, its first page in cases 1–2, "can't run") is a mouse program: no key bar,
+  // and the screen grows taller so the real-size window fits.
+  const setupWindow = pc.screen.kind === 'setup' || pc.screen.kind === 'cant-run';
 
   useEffect(() => {
     if (backupAsked) apply({ pc: confirmBackup(latest.current.pc), effects: [] });
@@ -205,7 +210,7 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
   const cueKeys: readonly string[] = cue ? [brand.keys.setup[0]!, brand.keys.bootMenu[0]!] : [];
   return (
     <div class="sim-backdrop" role="dialog" aria-modal="true" aria-label="หน้าจอจำลอง">
-      <div class={`monitor pc-monitor${setupPage ? ' setup-mode' : ''}`}>
+      <div class={`monitor pc-monitor${setupWindow ? ' setup-mode' : ''}`}>
         <div class="monitor-bar">
           <span class="sim-tag">
             โหมดจำลอง<span class="sim-tag-more"> · ไม่ได้ติดตั้งจริง</span>
@@ -233,7 +238,7 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
           {s.kind === 'setup' && (goal === 'install' ? <SetupScreen setup={s.setup} onAction={tapSetup} onRestart={restartPc} /> : <SetupLanguageScreen />)}
           {s.kind === 'setup-win10' && <SetupWin10Screen />}
           {s.kind === 'grub' && <GrubScreen />}
-          {s.kind === 'cant-run' && <CantRunScreen />}
+          {s.kind === 'cant-run' && <CantRunScreen reasons={s.reasons} />}
           {win && (
             <p class="pc-win" data-testid="pc-win">
               ซ่อมสำเร็จ!
@@ -251,7 +256,7 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
           </p>
           {footer}
         </div>
-        <div class="keybar" role="toolbar" aria-label="ปุ่มคีย์บอร์ด" hidden={!!setupPage}>
+        <div class="keybar" role="toolbar" aria-label="ปุ่มคีย์บอร์ด" hidden={setupWindow}>
           {KEY_BAR.map((k) => (
             <button
               key={k.key}

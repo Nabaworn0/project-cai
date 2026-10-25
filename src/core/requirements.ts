@@ -57,6 +57,29 @@ export function findBlockers(m: Machine): BlockerId[] {
   return out;
 }
 
+/**
+ * The reasons Windows 11 Setup lists under "This PC can't run Windows 11", in its own words (docs/real-screens.md
+ * section 3: TPM, memory and processor found in sources; the Secure Boot line follows the TPM one ⚠️).
+ * A stick made with Rufus' "Remove requirement…" box skips the TPM, Secure Boot and memory checks; legacy (CSM)
+ * boot is refused either way, since Windows 11 Setup needs UEFI (case2-plan decision on CSM).
+ */
+export const CANT_RUN_REASONS = {
+  cpu: "The processor isn't supported for this version of Windows",
+  tpm: 'The PC must support TPM 2.0',
+  secureBoot: 'The PC must support Secure Boot',
+  ram: 'There must be at least 4 GB of system memory',
+} as const;
+
+export function cantRunReasons(m: Machine): string[] {
+  const skip = m.usbBypassChecks;
+  const out: string[] = [];
+  if (!m.cpuWin11) out.push(CANT_RUN_REASONS.cpu);
+  if (!skip && (m.tpm !== '2.0' || !m.tpmEnabled)) out.push(CANT_RUN_REASONS.tpm);
+  if (m.bootMode === 'legacy' || (!skip && !m.secureBoot)) out.push(CANT_RUN_REASONS.secureBoot);
+  if (!skip && m.ramGB < REQUIREMENTS.ramGB) out.push(CANT_RUN_REASONS.ram);
+  return out;
+}
+
 export function hardwareLimits(m: Machine): (typeof HARDWARE_LIMITS)[number][] {
   const out: (typeof HARDWARE_LIMITS)[number][] = [];
   if (m.tpm !== '2.0') out.push('tpm-missing');

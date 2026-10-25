@@ -46,7 +46,7 @@ async function toLocation(page: Page, o: { key: boolean; edition?: string }) {
   if (o.key) await page.getByTestId('product-key').click();
   else {
     await page.getByRole('button', { name: "I don't have a product key" }).click();
-    await page.getByLabel(o.edition ?? 'Windows 11 Home', { exact: true }).check();
+    await page.getByRole('option', { name: o.edition ?? 'Windows 11 Home', exact: true }).click();
   }
   await next(page);
   await page.getByRole('button', { name: 'Accept' }).click();
@@ -55,7 +55,7 @@ async function toLocation(page: Page, o: { key: boolean; edition?: string }) {
 
 async function deletePart(page: Page, id: string) {
   await row(page, id).click();
-  await page.getByRole('button', { name: '✕ Delete' }).click();
+  await page.getByRole('button', { name: 'Delete Partition' }).click();
   await page.getByRole('button', { name: 'OK', exact: true }).click();
 }
 
@@ -187,7 +187,7 @@ test('Setup in the shop fits: the partition page, the ask and hint buttons all r
   await row(page, '1-2').click();
   for (const b of [
     page.getByRole('button', { name: 'Next', exact: true }),
-    page.getByRole('button', { name: '✕ Delete' }),
+    page.getByRole('button', { name: 'Delete Partition' }),
     page.getByRole('button', { name: 'ถามเรื่องสำรองข้อมูล' }),
     page.getByRole('button', { name: /คำใบ้/ }),
   ]) {

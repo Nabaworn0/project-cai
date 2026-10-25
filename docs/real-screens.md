@@ -100,10 +100,24 @@ Rufus เปลี่ยนเป็นภาษาไทยเองถ้า W
 - **Ubuntu 24.04 (GNU GRUB 2.12)**: เมนู Try or Install Ubuntu · Ubuntu (safe graphics) · OEM install (for manufacturers) · Test memory พร้อมข้อความวิธีใช้ปุ่มด้านล่าง
 - เครื่อง UEFI จริงอาจมีรายการเพิ่ม (เช่น UEFI Firmware Settings) ในเมนู GRUB ไม่ได้ใส่ไว้
 
-**หน้า "เครื่องนี้ลง Windows 11 ไม่ได้"** (ใช้ในเคส 4 · เคส 2 ใช้แบบสั้นเมื่อเปิด CSM) ⚠️ ไม่เจอแหล่งที่ยกข้อความหน้าจอของ Setup แบบใหม่คำต่อคำ
-- หัวจอ: **This PC can't run Windows 11**
-- ข้อความ: This PC doesn't meet the minimum system requirements to install this version of Windows. (Setup แบบเก่า) · Setup แบบใหม่บอกเหตุผลเป็นข้อ เช่น "The PC must support TPM 2.0." / "The PC must support Secure Boot."
-- ขึ้นหลังหน้าเลือกภาษาและก่อนหน้าเลือกพาร์ทิชัน ปุ่มเดียวคือ Back
+**หน้า "เครื่องนี้ลง Windows 11 ไม่ได้"** (ใช้ในเคส 4 · เคส 2 ใช้เมื่อเปิด CSM) · สืบค้นเพิ่ม 25 ต.ค. 2026 · ยังไม่มีภาพจากเครื่องจริง
+
+| ส่วน | ข้อความ | ที่มา | ความมั่นใจ |
+|---|---|---|---|
+| หัวจอ | **This PC can't run Windows 11** | [woshub](https://woshub.com/windows-11-unsupported-hardware-no-tpm-secure-boot/), [top-password](https://www.top-password.com/blog/fix-the-error-this-pc-cant-run-windows-11/) | ✅ |
+| ข้อความหลัก (Setup แบบใหม่) | This PC doesn't currently meet Windows 11 system requirements. | [woshub](https://woshub.com/windows-11-unsupported-hardware-no-tpm-secure-boot/), [Microsoft Q&A](https://learn.microsoft.com/en-us/answers/questions/3872356/windows-11-clean-installation-this-pc-doesn-t-curr) | ✅ |
+| ลิงก์ต่อท้าย | For more information, visit: https://aka.ms/WindowsSysReq | Microsoft Q&A เดียวกัน | ✅ |
+| ข้อความหลัก (Setup แบบเก่า ไม่ใช้) | This PC doesn't meet the minimum system requirements to install this version of Windows. | [top-password](https://www.top-password.com/blog/fix-the-error-this-pc-cant-run-windows-11/) | ✅ |
+| เหตุผล: CPU | The processor isn't supported for this version of Windows | [woshub](https://woshub.com/windows-11-unsupported-hardware-no-tpm-secure-boot/) | ✅ แหล่งเดียว |
+| เหตุผล: TPM | The PC must support TPM 2.0 | woshub เดียวกัน | ✅ แหล่งเดียว |
+| เหตุผล: RAM | There must be at least 4 GB of system memory (บทความเขียน "4 Gb") | woshub เดียวกัน | ✅ แหล่งเดียว |
+| เหตุผล: CPU เก่ามาก (24H2) | This PC's processor doesn't support a critical feature (PopCnt) / (SSE4.2) | woshub เดียวกัน | ✅ แหล่งเดียว |
+| เหตุผล: Secure Boot | The PC must support Secure Boot | ไม่เจอจาก Setup · ใช้รูปแบบเดียวกับข้อ TPM ([โปรแกรม PC Health Check ใช้ "This PC must support Secure Boot"](https://appuals.com/fix-windows-11-installation-tpm-2-secure/)) | ⚠️ |
+| เหตุผล: ดิสก์ < 64 GB | ไม่เจอแหล่งใดเลย | — | ❌ ไม่ใช้ในเคส 4 |
+| ขึ้นตอนไหนของ Setup | ไม่เจอแหล่งที่บอกชัด ทุกแหล่งบอกแค่ "ระหว่างติดตั้งจาก USB" | — | ❌ |
+
+- woshub บอกด้วยว่า **Setup รุ่นเก่าไม่บอกเหตุผลเป็นข้อ** (ต้องเปิดไฟล์ setuperr.log ดูเอง) · Setup รุ่นใหม่จึงเป็นแบบมีรายการเหตุผล
+- ข้อความเหตุผลในบทความไม่มีจุดท้ายประโยค เกมใช้ตามนั้น
 - **วิธีตรวจกับเครื่องจริง (ถ้าครูสะดวก 5 นาที):** ปิด TPM ใน BIOS ของเครื่องแล็บ 1 เครื่อง → บูต USB Windows 11 → ถ่ายรูปหน้านี้ → เปิด TPM คืน
 
 ## 4. ที่ยังต่างจากเครื่องในแล็บได้

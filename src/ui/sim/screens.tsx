@@ -4,6 +4,7 @@
 
 import { biosView, bootMenuEntries, type Pc } from '../../core/pc';
 import type { Brand } from '../../content/schema';
+import { SetupFrame, SetupScreenBg } from './SetupFrame';
 
 export function PostScreen({ brand, pc }: { brand: Brand; pc: Pc }) {
   const m = pc.machine;
@@ -136,26 +137,31 @@ export function OldWindowsScreen() {
   );
 }
 
-/** First screen of the Windows 11 (24H2) setup: the USB booted. Case 1 ends here. */
+/** First screen of the Windows 11 (24H2) setup: the USB booted. Cases 1–2 end here (shown, not tapped). */
 export function SetupLanguageScreen() {
   return (
-    <div class="setup">
-      <div class="setup-win" role="group" aria-label="Windows 11 Setup">
-        <div class="setup-head">Windows 11 Setup</div>
-        <h2>Select language settings</h2>
-        <label>
-          Language to install
-          <span class="setup-select">English (United States)</span>
-        </label>
-        <label>
-          Time and currency format
-          <span class="setup-select">English (United States)</span>
-        </label>
-        <div class="setup-foot">
-          <span class="setup-next">Next</span>
+    <SetupScreenBg page="language">
+      <SetupFrame
+        title="Select language settings"
+        buttons={
+          <>
+            <span class="w11-btn" aria-disabled="true">
+              Back
+            </span>
+            <span class="w11-btn primary">Next</span>
+          </>
+        }
+      >
+        <div class="setup-field row">
+          <span>Language to install</span>
+          <span class="setup-input">English (United States)</span>
         </div>
-      </div>
-    </div>
+        <div class="setup-field row">
+          <span>Time and currency format</span>
+          <span class="setup-input">English (United States)</span>
+        </div>
+      </SetupFrame>
+    </SetupScreenBg>
   );
 }
 
@@ -209,24 +215,32 @@ export function GrubScreen() {
 }
 
 /**
- * Case 2 trap (CSM turned on to boot an MBR stick) and later case 4: Windows 11 Setup refuses the PC.
- * Short version for now: the full requirements page comes with case 4 (docs/real-screens.md, wording ⚠️).
+ * Windows 11 Setup refuses the PC and lists why (case 4; case 2's CSM trap). The reasons come from the machine
+ * (src/core/requirements.ts); wording from docs/real-screens.md section 3. Drawn in the same Setup window ⚠️ (the
+ * real page's layout is not confirmed). Back is drawn but, like the real one, fixes nothing: the way out is
+ * restarting into the BIOS.
  */
-export function CantRunScreen() {
+export function CantRunScreen({ reasons }: { reasons: readonly string[] }) {
   return (
-    <div class="setup">
-      <div class="setup-win" role="group" aria-label="Windows 11 Setup">
-        <div class="setup-head">Windows 11 Setup</div>
-        <h2>This PC can't run Windows 11</h2>
-        <p class="cantrun-text">This PC doesn't currently meet Windows 11 system requirements.</p>
-        <p class="cantrun-text">Here's why:</p>
-        <ul class="cantrun-why">
-          <li>The PC must support Secure Boot.</li>
+    <SetupScreenBg page="cant-run">
+      <SetupFrame
+        title="This PC can't run Windows 11"
+        buttons={
+          <span class="w11-btn" aria-disabled="true">
+            Back
+          </span>
+        }
+      >
+        <p class="setup-text">This PC doesn't currently meet Windows 11 system requirements.</p>
+        <ul class="cantrun-why" data-testid="cant-run-reasons">
+          {reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
         </ul>
-        <div class="setup-foot">
-          <span class="setup-back">Back</span>
-        </div>
-      </div>
-    </div>
+        <p class="setup-text">
+          For more information, visit: <span class="w11-link inline">https://aka.ms/WindowsSysReq</span>
+        </p>
+      </SetupFrame>
+    </SetupScreenBg>
   );
 }

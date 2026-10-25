@@ -85,15 +85,9 @@
 .oldwin-time { font-size: 4.2em; font-weight: 300; line-height: 1; }
 .oldwin-date { font-size: 1.5em; font-weight: 300; }
 
-/* ---- Windows 11 Setup (24H2): first screen ---- */
-.setup { height: 100%; display: grid; place-items: center; background: linear-gradient(135deg, #1a2a6c, #3b2f8f 55%, #6a3fa0); font-family: var(--f-win); }
-.setup-win { width: 78%; background: #fff; color: #1b1b1b; border-radius: 0.5em; padding: 1em 1.4em 1.2em; box-shadow: 0 0.6em 2em rgba(0, 0, 0, 0.4); }
-.setup-head { font-size: 0.8em; color: #5d5d5d; margin-bottom: 0.6em; }
-.setup-win h2 { font-family: var(--f-win); font-size: 1.5em; font-weight: 600; margin: 0 0 0.8em; }
-.setup-win label { display: grid; gap: 0.2em; margin-bottom: 0.7em; font-size: 0.9em; }
+/* Shared by the Windows 10 installer trap (case 2). */
 .setup-select { border: 0.08em solid #8a8a8a; border-radius: 0.25em; padding: 0.3em 0.6em; }
 .setup-foot { display: flex; justify-content: flex-end; }
-.setup-next { background: #0067c0; color: #fff; border-radius: 0.25em; padding: 0.3em 1.6em; }
 
 /* ---- status line and on-screen keys ---- */
 .pc-status { min-height: 1.6em; margin: 6px 2px 0; font-size: 14px; color: var(--yellow); font-family: var(--f-body); }
@@ -198,9 +192,6 @@
 .grub-menu { list-style: none; margin: 0 0 0.8em; padding: 0.3em 0.4em; border: 0.1em solid #c8c8c8; min-height: 9em; white-space: pre; }
 .grub-menu li.sel { background: #c8c8c8; color: #000; }
 .grub-help { font-size: 0.85em; }
-.cantrun-text { margin: 0 0 0.4em; font-size: 0.95em; }
-.cantrun-why { margin: 0 0 1em; padding-left: 1.4em; font-size: 0.95em; }
-.setup-back { border: 0.08em solid #8a8a8a; border-radius: 0.25em; padding: 0.3em 1.6em; }
 
 /* ---- shop laptop: Rufus (RufusScreen) ----
    A Windows desktop with the Rufus window on it, in real px rather than the PC screen's scaled em: it is
@@ -284,81 +275,172 @@
   .laptop-monitor .pc-status-row { grid-area: side; margin: 0; overflow: auto; }
 }
 
-/* ---- Windows 11 Setup, tapped page by page (SetupScreen, case 3) ----
-   Setup is a mouse program, so the key bar goes and the screen drops its 4:3 shape to grow taller; the page
-   uses real px sizes (never below 13px, buttons at least 32px) and scrolls inside the screen if it must. */
+/* ---- Windows 11 Setup as the real 24H2 installer draws it (SetupFrame, SetupScreen; docs/real-setup-plan.md) ----
+   A black screen with a classic window: light-blue frame, title bar with icon and three buttons, a thin
+   light-blue heading, and the footer (Microsoft logo · Support · Legal | buttons). Sizes are in em from a
+   13px base, the real window's proportions (about 55 × 43 em). While Setup is tapped (cases 3 on) the key bar
+   goes and the screen drops its 4:3 shape to grow taller; on narrow screens the window fills the screen and
+   its rows stack, keeping buttons at least 32px tall (plan decision 1). */
 .keybar[hidden] { display: none !important; }
 .pc-monitor.setup-mode { --pc-chrome: 170px; }
-.setup-mode .pc[data-screen='setup'] {
+.setup-mode .pc:is([data-screen='setup'], [data-screen='cant-run']) {
   aspect-ratio: auto; width: 100%;
   height: min(calc(100dvh - var(--pc-chrome) - var(--safe-t) - var(--safe-b)), 640px); min-height: 300px;
 }
-.pc > .setup-live { font-size: clamp(13px, 1.9cqw, 17px); }
-.setup-live { display: flex; flex-direction: column; overflow: auto; overscroll-behavior: contain; padding: 10px; line-height: 1.35; }
-/* Auto margins centre the window, and give way to scrolling when it is taller than the screen. */
-.setup-live .setup-win { margin: auto; width: min(100%, 640px); padding: 14px 16px; }
-.setup-live .setup-win h2 { font-size: 1.35em; margin-bottom: 0.6em; }
-.setup-live .setup-field { display: grid; gap: 4px; margin-bottom: 10px; font-size: 1em; }
+.w11-screen {
+  height: 100%; display: flex; overflow: auto; overscroll-behavior: contain; padding: 1em;
+  background: #000; color: #000; font-family: 'Segoe UI', var(--f-win); line-height: 1.3;
+}
+.pc > .w11-screen { font-size: clamp(13px, 1.6cqw, 15px); }
+
+.w11 {
+  /* Auto margins centre the window, and give way to scrolling when it is taller than the screen. */
+  margin: auto; width: min(100%, 55em); min-height: min(42em, 100%);
+  display: flex; flex-direction: column;
+  padding: 0 0.4em 0.4em; background: #bed3ec; border: 1px solid #6c8bb3; border-radius: 0.4em 0.4em 0 0;
+}
+.w11-titlebar { display: flex; align-items: center; gap: 0.45em; height: 2.2em; padding: 0 0.1em 0 0.25em; }
+.w11-icon { width: 1.25em; height: 1.25em; flex: none; }
+.w11-caption { flex: 1 1 auto; font-size: 0.95em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w11-controls { display: flex; gap: 0.2em; flex: none; }
+.w11-ctl {
+  display: grid; place-items: center; width: 2.1em; height: 1.4em;
+  border: 1px solid #6c8bb3; border-radius: 0.25em; background: linear-gradient(#f1f6fc, #cfdcee);
+}
+.w11-ctl.close { width: 3.2em; background: linear-gradient(#e8907f, #c3412f); border-color: #8d2b1f; }
+.w11-ctl svg { width: 0.8em; height: 0.8em; fill: none; stroke: #2b2b2b; stroke-width: 1.4; }
+.w11-ctl.close svg { stroke: #fff; stroke-width: 1.8; }
+.w11-body {
+  flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0;
+  padding: 3em 3.3em 1.6em; background: #fff; border: 1px solid #8aa6c8;
+}
+/* .pc in front: the content viewer's own heading rule must not restyle the simulated screen. */
+.pc .w11-title {
+  margin: 0 0 0.35em; font-family: 'Segoe UI Light', 'Segoe UI', var(--f-win); font-weight: 300;
+  font-size: 2.35em; line-height: 1.15; color: #1f7ac3;
+}
+.w11-content { font-size: 1em; }
+.w11-links { margin-top: auto; padding-top: 1.2em; display: grid; justify-items: start; gap: 0.5em; }
+.w11-link { padding: 0; font: inherit; color: #1f6fb2; background: none; border: 0; text-align: left; cursor: pointer; }
+.w11-link.inline { cursor: default; overflow-wrap: anywhere; }
+.w11-foot { display: flex; justify-content: space-between; align-items: center; gap: 1em; flex-wrap: wrap; margin-top: auto; padding-top: 1.3em; }
+.w11-links + .w11-foot { margin-top: 0; }
+.w11-brand { display: flex; align-items: center; gap: 0.45em; color: #3c3c3c; white-space: nowrap; }
+.w11-logo { width: 1.25em; height: 1.25em; }
+.w11-ms { font-weight: 600; margin-right: 1.5em; }
+.w11-footlink { margin-right: 2.3em; color: #5c5c5c; }
+.w11-buttons { display: flex; gap: 0.8em; margin-left: auto; }
+.w11-btn {
+  display: inline-grid; place-items: center; min-width: 7.3em; min-height: 1.9em; padding: 0 1em;
+  font: inherit; color: #000; background: #fdfdfd; border: 1px solid #b4b4b4; border-radius: 0.3em; cursor: pointer;
+}
+.w11-btn.primary { border-color: #2c5d98; }
+.w11-btn:disabled, .w11-btn[aria-disabled='true'] { color: #a0a0a0; background: #f4f4f4; border-color: #d4d4d4; cursor: default; }
+
+/* Page contents (their real layout comes with task B of the plan). */
+.setup-field { display: grid; gap: 0.3em; margin-bottom: 1.4em; }
+.setup-field.row { grid-template-columns: 11.5em minmax(0, 17em); align-items: center; gap: 0.6em; }
 .setup-input {
-  width: 100%; min-height: 34px; padding: 4px 8px;
-  font: inherit; color: #1b1b1b; background: #fff; border: 1px solid #8a8a8a; border-radius: 4px;
+  width: 100%; min-height: 1.85em; padding: 0 0.35em;
+  font: inherit; font-size: 0.92em; color: #000; background: #fff; border: 1px solid #7a7a7a; border-radius: 0;
 }
+span.setup-input { display: flex; align-items: center; }
 input.setup-input { cursor: pointer; }
-.setup-btn {
-  min-height: 34px; min-width: 84px; padding: 4px 16px;
-  font: inherit; color: #1b1b1b; background: #fff; border: 1px solid #8a8a8a; border-radius: 4px; cursor: pointer;
+.w11 .setup-options { border: 0; padding: 0; margin: 0 0 1em; display: grid; gap: 0.3em; }
+.w11 .setup-options label, .w11 .setup-check { display: flex; gap: 0.6em; align-items: center; min-height: 1.9em; margin: 0; cursor: pointer; }
+.w11 .setup-check { align-items: flex-start; margin-bottom: 0.5em; }
+.w11 .setup-options input, .w11 .setup-check input { width: 1.1em; height: 1.1em; margin: 0.15em 0 0; flex: none; }
+.w11 .off { color: #8a8a8a; cursor: default; }
+.setup-text { margin: 0 0 0.6em; }
+.setup-field.row.top { align-items: start; }
+.setup-field.row.top .setup-options { margin: 0; }
+.setup-field.keyfield { margin-top: 1.3em; }
+/* Focus as Windows draws it (a thin dotted line), not the game's own coral ring. */
+.w11 :focus-visible { outline: 1px dotted #000; outline-offset: 1px; }
+.setup-input.underline { width: min(100%, 27em); border: 0; border-bottom: 2px solid #0f7b8a; background: #fafafa; }
+.setup-input.underline::placeholder { color: #8a8a8a; }
+.setup-list { display: flex; flex-direction: column; max-height: 9.6em; overflow-y: auto; border: 1px solid #a7a7a7; padding: 0.3em 0.4em; }
+.setup-list-head { padding: 0.1em 0.3em; }
+.setup-list button {
+  min-height: 1.4em; padding: 0.05em 0.3em; text-align: left; font: inherit; color: #000; background: none; border: 0; cursor: pointer;
 }
-.setup-btn.primary { background: #0067c0; border-color: #0067c0; color: #fff; }
-.setup-btn:disabled { opacity: 0.45; cursor: default; }
-.setup-live .setup-foot { gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-.setup-live .setup-options { border: 0; padding: 0; margin: 0 0 10px; display: grid; gap: 4px; }
-.setup-live .setup-options label, .setup-live .setup-check {
-  display: flex; gap: 8px; align-items: center; min-height: 32px; margin: 0; font-size: 1em; cursor: pointer;
-}
-.setup-live .setup-check { align-items: flex-start; margin-bottom: 6px; }
-.setup-live .setup-options input, .setup-live .setup-check input { width: 18px; height: 18px; margin: 0; flex: none; }
-.setup-live .off { color: #8a8a8a; cursor: default; }
-.setup-link {
-  display: block; min-height: 32px; margin: 0; padding: 4px 0;
-  font: inherit; color: #0067c0; background: none; border: 0; text-decoration: underline; text-align: left; cursor: pointer;
-}
-.setup-link.off { text-decoration: none; }
-.setup-text { margin: 0 0 8px; }
+.setup-list button.sel { background: #0078d7; color: #fff; }
+.setup-text.picked { min-height: 1.3em; margin-top: 0.8em; }
+.setup-text.note { margin-top: 2.2em; font-size: 0.95em; }
+.w11-link.boxed { justify-self: start; border: 1px dotted #555; padding: 0 0.15em; cursor: default; }
 .setup-text.dim { color: #5d5d5d; }
-.setup-license { max-height: 9em; overflow: auto; border: 1px solid #c8c8c8; padding: 8px 10px; font-size: 0.92em; }
-.setup-license p { margin: 0 0 6px; }
+.setup-license { max-height: 11em; overflow: auto; border: 1px solid #c8c8c8; padding: 0.6em 0.8em; font-size: 0.92em; }
+.setup-license p { margin: 0 0 0.5em; }
 .setup-sim-note { color: #5d5d5d; font-family: var(--f-body); }
 
-.setup-table { border: 1px solid #c8c8c8; }
+.setup-table { min-height: 11em; border: 1px solid #a7a7a7; padding: 0.2em 0.3em; }
 .setup-tr {
-  display: grid; grid-template-columns: minmax(0, 1fr) 6.2em 6.2em 7em; gap: 8px; align-items: center;
-  width: 100%; min-height: 38px; padding: 4px 8px;
-  font: inherit; color: inherit; text-align: left; background: none; border: 0; border-top: 1px solid #ececec; cursor: pointer;
+  display: grid; grid-template-columns: minmax(0, 1fr) 6.6em 6.6em 8.5em; gap: 0.6em; align-items: center;
+  width: 100%; min-height: 1.6em; padding: 0.1em 0.5em;
+  font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer;
 }
-.setup-tr.head { min-height: 28px; border-top: 0; color: #5d5d5d; font-size: 0.85em; font-weight: 600; cursor: default; }
-.setup-tr.sel { background: #cce8ff; }
-.setup-tr .name { display: flex; gap: 6px; align-items: center; overflow-wrap: anywhere; }
-.setup-disk-icon { flex: none; width: 1em; height: 0.7em; border: 0.12em solid #555; border-radius: 0.15em; }
-/* Narrow screens drop the free-space column, as the plan says (case3-plan section 7). */
-@container (max-width: 480px) {
-  .setup-tr { grid-template-columns: minmax(0, 1fr) 5.4em 5.8em; gap: 6px; padding: 4px 6px; }
-  .setup-tr .free { display: none; }
+.setup-tr.head { cursor: default; }
+.setup-tr.head span { border-right: 1px solid #e0e0e0; }
+.setup-tr.sel { background: #0078d7; color: #fff; }
+.setup-tr .name { overflow-wrap: anywhere; }
+.setup-tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4em 1em; margin: 0.6em 0 1.8em; }
+.setup-tool {
+  display: flex; align-items: center; gap: 0.55em; min-height: 1.9em; padding: 0; text-align: left;
+  font: inherit; color: #1f6fb2; background: none; border: 0; cursor: pointer;
 }
-.setup-tools { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 8px 0 4px; }
-.setup-tool { min-height: 32px; padding: 2px 4px; font: inherit; color: #0067c0; background: none; border: 0; cursor: pointer; }
 .setup-tool:disabled { color: #9a9a9a; cursor: default; }
-.setup-error { margin: 6px 0 0; color: #c42b1c; font-size: 0.92em; }
-.setup-summary { margin: 0 0 8px; padding-left: 1.2em; }
-.setup-progress { height: 8px; margin: 8px 0; background: #e0e0e0; border-radius: 4px; overflow: hidden; }
-.setup-progress span { display: block; height: 100%; background: #0067c0; }
+.setup-tool-icon { width: 1.35em; height: 1.35em; flex: none; fill: none; stroke: #6b6b6b; stroke-width: 1.4; }
+.setup-tool-icon.refresh { stroke: #2a7fd4; }
+.setup-tool-icon.delete { stroke: #d24726; stroke-width: 1.8; }
+.setup-tool-icon.driver { fill: #d6d6d6; }
+.setup-tool-icon.format, .setup-tool-icon.extend, .setup-tool-icon.online { fill: #8a8a8a; stroke: #555; }
+.setup-tool:disabled .setup-tool-icon { opacity: 0.55; }
+.setup-error { margin: 0.6em 0 0; color: #c42b1c; font-size: 0.92em; }
+.setup-summary { margin: 1.2em 0 0.6em; padding: 0; list-style: none; font-size: 1.15em; }
+.setup-summary li { margin-bottom: 0.9em; }
+.setup-summary li::before { content: '\2714'; margin-right: 0.9em; font-size: 0.85em; }
+.setup-progress { height: 0.6em; margin: 0.6em 0; background: #e0e0e0; overflow: hidden; }
+.setup-progress span { display: block; height: 100%; background: #0078d7; }
+.cantrun-why { margin: 0 0 0.8em; padding-left: 1.4em; }
+.cantrun-why li { margin-bottom: 0.2em; }
 .setup-modal { position: absolute; inset: 0; z-index: 2; display: flex; padding: 10px; background: rgba(0, 0, 0, 0.35); }
 .setup-dialog {
-  margin: auto; width: min(100%, 420px); padding: 14px 16px;
-  background: #fff; color: #1b1b1b; border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  margin: auto; width: min(100%, 30em); padding: 1.1em 1.2em;
+  background: #fff; color: #000; border: 1px solid #6c8bb3; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
-.setup-dialog p { margin: 0 0 4px; }
+.setup-dialog p { margin: 0 0 1em; }
+
+/* Touch screens: everything tapped is at least 32px tall, whatever the window's size. */
+@media (pointer: coarse) {
+  .w11-btn, .w11-link, .setup-tool, .w11 .setup-options label, .w11 .setup-check, .setup-input, .setup-list button { min-height: 32px; }
+}
+
+/* Narrow screens (phones upright): the window fills the screen, rows stack, the table drops Free Space,
+   and everything tapped is at least 32px tall. */
+@container (max-width: 520px) {
+  .w11-screen { padding: 0.3em; }
+  .w11 { width: 100%; min-height: 100%; }
+  .w11-body { padding: 1.4em 1.1em 1em; }
+  .pc .w11-title { font-size: 1.85em; }
+  .setup-field.row { grid-template-columns: 1fr; gap: 0.3em; }
+  .setup-input.underline { width: 100%; }
+  .setup-input, .w11-btn, .w11 .setup-options label, .w11 .setup-check, .setup-tool, .w11-link { min-height: 32px; }
+  .w11-btn { min-width: 6em; }
+  .w11-ms { margin-right: 0.8em; }
+  .w11-footlink { margin-right: 1em; }
+  .setup-tr { grid-template-columns: minmax(0, 1fr) 5.6em 6.6em; min-height: 32px; }
+  .setup-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .setup-tool-gap { display: none; }
+  .setup-tr .free { display: none; }
+}
 
 @media (orientation: landscape) and (max-height: 520px) {
   .monitor.pc-monitor.setup-mode { grid-template-columns: 220px minmax(0, 1fr) 0; }
-  .pc-monitor.setup-mode .pc[data-screen='setup'] { width: 100%; height: 100%; min-height: 0; align-self: stretch; }
+  .pc-monitor.setup-mode .pc:is([data-screen='setup'], [data-screen='cant-run']) { width: 100%; height: 100%; min-height: 0; align-self: stretch; }
+  /* Short screens: less white space inside the window, so a page fits without scrolling. */
+  .w11-screen { padding: 0.4em; }
+  .w11-body { padding: 1.1em 2em 0.8em; }
+  .pc .w11-title { font-size: 1.8em; }
+  .w11-foot { padding-top: 0.6em; }
+  .w11-links { padding-top: 0.6em; }
 }

@@ -7,6 +7,7 @@
 
 import type { Machine, UsbOs } from './machine';
 import type { BiosMenu, BiosSetting, Brand, MenuRow } from '../content/schema';
+import { cantRunReasons } from './requirements';
 import { act as setupAct, openSetup, type Setup, type SetupAction, type SetupMistake } from './setup';
 
 /** Keys the simulated screens understand (the on-screen key bar sends the same names). */
@@ -48,8 +49,8 @@ export type Screen =
   /** Wrong image on the stick: the Windows 10 installer, or Ubuntu's GNU GRUB menu (case 2 traps). */
   | { kind: 'setup-win10' }
   | { kind: 'grub' }
-  /** Windows 11 Setup started in legacy (CSM) mode: "This PC can't run Windows 11" (short version). */
-  | { kind: 'cant-run' };
+  /** Windows 11 Setup refused the PC: "This PC can't run Windows 11" with its reasons (case 4; case 2's CSM trap). */
+  | { kind: 'cant-run'; reasons: string[] };
 
 /** How the USB was reached: the saved boot order, or the one-time Boot Menu. Both are correct (case 1 design). */
 export type Route = 'bios' | 'boot-menu';
@@ -61,6 +62,8 @@ export type MistakeReason =
   | 'wrong-image'
   /** The stick booted only because CSM (legacy BIOS) was turned on; Windows 11 needs UEFI. */
   | 'legacy-boot'
+  /** "This PC can't run Windows 11" again with the very same reasons: nothing was fixed (e.g. left the BIOS with Esc). */
+  | 'still-cant-run'
   /** On Setup's partition page (case 3). */
   | SetupMistake;
 
@@ -69,6 +72,8 @@ export type Effect =
   | { type: 'mistake'; reason: MistakeReason }
   /** `bypassedChecks`: the stick was made with Rufus' "remove requirement" box ticked (not a mistake, but noted). */
   | { type: 'reached-setup'; route: Route; bypassedChecks: boolean }
+  /** Setup refused the PC for the first time, or with fewer reasons than before (progress, not a mistake). */
+  | { type: 'cant-run'; reasons: string[] }
   /** Setup finished installing Windows. `wrongEdition`: no key, and another edition than the PC had (noted, not a mistake). */
   | { type: 'installed'; wrongEdition: boolean; activateLater: boolean };
 
@@ -82,6 +87,8 @@ export interface Pc {
   screen: Screen;
   /** Asked the customer about a backup / already blamed for wiping without asking: kept when Setup starts again. */
   backup: { confirmed: boolean; blamed: boolean };
+  /** The reasons on the last "can't run" screen, to tell a repeat from progress. */
+  lastCantRun: string[] | null;
 }
 
 export interface Result {
@@ -124,7 +131,7 @@ export function usbBoots(m: Machine): boolean {
 
 export function powerOn(m: Machine): Pc {
   const fw = firmwareOf(m);
-  return { machine: m, saved: fw, draft: fw, screen: { kind: 'post' }, backup: { confirmed: false, blamed: false } };
+  return { machine: m, saved: fw, draft: fw, screen: { kind: 'post' }, backup: { confirmed: false, blamed: false }, lastCantRun: null };
 }
 
 const done = (pc: Pc, effects: Effect[] = []): Result => ({ pc, effects });
@@ -159,11 +166,25 @@ function bootUsb(pc: Pc, via: Route): Result {
   return done({ ...pc, screen: { kind: 'press-any-key', via } });
 }
 
-/** A key at "Press any key": the installer on the stick starts. Only Windows 11 booted in UEFI mode is the fix. */
+/**
+ * A key at "Press any key": the installer on the stick starts. Windows 11 Setup first checks the PC (in the game
+ * right away; where the real one does it is not confirmed, case4-plan decision 1). The first refusal is what the
+ * customer saw, and fewer reasons is progress; the same reasons again, or booting in legacy mode, is a mistake.
+ */
 function startInstaller(pc: Pc, via: Route): Result {
   const m = pc.machine;
   if (m.usbOs !== 'win11') return done({ ...pc, screen: { kind: 'setup-win10' } }, [{ type: 'mistake', reason: 'wrong-image' }]);
-  if (m.bootMode !== 'uefi') return done({ ...pc, screen: { kind: 'cant-run' } }, [{ type: 'mistake', reason: 'legacy-boot' }]);
+  const reasons = cantRunReasons(m);
+  if (reasons.length) {
+    const same = pc.lastCantRun !== null && reasons.length === pc.lastCantRun.length && reasons.every((r) => pc.lastCantRun!.includes(r));
+    const effect: Effect =
+      m.bootMode !== 'uefi'
+        ? { type: 'mistake', reason: 'legacy-boot' }
+        : same
+          ? { type: 'mistake', reason: 'still-cant-run' }
+          : { type: 'cant-run', reasons };
+    return done({ ...pc, lastCantRun: reasons, screen: { kind: 'cant-run', reasons } }, [effect]);
+  }
   const setup = openSetup(m, { ticketEdition: m.windowsEdition, backup: pc.backup });
   return done({ ...pc, screen: { kind: 'setup', setup } }, [{ type: 'reached-setup', route: via, bypassedChecks: m.usbBypassChecks }]);
 }

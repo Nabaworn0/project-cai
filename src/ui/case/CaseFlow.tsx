@@ -212,6 +212,10 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       return;
     }
     if (e.type === 'installed' && goal !== 'install') return;
+    if (e.type === 'cant-run') {
+      setSaid(reactionLine(r, 'cant-run'));
+      return;
+    }
     if (e.type === 'mistake') act({ type: 'mistake' });
     else if (e.type === 'reached-setup') act({ type: 'repaired', route: e.route, bypassedChecks: e.bypassedChecks });
     else act({ type: 'repaired', route: 'install', bypassedChecks: pcRef.current?.machine.usbBypassChecks, wrongEdition: e.wrongEdition });
@@ -228,7 +232,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     }
     else if (e.reason === 'no-boot-device') setSaid(reactionLine(r, 'no-boot'));
     else if (e.reason === 'wrong-image') setSaid(reactionLine(r, 'wrong-image'));
-    else if (e.reason === 'legacy-boot') setSaid(reactionLine(r, 'cant-run'));
+    else if (e.reason === 'legacy-boot' || e.reason === 'still-cant-run') setSaid(reactionLine(r, 'cant-run'));
     else setSaid(reactionLine(r, 'old-windows', ++oldWindowsCount.current));
   };
 

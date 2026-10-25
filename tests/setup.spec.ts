@@ -31,7 +31,7 @@ async function toLocation(page: Page, o: { noKey?: boolean } = {}) {
   await next(page);
   if (o.noKey) {
     await page.getByRole('button', { name: "I don't have a product key" }).click();
-    await page.getByLabel('Windows 11 Home', { exact: true }).check();
+    await page.getByRole('option', { name: 'Windows 11 Home', exact: true }).click();
   } else await page.getByTestId('product-key').click();
   await next(page);
   await page.getByRole('button', { name: 'Accept' }).click();
@@ -40,7 +40,7 @@ async function toLocation(page: Page, o: { noKey?: boolean } = {}) {
 
 async function deletePart(page: Page, id: string) {
   await row(page, id).click();
-  await page.getByRole('button', { name: '✕ Delete' }).click();
+  await page.getByRole('button', { name: 'Delete Partition' }).click();
   await expect(page.getByRole('alertdialog')).toContainText('any data stored on it will be lost');
   await page.getByRole('button', { name: 'OK', exact: true }).click();
 }
@@ -74,7 +74,7 @@ test('trap: deleting before asking about the backup is a mistake; Format leaves 
   await openChai(page);
   await toLocation(page);
   await row(page, '1-2').click();
-  await page.getByRole('button', { name: '▭ Format' }).click();
+  await page.getByRole('button', { name: 'Format Partition' }).click();
   await expect(page.getByRole('alertdialog')).toContainText('If you format this partition');
   await page.getByRole('button', { name: 'OK', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('ก่อนถามลูกค้าเรื่องสำรองข้อมูล');
@@ -85,7 +85,7 @@ test('Cancel in the confirm box keeps the partition', async ({ page }) => {
   await openChai(page, { backedUp: true });
   await toLocation(page);
   await row(page, '1-2').click();
-  await page.getByRole('button', { name: '✕ Delete' }).click();
+  await page.getByRole('button', { name: 'Delete Partition' }).click();
   await page.getByRole('button', { name: 'Cancel' }).click();
   await expect(row(page, '1-2')).toBeVisible();
   await expect(page.getByRole('alertdialog')).toBeHidden();
@@ -111,15 +111,19 @@ test('Setup fits the screen: no sideways scrolling, every control reachable and 
   await openChai(page, { backedUp: true });
   await toLocation(page);
   await row(page, '1-2').click();
-  for (const name of ['Next', 'Back', '✕ Delete', '▭ Format', '⟳ Refresh']) {
+  const touch = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
+  // The partition page has no Back button, like the real one.
+  await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
+  for (const name of ['Next', 'Delete Partition', 'Format Partition', 'Refresh']) {
     const b = page.getByRole('button', { name, exact: true });
     await b.scrollIntoViewIfNeeded();
     await expect(b).toBeInViewport();
     const box = (await b.boundingBox())!;
-    expect(box.height, `${name} height`).toBeGreaterThanOrEqual(32);
+    // Touch screens get 32px controls; with a mouse the buttons keep the real window's size.
+    expect(box.height, `${name} height`).toBeGreaterThanOrEqual(touch ? 32 : 22);
   }
-  const fontPx = await page.locator('.setup-live').evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+  const fontPx = await page.locator('.w11-screen').evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
   expect(fontPx).toBeGreaterThanOrEqual(13);
-  const sideways = await page.locator('.setup-live').evaluate((e) => e.scrollWidth - e.clientWidth);
+  const sideways = await page.locator('.w11-screen').evaluate((e) => e.scrollWidth - e.clientWidth);
   expect(sideways).toBeLessThanOrEqual(0);
 });

@@ -1,7 +1,8 @@
 // Content viewer tab "หน้าจอจำลอง": open the simulated screens on their own, without playing a case.
 // Rufus starts with Beam's stick (case 2); the stick it writes can then be booted on a PC, so every
 // case 2 route (right, MBR again, wrong image, CSM) can be tried and shown to a teacher. Lung Chai's PC
-// (case 3) opens Windows 11 Setup with his MBR disk, to try the partition page and its traps.
+// (case 3) opens Windows 11 Setup with his MBR disk, to try the partition page and its traps. Ton's PC (case 4)
+// has TPM (and optionally Secure Boot) turned off in the BIOS: Setup says "This PC can't run Windows 11".
 
 import { useState } from 'preact/hooks';
 import { healthyMachine, type Machine } from '../core/machine';
@@ -19,15 +20,17 @@ const OS_TH: Record<Usb['os'], string> = { win11: 'Windows 11', win10: 'Windows 
 export function SimLab({ brand }: { brand: Brand }) {
   const [usb, setUsb] = useState<Usb>(BEAM_USB);
   const [csm, setCsm] = useState(false);
-  const [open, setOpen] = useState<'rufus' | 'pc' | 'chai' | null>(null);
+  const [open, setOpen] = useState<'rufus' | 'pc' | 'chai' | 'ton' | null>(null);
   const [noKey, setNoKey] = useState(false);
   const [backedUp, setBackedUp] = useState(false);
+  const [sbOff, setSbOff] = useState(false);
 
   // A UEFI PC like Beam's; "CSM on" stands for the BIOS trap (legacy boot allowed).
   const machine: Machine = { ...healthyMachine(brand.id), bootMode: csm ? 'legacy' : 'uefi', secureBoot: !csm };
   // Lung Chai's PC: UEFI, the USB first already, a 500 GB MBR disk with his old Windows (case 3).
   const chai: Machine = { ...healthyMachine(brand.id), storageGB: 500, diskStyle: 'mbr', diskHasData: true, productKey: !noKey };
   const chaiStart = backedUp ? confirmBackup(powerOn(chai)) : powerOn(chai);
+  const ton: Machine = { ...healthyMachine(brand.id), ramGB: 16, storageGB: 512, cpu: 'Intel Core i5-10400', tpmEnabled: false, secureBoot: !sbOff };
 
   return (
     <section>
@@ -75,6 +78,18 @@ export function SimLab({ brand }: { brand: Brand }) {
             </button>
           </div>
         </div>
+        <div class="v-card">
+          <h3>4. เครื่องพี่ต้น: ลง Windows 11 ไม่ผ่าน (เคส 4)</h3>
+          <p>i5-10400 · RAM 16 GB · SSD 512 GB · TPM ปิดอยู่ใน BIOS · USB ถูกต้องและบูตก่อนแล้ว</p>
+          <label class="v-simlab-check">
+            <input type="checkbox" checked={sbOff} onChange={() => setSbOff(!sbOff)} /> Secure Boot ปิดด้วย
+          </label>
+          <div class="v-simlab-actions">
+            <button type="button" class="btn small" onClick={() => setOpen('ton')}>
+              เปิดเครื่องพี่ต้น
+            </button>
+          </div>
+        </div>
       </div>
 
       {open && (
@@ -82,6 +97,7 @@ export function SimLab({ brand }: { brand: Brand }) {
           {open === 'rufus' && <RufusScreen initial={openRufus(usb)} onEffect={(e) => setUsb(e.usb)} onClose={() => setOpen(null)} />}
           {open === 'pc' && <PcScreen brand={brand} machine={machine} initial={insertUsb(powerOn(machine), usb)} onClose={() => setOpen(null)} />}
           {open === 'chai' && <PcScreen brand={brand} machine={chai} initial={chaiStart} goal="install" onClose={() => setOpen(null)} />}
+          {open === 'ton' && <PcScreen brand={brand} machine={ton} onClose={() => setOpen(null)} />}
         </div>
       )}
     </section>

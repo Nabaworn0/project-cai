@@ -23,6 +23,7 @@ import {
   type Pc,
 } from '../src/core/pc';
 import { INSTALL_MS, type SetupAction } from '../src/core/setup';
+import { CANT_RUN_REASONS, cantRunReasons } from '../src/core/requirements';
 import { createRng } from '../src/core/rng';
 import { BrandSchema, CaseSchema, ProblemsSchema } from '../src/content/schema';
 
@@ -288,8 +289,9 @@ test('trap: turning CSM on makes the MBR stick boot, but Windows 11 refuses lega
   assert.equal(saved.machine.bootMode, 'legacy');
   assert.ok(bootMenuEntries(saved).some((e) => e.target === 'usb'), 'the stick shows up now');
   const r = run(saved, 'timeout', 'Enter');
-  assert.equal(r.pc.screen.kind, 'cant-run');
+  assert.deepEqual(r.pc.screen, { kind: 'cant-run', reasons: [CANT_RUN_REASONS.secureBoot] });
   assert.deepEqual(r.effects, [{ type: 'mistake', reason: 'legacy-boot' }]);
+  assert.deepEqual(run(restart(r.pc), 'timeout', 'Enter').effects, [{ type: 'mistake', reason: 'legacy-boot' }], 'every legacy boot counts');
   // Remaking the stick as GPT while CSM is still on does not help: the GPT stick needs UEFI.
   assert.ok(!bootMenuEntries(insertUsb(saved, STICK)).some((e) => e.target === 'usb'));
 });
@@ -418,4 +420,77 @@ test('no key and another edition: installed with the edition noted, activation l
 test('Setup taps do nothing on other screens', () => {
   const pc = powerOn(chaiPc);
   assert.deepEqual(setupAction(pc, NEXT), { pc, effects: [] });
+});
+
+// ---- case 4: "This PC can't run Windows 11" (Ton's PC: TPM, maybe Secure Boot, turned off in the BIOS) ----
+
+const c04 = CaseSchema.parse(data('cases/c04-security-chip.json'));
+/** s1: TPM off only · s3: TPM and Secure Boot off (seeds checked against the case file). */
+const tonPc = (seed: 's1' | 's3') => generateCase(c04, { problems, brands: [classic] }, seed).machine;
+/** POST boots the stick (it is first already), a key starts Setup. */
+const BOOT: (Key | 'timeout')[] = ['timeout', 'Enter'];
+/** F2, Advanced, Trusted Computing, Security Device Support = Enabled (still inside the BIOS). */
+const TPM_ON: Key[] = ['F2', 'Right', 'Down', 'Enter', 'Enter', 'Up', 'Enter'];
+/** From that submenu: back out, over to Security, Secure Boot, Secure Boot = Enabled. */
+const SB_ON: Key[] = ['Esc', 'Right', 'Right', 'Right', 'Enter', 'Enter', 'Up', 'Enter'];
+const SAVE: Key[] = ['F10', 'Enter'];
+const screenOf = (pc: Pc) => pc.screen;
+
+test("case 4 content: Ton's PC is fine but for TPM (and maybe Secure Boot) turned off; the stick boots first", () => {
+  assert.equal(tonPc('s1').tpmEnabled, false);
+  assert.equal(tonPc('s1').secureBoot, true);
+  assert.equal(tonPc('s3').secureBoot, false);
+  assert.equal(tonPc('s1').usbFirst, true);
+  assert.deepEqual(cantRunReasons(tonPc('s1')), [CANT_RUN_REASONS.tpm]);
+  assert.deepEqual(cantRunReasons(tonPc('s3')), [CANT_RUN_REASONS.tpm, CANT_RUN_REASONS.secureBoot]);
+});
+
+test('the first "can\'t run" is what Ton saw, not a mistake; TPM on in the BIOS, F10, and Setup starts', () => {
+  const first = run(powerOn(tonPc('s1')), ...BOOT);
+  assert.deepEqual(screenOf(first.pc), { kind: 'cant-run', reasons: [CANT_RUN_REASONS.tpm] });
+  assert.deepEqual(first.effects, [{ type: 'cant-run', reasons: [CANT_RUN_REASONS.tpm] }]);
+  const fixed = run(restart(first.pc), ...TPM_ON, ...SAVE, ...BOOT);
+  assert.equal(fixed.pc.machine.tpmEnabled, true);
+  assert.equal(screenOf(fixed.pc).kind, 'setup');
+  assert.deepEqual(fixed.effects, [{ type: 'reached-setup', route: 'bios', bypassedChecks: false }]);
+});
+
+test('trap: TPM turned on but left with Esc (not saved): the same reasons again, one mistake each time', () => {
+  const first = run(powerOn(tonPc('s1')), ...BOOT).pc;
+  const discard = run(restart(first), ...TPM_ON, 'Esc', 'Esc', 'Enter', ...BOOT);
+  assert.equal(discard.pc.machine.tpmEnabled, false);
+  assert.deepEqual(discard.effects, [{ type: 'mistake', reason: 'still-cant-run' }]);
+  assert.deepEqual(run(restart(discard.pc), ...BOOT).effects, [{ type: 'mistake', reason: 'still-cant-run' }]);
+});
+
+test('TPM and Secure Boot off: both reasons; TPM alone leaves one (progress, no mistake); both on and Setup starts', () => {
+  const first = run(powerOn(tonPc('s3')), ...BOOT);
+  assert.deepEqual(screenOf(first.pc), { kind: 'cant-run', reasons: [CANT_RUN_REASONS.tpm, CANT_RUN_REASONS.secureBoot] });
+  const half = run(restart(first.pc), ...TPM_ON, ...SAVE, ...BOOT);
+  assert.deepEqual(screenOf(half.pc), { kind: 'cant-run', reasons: [CANT_RUN_REASONS.secureBoot] });
+  assert.deepEqual(half.effects, [{ type: 'cant-run', reasons: [CANT_RUN_REASONS.secureBoot] }]);
+  const both = run(restart(half.pc), ...TPM_ON, ...SB_ON, ...SAVE, ...BOOT);
+  assert.equal(both.pc.machine.secureBoot, true);
+  assert.equal(screenOf(both.pc).kind, 'setup');
+  // Turning both on in one visit works the same.
+  assert.equal(screenOf(run(restart(first.pc), ...TPM_ON, ...SB_ON, ...SAVE, ...BOOT).pc).kind, 'setup');
+});
+
+test('trap: CSM turned on in case 4: the GPT stick no longer boots, the old Windows comes up (a mistake)', () => {
+  const r = run(powerOn(tonPc('s1')), ...CSM_ON, 'timeout');
+  assert.equal(screenOf(r.pc).kind, 'old-windows');
+  assert.deepEqual(r.effects, [{ type: 'mistake', reason: 'booted-old-windows' }]);
+});
+
+test('the reasons follow the machine: processor, TPM missing or off, legacy, memory; a "checks removed" stick skips TPM, Secure Boot and memory', () => {
+  const ok = healthyMachine('classic');
+  assert.deepEqual(cantRunReasons(ok), []);
+  assert.deepEqual(cantRunReasons({ ...ok, cpuWin11: false }), [CANT_RUN_REASONS.cpu]);
+  assert.deepEqual(cantRunReasons({ ...ok, tpm: 'none' }), [CANT_RUN_REASONS.tpm]);
+  assert.deepEqual(cantRunReasons({ ...ok, bootMode: 'legacy' }), [CANT_RUN_REASONS.secureBoot]);
+  assert.deepEqual(cantRunReasons({ ...ok, ramGB: 2 }), [CANT_RUN_REASONS.ram]);
+  const bypass = { ...ok, usbBypassChecks: true, tpmEnabled: false, secureBoot: false, ramGB: 2 };
+  assert.deepEqual(cantRunReasons(bypass), []);
+  assert.deepEqual(cantRunReasons({ ...bypass, bootMode: 'legacy' }), [CANT_RUN_REASONS.secureBoot], 'legacy is refused either way');
+  assert.deepEqual(cantRunReasons({ ...bypass, cpuWin11: false }), [CANT_RUN_REASONS.cpu], 'the processor is still checked');
 });

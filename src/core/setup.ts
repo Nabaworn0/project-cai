@@ -23,7 +23,18 @@ export const PAGES = [
 export type Page = (typeof PAGES)[number];
 
 /** Editions on the "Select image" page (shown only without a product key: a key decides the edition itself). */
-export const EDITIONS = ['Windows 11 Home', 'Windows 11 Home N', 'Windows 11 Pro', 'Windows 11 Pro N', 'Windows 11 Education'] as const;
+/** In the order the real list shows them (24H2 consumer image). */
+export const EDITIONS = [
+  'Windows 11 Home',
+  'Windows 11 Home N',
+  'Windows 11 Home Single Language',
+  'Windows 11 Education',
+  'Windows 11 Education N',
+  'Windows 11 Pro',
+  'Windows 11 Pro N',
+  'Windows 11 Pro Education',
+  'Windows 11 Pro for Workstations',
+] as const;
 export type Edition = (typeof EDITIONS)[number];
 
 /** A line of the partition table: a partition, or the free space left on a disk. */
@@ -345,7 +356,7 @@ const TITLES: Record<Page, string> = {
   keyboard: 'Select keyboard settings',
   option: 'Select setup option',
   'product-key': 'Product key',
-  image: 'Select image',
+  image: 'Select Image',
   license: 'Applicable notices and license terms',
   location: 'Select location to install Windows 11',
   ready: 'Ready to install',
@@ -398,7 +409,7 @@ export function setupView(s: Setup): SetupView {
       name: p.name,
       total: formatSize(p.sizeMB),
       free: formatSize(p.freeMB),
-      type: p.type === 'Unallocated' ? '' : p.type,
+      type: p.type === 'Unallocated' ? 'Unallocated Space' : p.type,
       selected: p.id === s.selected,
     })),
     canWipe: s.page === 'location' && !!sel && sel.type !== 'Unallocated' && !s.confirm,
