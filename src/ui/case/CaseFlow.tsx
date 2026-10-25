@@ -2,12 +2,14 @@
 // The rules live in src/core/session.ts; this component shows each stage in the panel at the bottom of
 // the screen, opens the customer's PC (and in case 2 the shop laptop with Rufus) for the repair, and keeps
 // the customer's expression in step. The install USB is one stick shared by both: whatever Rufus writes
-// goes back into the customer's PC (docs/case2-plan.md).
+// goes back into the customer's PC (docs/case2-plan.md). From case 3 the job goes on through Windows Setup
+// to the install: the player asks the customer about a backup before wiping the disk, and a stick wiped
+// in Setup brings out the shop laptop to make it again (docs/case3-plan.md).
 
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { bus } from '../../core/bus';
 import { generateCase, nextCase, type GeneratedCase } from '../../core/cases';
-import { insertUsb, powerOn, type Effect, type Pc } from '../../core/pc';
+import { confirmBackup, insertUsb, powerOn, type Effect, type Pc } from '../../core/pc';
 import { ISO_FILES, openRufus, type Rufus, type RufusEffect, type Usb } from '../../core/rufus';
 import { goodbyeLine, reactionLine } from '../../core/reactions';
 import {
@@ -37,18 +39,20 @@ interface Props {
   onCoins: (coins: number) => void;
 }
 
-/** Cases whose screens exist so far (Rufus came with case 2; Setup's partition screen comes with case 3). */
-const PLAYABLE = ['c01-boot-order', 'c02-rufus-scheme'];
+/** Cases whose screens exist so far (Rufus came with case 2, Setup and its partition page with case 3). */
+const PLAYABLE = ['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text'];
 
 /**
- * The next customer: case 1, then 2, then mixed (nextCase). The first one can be chosen with ?case=<id>
+ * The next customer: case 1, then 2, then 3, then mixed (nextCase). The first one can be chosen with ?case=<id>
  * (for teachers and tests). A new seed gives a new machine each time.
  */
 function newCase(content: Content, lastId: string | null): GeneratedCase {
   const playable = content.cases.filter((c) => PLAYABLE.includes(c.id));
-  const wanted = lastId === null ? new URLSearchParams(location.search).get('case') : null;
+  const params = lastId === null ? new URLSearchParams(location.search) : null;
+  const wanted = params?.get('case');
   const template = playable.find((c) => c.id === wanted) ?? nextCase(playable, lastId, Math.random);
-  return generateCase(template, content, `${Date.now()}`);
+  // ?seed= fixes the first customer's machine (hidden extras such as "no product key"), for tests and teachers.
+  return generateCase(template, content, params?.get('seed') || `${Date.now()}`);
 }
 
 /** The install stick the customer brought, as the machine describes it. */
@@ -58,8 +62,14 @@ function usbOf(gc: GeneratedCase): Usb {
   return { scheme: m.usbScheme, os: m.usbOs, label, bypassChecks: m.usbBypassChecks };
 }
 
-/** Cases whose fix is remaking the stick get the shop laptop. */
+/** Cases whose fix is remaking the stick get the shop laptop (others get it once the stick is wiped in Setup). */
 const needsLaptop = (gc: GeneratedCase) => gc.problems.some((p) => p.fixes.includes('remake-usb'));
+
+/** Installs onto a disk that still holds the customer's files: ask about a backup before wiping it. */
+const asksBackup = (gc: GeneratedCase) => gc.template.goal === 'install' && gc.machine.diskHasData;
+
+/** What Rufus finds on a stick whose partition Setup deleted. */
+const WIPED_LABEL = 'NO_LABEL';
 
 export function CaseFlow({ content, ready, onCoins }: Props) {
   const [gc, setGc] = useState(() => newCase(content, null));
@@ -80,6 +90,10 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   /** Practice cases: the PC has been opened once (the tip before it goes), and the senior technician's nudge after a mistake. */
   const [opened, setOpened] = useState(false);
   const [nudge, setNudge] = useState<string | null>(null);
+  /** Case 3: the customer said the files are backed up; the stick was wiped in Setup (the laptop comes out). */
+  const [askedBackup, setAskedBackup] = useState(false);
+  const [stickWiped, setStickWiped] = useState(false);
+  const wipedRef = useRef(false);
   /** The customer is walking out: further "next customer" taps are ignored. */
   const leaving = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -124,7 +138,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   useEffect(
     () =>
       bus.on('ui:open-laptop', () => {
-        if (latest.current.s.stage === 'repair' && needsLaptop(latest.current.gc)) openLaptop();
+        if (latest.current.s.stage === 'repair' && (needsLaptop(latest.current.gc) || wipedRef.current)) openLaptop();
       }),
     [],
   );
@@ -161,6 +175,11 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     setOpened(true);
   };
   const openLaptop = () => {
+    // A stick wiped in Setup shows up in Rufus as an empty drive, and Rufus starts over with it.
+    if (pcRef.current?.machine.usbOs === 'empty' && usbRef.current.os !== 'empty') {
+      usbRef.current = { ...usbRef.current, os: 'empty', label: WIPED_LABEL };
+      rufusRef.current = undefined;
+    }
     setSimOpen(false);
     setWritten(false);
     setLaptopOpen(true);
@@ -186,18 +205,27 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     if (cur.stage !== 'repair' || cur.route) return;
     // The case is fixed at its goal: Setup's first page (cases 1–2), or Windows installed (case 3 on).
     const goal = latest.current.gc.template.goal;
-    if (e.type === 'reached-setup' && goal !== 'setup') return;
+    const r = latest.current.gc.template.customer.reactionsTh;
+    if (e.type === 'reached-setup' && goal !== 'setup') {
+      setNudge(null);
+      setSaid(reactionLine(r, 'reached-setup'));
+      return;
+    }
     if (e.type === 'installed' && goal !== 'install') return;
     if (e.type === 'mistake') act({ type: 'mistake' });
     else if (e.type === 'reached-setup') act({ type: 'repaired', route: e.route, bypassedChecks: e.bypassedChecks });
     else act({ type: 'repaired', route: 'install', bypassedChecks: pcRef.current?.machine.usbBypassChecks, wrongEdition: e.wrongEdition });
-    const r = latest.current.gc.template.customer.reactionsTh;
     const coachNow = latest.current.gc.template.coach;
     if (e.type === 'mistake' && coachNow && latest.current.s.mistakes === 1) setNudge(coachNow.firstMistakeTh);
     if (e.type !== 'mistake') {
       setNudge(null);
       setSaid(reactionLine(r, 'fixed'));
-    } else if (e.reason === 'no-backup-check' || e.reason === 'deleted-installer') setSaid(null); // case 3 lines come with task D
+    } else if (e.reason === 'no-backup-check') setSaid(reactionLine(r, 'no-backup'));
+    else if (e.reason === 'deleted-installer') {
+      wipedRef.current = true;
+      setStickWiped(true);
+      setSaid(reactionLine(r, 'lost-installer'));
+    }
     else if (e.reason === 'no-boot-device') setSaid(reactionLine(r, 'no-boot'));
     else if (e.reason === 'wrong-image') setSaid(reactionLine(r, 'wrong-image'));
     else if (e.reason === 'legacy-boot') setSaid(reactionLine(r, 'cant-run'));
@@ -226,6 +254,9 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       setSaid(null);
       setNudge(null);
       setOpened(false);
+      setAskedBackup(false);
+      setStickWiped(false);
+      wipedRef.current = false;
       setFeedback(null);
       setS(startSession(g));
       setGc(g);
@@ -236,6 +267,18 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   const hintButton = s.stage === 'repair' && !s.route && (
     <button class="btn ghost small" type="button" disabled={s.hintsUsed >= s.hints.length} onClick={() => act({ type: 'hint' })}>
       คำใบ้ ({s.hints.length - s.hintsUsed})
+    </button>
+  );
+  const laptopHere = needsLaptop(gc) || stickWiped;
+  const askBackup = () => {
+    play('key');
+    setAskedBackup(true);
+    if (pcRef.current) pcRef.current = confirmBackup(pcRef.current);
+    setSaid(reactionLine(gc.template.customer.reactionsTh, 'backup'));
+  };
+  const backupButton = s.stage === 'repair' && !s.route && asksBackup(gc) && !askedBackup && (
+    <button class="btn ghost small" type="button" onClick={askBackup}>
+      ถามเรื่องสำรองข้อมูล
     </button>
   );
   const saying = said && (
@@ -282,6 +325,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
             {notes}
             <div class="pc-actions">
               {hintButton}
+              {backupButton}
               <button class={`btn small${written ? '' : ' ghost'}`} type="button" onClick={openSim}>
                 ไปที่เครื่องลูกค้า
               </button>
@@ -302,6 +346,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
         onEffect={onEffect}
         coach={!!coach}
         goal={gc.template.goal}
+        backupAsked={askedBackup}
         onClose={closeScreens}
         footer={
           <div class="pc-footer">
@@ -309,7 +354,8 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
             {notes}
             <div class="pc-actions">
               {hintButton}
-              {needsLaptop(gc) && !s.route && (
+              {backupButton}
+              {laptopHere && !s.route && (
                 <button class="btn ghost small" type="button" onClick={openLaptop}>
                   โน้ตบุ๊กร้าน
                 </button>
@@ -365,9 +411,18 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
       break;
     case 'diagnose': {
       const q = gc.template.diagnosis;
+      const shot = gc.template.diagnosisPhoto;
+      const text = shot && gc.problems.find((p) => p.id === shot.problem)?.screenText;
+      const photo = shot && text ? { text, captionTh: shot.captionTh } : null;
       body = (
         <>
           <p class="ask">ก่อนลงมือ ลองเดาก่อนว่าสาเหตุคืออะไร</p>
+          {photo && (
+            <figure class="error-photo" data-testid="error-photo">
+              <div class="error-photo-screen">{photo.text}</div>
+              <figcaption>📷 {photo.captionTh}</figcaption>
+            </figure>
+          )}
           <ChoiceList
             choices={q.choicesTh}
             answered={s.diagnosis}
@@ -398,10 +453,14 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
         <>
           <p class="ask">
             {s.route
-              ? 'บูตจาก USB ได้แล้ว กลับไปคุยกับลูกค้า'
-              : needsLaptop(gc)
-                ? 'มีเครื่องลูกค้ากับโน้ตบุ๊กของร้านบนเคาน์เตอร์ แตะเครื่องที่จะใช้ แล้วทำให้เครื่องลูกค้าบูตจาก USB'
-                : 'แตะคอมบนเคาน์เตอร์เพื่อเปิดเครื่องของลูกค้า แล้วทำให้เครื่องบูตจาก USB'}
+              ? gc.template.goal === 'install'
+                ? 'ติดตั้ง Windows 11 เสร็จแล้ว กลับไปคุยกับลูกค้า'
+                : 'บูตจาก USB ได้แล้ว กลับไปคุยกับลูกค้า'
+              : gc.template.goal === 'install'
+                ? 'แตะคอมบนเคาน์เตอร์เพื่อเปิดเครื่องของลูกค้า แล้วติดตั้ง Windows 11 ให้เสร็จ'
+                : needsLaptop(gc)
+                  ? 'มีเครื่องลูกค้ากับโน้ตบุ๊กของร้านบนเคาน์เตอร์ แตะเครื่องที่จะใช้ แล้วทำให้เครื่องลูกค้าบูตจาก USB'
+                  : 'แตะคอมบนเคาน์เตอร์เพื่อเปิดเครื่องของลูกค้า แล้วทำให้เครื่องบูตจาก USB'}
           </p>
           {coach && !opened && !s.route && tip(coach.beforePcTh)}
           {saying}
@@ -417,11 +476,12 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
                 เปิดเครื่องลูกค้า
               </button>
             )}
-            {needsLaptop(gc) && !s.route && (
+            {laptopHere && !s.route && (
               <button class="btn ghost" type="button" onClick={openLaptop}>
                 เปิดโน้ตบุ๊กร้าน
               </button>
             )}
+            {backupButton}
             {hintButton}
           </div>
         </>

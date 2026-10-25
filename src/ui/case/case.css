@@ -140,3 +140,13 @@
 
 /* Case 2: Rufus finished writing; the stick is back in the customer's PC. */
 .usb-note { flex: 0 0 auto; width: 100%; margin: 0; padding: 6px 10px; background: #dff6e3; box-shadow: inset 4px 0 0 #2f9e44; color: var(--ink); font-size: 14px; }
+
+/* Case 3: the customer's phone photo of the error, shown while guessing the cause. A real-screen look
+   (Setup's red text on white), slightly tilted like a snapshot; the caption is the game's own text. */
+.error-photo { margin: 6px 0 10px; }
+.error-photo-screen {
+  padding: 10px 12px; background: #fff; color: #c42b1c;
+  font-family: var(--f-win); font-size: 14px; line-height: 1.35;
+  box-shadow: inset 0 0 0 1px #c8c8c8, 4px 4px 0 rgba(0, 0, 0, 0.25); transform: rotate(-1deg);
+}
+.error-photo figcaption { margin-top: 6px; font-size: 13px; color: var(--navy); }

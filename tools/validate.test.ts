@@ -239,3 +239,9 @@ test("a problem fixed past Setup's first page needs a case that goes on to insta
   delete get(files, 'cases/c03-red-text.json').goal;
   hasError(files, "uefi-mbr, no-product-key show only past Setup's first page");
 });
+
+test('the photo at "guess the cause" must show the screen text of a fixed problem', () => {
+  const files = real();
+  get(files, 'cases/c03-red-text.json').diagnosisPhoto.problem = 'no-product-key';
+  hasError(files, 'diagnosisPhoto must name a fixed problem that has screenText');
+});

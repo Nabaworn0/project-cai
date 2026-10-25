@@ -191,7 +191,7 @@ test('the PC keeps its state when the monitor is closed and reopened, and only o
   await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'bios');
 });
 
-test('customers in order: Somsri by keyboard, then Beam, then Somsri again; a double tap brings one customer; no console errors', async ({ page }) => {
+test('customers in order: Somsri by keyboard, then Beam, then Lung Chai; a double tap brings one customer; no console errors', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
@@ -239,10 +239,10 @@ test('customers in order: Somsri by keyboard, then Beam, then Somsri again; a do
   await expect(page.getByTestId('goodbye')).toContainText('อธิบายเข้าใจกว่าคลิปอีก');
   await expect(page.getByTestId('coins'), 'coins counted once per case').toHaveAttribute('aria-label', 'เหรียญ 300');
 
-  // Every playable case has been seen: someone other than Beam comes next (only Somsri, for now).
+  // Case 3 is next: Lung Chai (his whole case is in case3.spec.ts).
   await next.click();
   await expectStage(page, 'intro');
-  await expect(page.locator('body')).toHaveAttribute('data-customer', 'somsri');
+  await expect(page.locator('body')).toHaveAttribute('data-customer', 'chai');
   expect(errors).toEqual([]);
 });
 

@@ -253,6 +253,8 @@ function checkCases(
     const pool = c.problems.pool.map((id) => parsed.problems.find((p) => p.id === id)!);
     // Problems fixed inside Setup (product key, partitions) only show after its first page.
     const inSetup = [...fixed, ...pool].filter((p) => p.fixes.some((f) => SETUP_FIXES.includes(f))).map((p) => p.id);
+    const photo = c.diagnosisPhoto && fixed.find((p) => p.id === c.diagnosisPhoto!.problem);
+    if (c.diagnosisPhoto && !photo?.screenText) errors.push(`${where}: diagnosisPhoto must name a fixed problem that has screenText`);
     if (c.goal === 'setup' && inSetup.length) errors.push(`${where}: ${inSetup.join(', ')} show only past Setup's first page; set "goal": "install"`);
     // The first five cases are the textbook part of the game: topics beyond the book belong in later cases.
     const beyond = [...fixed, ...pool].filter((p) => p.source === 'extra').map((p) => p.id);

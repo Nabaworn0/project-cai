@@ -49,3 +49,18 @@ test('reaction lines are checked: goodbye needs exactly three, and misspelled ke
   raw.customer.reactionsTh = { fixTh: 'สะกดผิด' };
   assert.equal(CaseSchema.safeParse(raw).success, false);
 });
+
+test("case 3: Lung Chai has his own lines for Setup, the backup question and both traps", () => {
+  const raw = JSON.parse(readFileSync(new URL('../src/content/data/cases/c03-red-text.json', import.meta.url), 'utf8'));
+  const chai = CaseSchema.parse(raw).customer.reactionsTh;
+  for (const [event, key] of [
+    ['reached-setup', 'reachedSetupTh'],
+    ['backup', 'backupTh'],
+    ['no-backup', 'noBackupTh'],
+    ['lost-installer', 'lostInstallerTh'],
+  ] as const) {
+    assert.ok(chai[key], key);
+    assert.equal(reactionLine(chai, event), chai[key]);
+    assert.equal(reactionLine({}, event), GENERIC_REACTIONS[key]);
+  }
+});

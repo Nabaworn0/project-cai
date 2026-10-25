@@ -91,6 +91,7 @@ export function CaseLab({ template, customer, lib, objectives }: Props) {
         <ReactionList
           r={template.customer.reactionsTh}
           remakesUsb={[...template.problems.fixed, ...template.problems.pool].some((id) => lib.problems.find((p) => p.id === id)?.fixes.includes('remake-usb'))}
+          installs={template.goal === 'install'}
         />
         {template.designNotesTh.length > 0 && (
           <>
@@ -205,7 +206,7 @@ function Question({ title, q }: { title: string; q: CaseQuestion }) {
 }
 
 /** The customer's lines during the repair; generic ones (src/core/reactions.ts) are marked so writers see what is missing. */
-function ReactionList({ r, remakesUsb }: { r: Reactions; remakesUsb: boolean }) {
+function ReactionList({ r, remakesUsb, installs }: { r: Reactions; remakesUsb: boolean; installs: boolean }) {
   const own = (has: boolean) => (has ? null : <span class="v-badge warn">ใช้ประโยคกลาง</span>);
   return (
     <div data-testid="reactions">
@@ -217,13 +218,26 @@ function ReactionList({ r, remakesUsb }: { r: Reactions; remakesUsb: boolean }) 
         </dd>
         <dt>ไม่มีอุปกรณ์บูต</dt>
         <dd>“{r.noBootTh ?? GENERIC_REACTIONS.noBootTh}” {own(!!r.noBootTh)}</dd>
-        {/* Only cases that remake the stick in Rufus can boot the wrong image or end up in legacy mode. */}
-        {remakesUsb && (
+        {/* Only cases that remake the stick in Rufus can boot the wrong image or end up in legacy mode
+            (install cases too: a stick wiped in Setup is made again in Rufus). */}
+        {(remakesUsb || installs) && (
           <>
             <dt>USB เป็นไฟล์ผิดตัว (พลาด)</dt>
             <dd>“{r.wrongImageTh ?? GENERIC_REACTIONS.wrongImageTh}” {own(!!r.wrongImageTh)}</dd>
             <dt>ขึ้นว่าลง Windows 11 ไม่ได้ (พลาด)</dt>
             <dd>“{r.cantRunTh ?? GENERIC_REACTIONS.cantRunTh}” {own(!!r.cantRunTh)}</dd>
+          </>
+        )}
+        {installs && (
+          <>
+            <dt>บูตถึงหน้า Setup (ยังไม่จบ)</dt>
+            <dd>“{r.reachedSetupTh ?? GENERIC_REACTIONS.reachedSetupTh}” {own(!!r.reachedSetupTh)}</dd>
+            <dt>ตอบเมื่อถามเรื่องสำรองข้อมูล</dt>
+            <dd>“{r.backupTh ?? GENERIC_REACTIONS.backupTh}” {own(!!r.backupTh)}</dd>
+            <dt>ลบดิสก์ก่อนถามเรื่องสำรอง (พลาด)</dt>
+            <dd>“{r.noBackupTh ?? GENERIC_REACTIONS.noBackupTh}” {own(!!r.noBackupTh)}</dd>
+            <dt>ลบพาร์ทิชันของ USB (พลาด)</dt>
+            <dd>“{r.lostInstallerTh ?? GENERIC_REACTIONS.lostInstallerTh}” {own(!!r.lostInstallerTh)}</dd>
           </>
         )}
         <dt>ซ่อมสำเร็จ</dt>

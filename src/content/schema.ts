@@ -103,6 +103,14 @@ const ReactionsSchema = z
     cantRunTh: th.optional(),
     /** The USB booted: the problem is fixed. */
     fixedTh: th.optional(),
+    /** Setup came up, but the job goes on to the install (cases whose goal is "install"). */
+    reachedSetupTh: th.optional(),
+    /** Answer to "are your files backed up?" (asked before wiping the disk in Setup). */
+    backupTh: th.optional(),
+    /** The disk was wiped before the technician asked about a backup (a mistake). */
+    noBackupTh: th.optional(),
+    /** The install USB's own partition was deleted in Setup (a mistake). */
+    lostInstallerTh: th.optional(),
     /** Goodbye on the summary, by stars: [1 star, 2 stars, 3 stars]. */
     goodbyeTh: z.tuple([th, th, th]).optional(),
   })
@@ -142,6 +150,8 @@ export const CaseSchema = z.object({
   /** When the repair is done: the USB reaches Setup's first page (cases 1–2), or Windows is installed (case 3 on:
    *  the problem shows on a later Setup page). */
   goal: z.enum(['setup', 'install']).default('setup'),
+  /** A photo the customer brings of the error (stage "guess the cause"): the screen text of one of its fixed problems. */
+  diagnosisPhoto: z.object({ problem: id, captionTh: th }).strict().optional(),
   /** Notes for whoever builds/plays the case (traps, what to watch); not shown to students. */
   designNotesTh: z.array(th).default([]),
   brands: z.array(id).min(1),

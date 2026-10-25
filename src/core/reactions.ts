@@ -4,7 +4,7 @@
 
 import type { Reactions } from '../content/schema';
 
-export type ReactionEvent = 'old-windows' | 'no-boot' | 'wrong-image' | 'cant-run' | 'fixed';
+export type ReactionEvent = 'old-windows' | 'no-boot' | 'wrong-image' | 'cant-run' | 'fixed' | 'reached-setup' | 'backup' | 'no-backup' | 'lost-installer';
 
 export const GENERIC_REACTIONS: Required<Reactions> = {
   oldWindowsTh: ['ยังขึ้นหน้าจอเดิมอยู่เลยนะ', 'เหมือนเดิมเลย ยังไม่ได้อีกเหรอ'],
@@ -12,6 +12,10 @@ export const GENERIC_REACTIONS: Required<Reactions> = {
   wrongImageTh: 'ขึ้นหน้าติดตั้งแล้ว แต่ดูไม่ใช่ Windows 11 นะ',
   cantRunTh: 'ขึ้นว่าเครื่องนี้ลง Windows 11 ไม่ได้ จริงเหรอ',
   fixedTh: 'ขึ้นหน้าใหม่แล้ว! ได้แล้วใช่ไหม',
+  reachedSetupTh: 'ขึ้นหน้าติดตั้งแล้ว ทำต่อได้เลย',
+  backupTh: 'สำรองไว้แล้ว ลบได้เลย',
+  noBackupTh: 'เดี๋ยวก่อน ยังไม่ได้ถามเลยว่าข้อมูลเก็บไว้หรือยัง',
+  lostInstallerTh: 'อ้าว ขึ้นข้อความผิดพลาด แฟลชไดรฟ์เป็นอะไรไปหรือเปล่า',
   goodbyeTh: ['ได้แล้วก็ดี แต่ลุ้นอยู่นานเลยนะ', 'เรียบร้อยแล้ว ขอบคุณนะ', 'เก่งมาก ขอบคุณมากเลย ไว้มาใช้บริการอีกนะ'],
 };
 
@@ -24,6 +28,10 @@ export function reactionLine(r: Reactions, event: ReactionEvent, count = 1): str
   if (event === 'no-boot') return r.noBootTh ?? GENERIC_REACTIONS.noBootTh;
   if (event === 'wrong-image') return r.wrongImageTh ?? GENERIC_REACTIONS.wrongImageTh;
   if (event === 'cant-run') return r.cantRunTh ?? GENERIC_REACTIONS.cantRunTh;
+  if (event === 'reached-setup') return r.reachedSetupTh ?? GENERIC_REACTIONS.reachedSetupTh;
+  if (event === 'backup') return r.backupTh ?? GENERIC_REACTIONS.backupTh;
+  if (event === 'no-backup') return r.noBackupTh ?? GENERIC_REACTIONS.noBackupTh;
+  if (event === 'lost-installer') return r.lostInstallerTh ?? GENERIC_REACTIONS.lostInstallerTh;
   return r.fixedTh ?? GENERIC_REACTIONS.fixedTh;
 }
 

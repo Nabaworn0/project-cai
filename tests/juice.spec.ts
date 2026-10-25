@@ -115,8 +115,9 @@ test('the hop really moves the customer on the canvas, up and back down to the s
   await openPc(page);
   for (const k of ['F8', 'Down', 'Enter', 'Enter']) await key(page, k);
   const [x, y] = (await page.evaluate(() => document.body.dataset.customerAt!)).split(',').map(Number) as [number, number];
-  // Her head only (customerAt is her face): the case panel below changes between the shots.
-  const box = { x: x - 40, y: y - 50, width: 80, height: 70 };
+  // Her head only (customerAt is her face): the case panel below changes between the shots, and on a
+  // small phone the technician's hair (his face changes at the summary) starts about 40px to her right.
+  const box = { x: x - 40, y: y - 50, width: 72, height: 70 };
   await page.getByRole('button', { name: 'ปิด' }).click();
   await page.waitForTimeout(800); // the hop from closing is over
   const still = await page.screenshot({ clip: box });

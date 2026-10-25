@@ -5,7 +5,7 @@
 
 import type { ComponentChildren } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { powerOn, press, restart, setupAction, timeout, type Effect, type Key, type Pc } from '../../core/pc';
+import { confirmBackup, powerOn, press, restart, setupAction, timeout, type Effect, type Key, type Pc } from '../../core/pc';
 import type { SetupAction } from '../../core/setup';
 import type { Machine } from '../../core/machine';
 import type { Brand } from '../../content/schema';
@@ -48,6 +48,8 @@ interface Props {
   coach?: boolean;
   /** Where the repair is done (the case's goal): reaching Setup (cases 1–2), or Windows installed (case 3 on). */
   goal?: 'setup' | 'install';
+  /** The customer has said the files are backed up (the case flow's button, which can be tapped while Setup is open). */
+  backupAsked?: boolean;
 }
 
 /** How often the "Installing Windows 11" bar moves. */
@@ -97,7 +99,7 @@ const EFFECT_TH: Record<string, string> = {
 /** Reaching Setup when the job is to install: only the start. */
 const SETUP_STARTED_TH = 'บูตจาก USB สำเร็จ ทำ Setup ต่อจนติดตั้งเสร็จ';
 
-export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, footer, coach, goal = 'setup' }: Props) {
+export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, footer, coach, goal = 'setup', backupAsked }: Props) {
   const [pc, setPc] = useState<Pc>(() => initial ?? powerOn(machine));
   const [status, setStatus] = useState('');
   const [win, setWin] = useState(false);
@@ -193,6 +195,10 @@ export function PcScreen({ brand, machine, onClose, onEffect, initial, onPc, foo
     return () => clearInterval(t);
   }, [setupPage]);
   useEffect(() => () => delete document.body.dataset.setupPage, []);
+
+  useEffect(() => {
+    if (backupAsked) apply({ pc: confirmBackup(latest.current.pc), effects: [] });
+  }, [backupAsked]);
 
   const s = pc.screen;
   const cue = coach && s.kind === 'post';

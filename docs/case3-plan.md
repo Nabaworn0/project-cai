@@ -1,6 +1,7 @@
 # แผน: เคส 3 (ลุงชัย) "ขึ้นตัวแดง กดต่อไม่ได้"
 
 รอบ 1 ขั้นที่ 4 · เขียนเมื่อ 25 ต.ค. 2026 · **อนุมัติแล้ว 25 ต.ค. 2026 ตามข้อเสนอในข้อ 5 ทุกข้อ**
+**งาน A–E เสร็จ 25 ต.ค. 2026** · เช็กลิสต์ลองบนมือถือ: [case3-phone-test.md](case3-phone-test.md) · เปิดเคสด้วย `?case=c03-red-text` (`&seed=s4` มีคีย์, `&seed=s1` ไม่มีคีย์)
 อ้างอิง: [phase1-cases.md](phase1-cases.md) เคส 3 · [real-screens.md](real-screens.md) ข้อ 3 (Windows 11 Setup แบบใหม่ 24H2) · หนังสือ น.47, 52–56 · `src/content/data/cases/c03-red-text.json` · วัตถุประสงค์ข้อ K1, K3, P6, P8, A9 ([behavioral-objectives.md](behavioral-objectives.md))
 
 เป้าหมาย: นักเรียนได้**ไล่ Windows 11 Setup ทั้งเส้นด้วยตัวเอง** และแก้ "ดิสก์ MBR บนเครื่อง UEFI" ในหน้าเลือกพาร์ทิชัน โดย**ดูให้ดีก่อนลบ** (ถามเรื่องสำรองข้อมูล · ไม่ลบผิดดิสก์)

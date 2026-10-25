@@ -93,9 +93,12 @@ test("each case shows the customer's lines during the repair, and marks the ones
   const somsri = page.getByTestId('case-c01-boot-order').getByTestId('reactions');
   await expect(somsri).toContainText('เหมือนที่ป้าเจอเลย');
   await expect(somsri).not.toContainText('ใช้ประโยคกลาง');
-  // Beam has every line of his own, including the case 2 ones (wrong image, "can't run"); case 3 is still generic.
+  // Beam has every line of his own, including the case 2 ones (wrong image, "can't run"); so does Lung Chai for case 3; case 4 is still generic.
   const beam = page.getByTestId('case-c02-rufus-scheme').getByTestId('reactions');
   await expect(beam).toContainText('นี่มันไม่ใช่ Windows 11');
   await expect(beam).not.toContainText('ใช้ประโยคกลาง');
-  await expect(page.getByTestId('case-c03-red-text').getByTestId('reactions')).toContainText('ใช้ประโยคกลาง');
+  const chai = page.getByTestId('case-c03-red-text').getByTestId('reactions');
+  await expect(chai).toContainText('ลบพาร์ทิชันของ USB (พลาด)');
+  await expect(chai).not.toContainText('ใช้ประโยคกลาง');
+  await expect(page.getByTestId('case-c04-security-chip').getByTestId('reactions')).toContainText('ใช้ประโยคกลาง');
 });
