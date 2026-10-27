@@ -1,7 +1,9 @@
-// The menu the game opens on (docs/learning-path-plan.md): the learner's name the first time, then the
-// learning path as cards, a "ทำต่อ" button for the recommended step, and "ผู้เรียนคนใหม่" for shared lab PCs.
+// The learning page the game opens on (docs/learning-path-plan.md, a page of its own since
+// docs/learning-page-plan.md): the learner's name the first time, then the learning path as cards, a "ทำต่อ"
+// button for the recommended step, and "ผู้เรียนคนใหม่" for shared lab PCs.
 // What is open is decided in src/core/path.ts; this only draws it and reports taps.
 
+import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { learnerError, pathView, STEP_INFO, type Learner, type PathOptions, type Progress, type StepId } from '../../core/path';
 import type { Content } from '../../content';
@@ -13,13 +15,15 @@ interface Props {
   options: PathOptions;
   onLearner: (l: Learner) => void;
   onReset: () => void;
-  onEnter: (step: StepId, caseId?: string) => void;
+  onEnter: (step: StepId, caseId?: string, opts?: { replayIntro?: boolean }) => void;
+  /** The coin purse, shown in the page's header. */
+  coins: ComponentChildren;
 }
 
 const STATUS_TH = { soon: 'เร็วๆ นี้', locked: 'ยังไม่เปิด', open: 'ยังไม่ทำ', done: 'ทำแล้ว' } as const;
 const STATUS_ICON = { soon: '…', locked: '🔒', open: '▶', done: '✓' } as const;
 
-export function MenuScreen({ content, progress, options, onLearner, onReset, onEnter }: Props) {
+export function MenuScreen({ content, progress, options, onLearner, onReset, onEnter, coins }: Props) {
   const view = pathView(progress, options);
   const caseName = (id: string) => {
     const t = content.cases.find((c) => c.id === id);
@@ -34,15 +38,22 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
     : STEP_INFO[next.step].th;
 
   return (
-    <div class="menu-backdrop" role="dialog" aria-modal="true" aria-labelledby="menu-title" data-testid="menu">
+    <main class="learn-page" aria-labelledby="menu-title" data-testid="menu">
+      <div class="entrance" aria-hidden="true">
+        <span class="entrance-sign">ร้านซ่อมคอม</span>
+      </div>
       <div class="menu pixel-box">
         <header class="menu-head">
-          <h2 id="menu-title">เส้นทางเด็กฝึกงาน</h2>
-          {progress.learner && (
-            <p class="menu-who" data-testid="learner">
-              {progress.learner.name} · {progress.learner.room} เลขที่ {progress.learner.no}
-            </p>
-          )}
+          <div class="menu-head-text">
+            <p class="menu-shop">ร้านซ่อมคอม</p>
+            <h1 id="menu-title">เส้นทางเด็กฝึกงาน</h1>
+            {progress.learner && (
+              <p class="menu-who" data-testid="learner">
+                {progress.learner.name} · {progress.learner.room} เลขที่ {progress.learner.no}
+              </p>
+            )}
+          </div>
+          {coins}
         </header>
 
         {/* Keyed so the path starts at the top after the name form, not where the form was scrolled. */}
@@ -61,7 +72,7 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
                   const info = STEP_INFO[s.id];
                   return (
                     <li key={s.id} class={`path-step ${s.status}`} data-step={s.id} data-status={s.status}>
-                      <button class="path-row" type="button" disabled={!s.canEnter || s.id === 'cases'} onClick={() => onEnter(s.id)}>
+                      <button class="path-row" type="button" disabled={!s.canEnter} onClick={() => onEnter(s.id)}>
                         <span class="path-no" aria-hidden="true">
                           {i + 1}
                         </span>
@@ -110,12 +121,19 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
                   );
                 })}
               </ol>
+              {progress.seen.includes('intro') && view.steps.find((st) => st.id === 'cases')?.canEnter && (
+                <div class="menu-foot">
+                  <button class="btn ghost small" type="button" onClick={() => onEnter('cases', undefined, { replayIntro: true })}>
+                    ดูฉากต้อนรับของพี่ช่างอีกครั้ง
+                  </button>
+                </div>
+              )}
               <ResetButton name={progress.learner.name} onReset={onReset} />
             </>
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 

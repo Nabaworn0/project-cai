@@ -1,5 +1,7 @@
 // npm run pixelize -- <files or folders> [--height 39] [--same-rows 0-16,40-] [--same-cols 0-5,33-]
-//                     [--out src/assets/sprites] [--no-preview]
+//                     [--out src/assets/sprites] [--no-preview] [--keep-bg]
+//   --keep-bg: whole scenes (the shop entrance behind the learning page): nothing is removed, every pixel is kept
+//     npm run pixelize -- art-source/entrance-wide.png --keep-bg --out src/assets/scenes
 //   --same-rows / --same-cols: in a frame set, copy these art rows / columns from the *-neutral frame
 //                into the others (expressions only change the face; this removes AI noise elsewhere)
 //   Technician: npm run pixelize -- "art-source/tech-*.png" --height 50 --same-rows 0-12,32- --same-cols 0-3,27-
@@ -51,6 +53,7 @@ const sameRows = ranges(flag('--same-rows'));
 const sameCols = ranges(flag('--same-cols'));
 const outDir = flag('--out') ?? 'src/assets/sprites';
 const preview = !has('--no-preview');
+const keepBg = has('--keep-bg');
 const previewDir = 'art-source/preview';
 
 const IMAGE = /\.(png|webp|jpe?g)$/i;
@@ -131,7 +134,7 @@ for (const [group, files] of groups) {
     console.log(`  ! ${group}: source images differ in size (${[...sizes].join(', ')}); expressions may not line up`);
     problems++;
   }
-  const masks = imgs.map(subjectMask);
+  const masks = imgs.map((img) => (keepBg ? new Uint8Array(img.width * img.height).fill(1) : subjectMask(img)));
   const boxes = imgs.map((img, i) => subjectBox(img, masks[i]!));
   if (boxes.some((b) => !b)) {
     console.log(`  ! ${group}: an image is empty after background removal`);

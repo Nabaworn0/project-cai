@@ -1,7 +1,10 @@
 // HTML overlay above the Phaser canvas: HUD, the case panels, and the simulated screen.
 // Text that people read or type lives here (sharp at any DPI, Thai input works), not in the canvas.
+// Two places (docs/learning-page-plan.md): the learning page, a page of its own, and the shop, whose scene
+// (Phaser) is only loaded the first time the learner goes there and is paused while they are away.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
+import type { Game } from 'phaser';
 import { bus } from '../core/bus';
 import { loadContent } from '../content';
 import type { ShopLayout } from '../game/scenes/ShopScene';
@@ -9,7 +12,7 @@ import { CaseFlow, PLAYABLE } from './case/CaseFlow';
 import { SUMMARY_REVEAL_MS } from './case/SummaryCard';
 import { MenuScreen } from './menu/MenuScreen';
 import { loadProgress, saveProgress, type Progress } from './progress';
-import { EMPTY, pathView, recordCase, type PathOptions, type StepId } from '../core/path';
+import { EMPTY, markSeen, pathView, recordCase, type PathOptions, type StepId } from '../core/path';
 import { isMuted, onMuted, play, setMuted, unlockOnGesture } from './sound';
 import './case/case.css';
 
@@ -19,6 +22,12 @@ const params = new URLSearchParams(location.search);
 /** Steps whose screens exist (docs/learning-path-plan.md); the rest show as "เร็วๆ นี้". */
 const BUILT: ReadonlySet<StepId> = new Set<StepId>(['cases']);
 const pathOptions: PathOptions = { built: BUILT, caseIds: PLAYABLE, unlockAll: params.get('unlock') === 'all' };
+
+/** The shop scene, started once on the first visit. */
+let game: Promise<Game> | null = null;
+const startShop = () => (game ??= import('../game').then(({ startGame }) => startGame(document.getElementById('game')!)));
+/** Long enough for a customer to walk out before the scene is paused. */
+const PAUSE_AFTER_MS = 3000;
 
 export function App() {
   const [ready, setReady] = useState(false);
@@ -31,7 +40,30 @@ export function App() {
   const [visit, setVisit] = useState(0);
   const stage = useRef('');
   const [askLeave, setAskLeave] = useState(false);
+  const [replayIntro, setReplayIntro] = useState(false);
   const [muted, setMutedState] = useState(isMuted);
+
+  // The shop's scene runs only while the shop is on screen.
+  useEffect(() => {
+    document.body.dataset.view = view;
+    if (view === 'shop') {
+      void startShop().then((g) => {
+        g.loop.wake();
+        document.body.dataset.shopRunning = 'true';
+      });
+      return;
+    }
+    if (!game) return;
+    const t = setTimeout(
+      () =>
+        void game?.then((g) => {
+          g.loop.sleep();
+          document.body.dataset.shopRunning = 'false';
+        }),
+      PAUSE_AFTER_MS,
+    );
+    return () => clearTimeout(t);
+  }, [view]);
 
   useEffect(() => {
     unlockOnGesture();
@@ -50,8 +82,9 @@ export function App() {
       return next;
     });
   const finish = (caseId: string, stars: number, coins: number) => update((p) => recordCase({ ...p, coins: p.coins + coins }, caseId, stars));
-  const enter = (step: StepId, caseId?: string) => {
+  const enter = (step: StepId, caseId?: string, opts: { replayIntro?: boolean } = {}) => {
     if (step !== 'cases') return;
+    setReplayIntro(!!opts.replayIntro);
     setFirst(caseId ?? pathView(progress, pathOptions).cases.find((c) => c.status === 'open')?.id);
     setVisit((n) => n + 1);
     setView('shop');
@@ -61,44 +94,48 @@ export function App() {
     setView('menu');
   };
   // Leaving before the job starts or after it ends loses nothing; in the middle, ask first.
-  const menuTapped = () => (['', 'arriving', 'intro', 'summary'].includes(stage.current) ? toMenu() : setAskLeave(true));
+  const menuTapped = () => (['', 'arriving', 'talk', 'intro', 'summary'].includes(stage.current) ? toMenu() : setAskLeave(true));
 
   return (
     <>
       {/* Thai text cannot be drawn legibly at art-pixel size, so the sign's name is HTML laid over the board. */}
-      {sign && (
-        <div class="sign-label" aria-hidden="true" style={{ left: `${sign.x}px`, top: `${sign.y}px`, width: `${sign.w}px`, height: `${sign.h}px`, fontSize: `${Math.round(sign.h * 0.6)}px` }}>
+      {view === 'shop' && sign && (
+        <div
+          class="sign-label"
+          aria-hidden="true"
+          style={{ left: `${sign.x}px`, top: `${sign.y}px`, width: `${sign.w}px`, height: `${sign.h}px`, fontSize: `${Math.round(sign.h * 0.6)}px` }}
+        >
           ร้านซ่อมคอม
         </div>
       )}
 
-      <header class="hud">
-        {view === 'shop' && (
+      {view === 'shop' && (
+        <header class="hud">
           <button class="chip menu-chip" type="button" onClick={menuTapped}>
             ☰ เมนู
           </button>
-        )}
-        <h1 class="chip brand">
-          ร้านซ่อมคอม <small>รอบ 1</small>
-        </h1>
-        <div class="hud-right">
-          <CoinChip coins={progress.coins} />
-          <button
-            class="chip sound-chip"
-            type="button"
-            // A toggle: one name, its state in aria-pressed (a name like "ปิดเสียง" would also match "ปิด", the PC's close button).
-            aria-pressed={!muted}
-            aria-label="เสียงในเกม"
-            title={muted ? 'เสียงปิดอยู่ แตะเพื่อเปิด' : 'เสียงเปิดอยู่ แตะเพื่อปิด'}
-            onClick={() => setMuted(!muted)}
-          >
-            {muted ? '🔇' : '🔊'}
-          </button>
-          <div class="chip sim-badge" role="status" title="ทุกหน้าจอในเกมเป็นการจำลอง ไม่ได้ติดตั้งระบบจริง">
-            โหมดจำลอง
+          <h1 class="chip brand">
+            ร้านซ่อมคอม <small>รอบ 1</small>
+          </h1>
+          <div class="hud-right">
+            <CoinChip coins={progress.coins} />
+            <button
+              class="chip sound-chip"
+              type="button"
+              // A toggle: one name, its state in aria-pressed (a name like "ปิดเสียง" would also match "ปิด", the PC's close button).
+              aria-pressed={!muted}
+              aria-label="เสียงในเกม"
+              title={muted ? 'เสียงปิดอยู่ แตะเพื่อเปิด' : 'เสียงเปิดอยู่ แตะเพื่อปิด'}
+              onClick={() => setMuted(!muted)}
+            >
+              {muted ? '🔇' : '🔊'}
+            </button>
+            <div class="chip sim-badge" role="status" title="ทุกหน้าจอในเกมเป็นการจำลอง ไม่ได้ติดตั้งระบบจริง">
+              โหมดจำลอง
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {view === 'menu' ? (
         <MenuScreen
@@ -108,7 +145,12 @@ export function App() {
           onLearner={(learner) => update((p) => ({ ...p, learner }))}
           onReset={() => update(() => EMPTY)}
           onEnter={enter}
+          coins={<CoinChip coins={progress.coins} />}
         />
+      ) : !ready ? (
+        <div class="shop-loading" role="status">
+          กำลังไปที่ร้าน…
+        </div>
       ) : (
         <CaseFlow
           key={visit}
@@ -119,6 +161,9 @@ export function App() {
           onFinish={finish}
           onMenu={toMenu}
           onStage={(st) => (stage.current = st)}
+          seen={params.has('case') ? null : progress.seen}
+          onSeen={(id) => update((p) => markSeen(p, id))}
+          replayIntro={replayIntro}
         />
       )}
 

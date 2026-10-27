@@ -165,3 +165,8 @@
 .w11check-feedback { margin: 6px 0 0; font-size: 14px; }
 .w11check-feedback.ok { color: #1d6b4f; }
 .w11check-feedback.no { color: #a33a2a; }
+
+/* A talk with the senior (TalkBox.tsx): the speaker's name in their own colour, and how far along the talk is. */
+.case-panel .speaker.senior { background: #8a5a33; color: var(--cream); }
+.case-panel .speaker.intern { background: var(--teal); color: var(--navy); }
+.talk .talk-count { margin-right: auto; align-self: center; font-size: 13px; color: #5f6b80; }

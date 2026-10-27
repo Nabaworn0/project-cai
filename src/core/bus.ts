@@ -18,6 +18,13 @@ export interface GameEvents {
   'customer:tap': { id: string };
   /** The customer hops for joy (back from a fixed PC, or a good result). */
   'customer:cheer': Record<string, never>;
+  /** The senior technician (พี่ช่าง) leaves his bench and walks to the intern's side, or goes back. */
+  'senior:come': Record<string, never>;
+  'senior:go': Record<string, never>;
+  'senior:arrived': Record<string, never>;
+  'senior:left': Record<string, never>;
+  /** A line of a talk: the speaker shows this face and hops once. */
+  'talk:line': { who: 'senior' | 'intern'; face: Expression };
   'ui:open-sim': Record<string, never>;
   'ui:close-sim': Record<string, never>;
   /** The shop laptop on the counter was tapped (Rufus, case 2). */

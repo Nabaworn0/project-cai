@@ -139,3 +139,16 @@ test('game sprites: frames of one set share a size, and every pixel is a palette
   }
   for (const [set, s] of sizes) assert.equal(s.size, 1, `${set}-* frames differ in size (${[...s].join(', ')}), so the character would jump`);
 });
+
+test('scene pictures (the shop entrance behind the learning page) use only palette colours', async () => {
+  const dir = new URL('../src/assets/scenes/', import.meta.url);
+  const palette = new Set(Object.values(PALETTE_KEYS).map((c) => c.toLowerCase()));
+  for (const f of readdirSync(dir).filter((x) => x.endsWith('.png'))) {
+    const { data, info } = await sharp(fileURLToPath(new URL(f, dir))).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    for (let i = 0; i < info.width * info.height; i++) {
+      assert.equal(data[i * 4 + 3], 255, `${f}: a scene has no transparent pixels (${i})`);
+      const hex = '#' + [0, 1, 2].map((k) => data[i * 4 + k]!.toString(16).padStart(2, '0')).join('');
+      assert.ok(palette.has(hex), `${f}: colour ${hex} is not in the palette`);
+    }
+  }
+});

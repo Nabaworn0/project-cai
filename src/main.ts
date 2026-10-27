@@ -8,22 +8,19 @@ import { h, render } from 'preact';
 import { registerPwa } from './pwa';
 
 async function bootGame(): Promise<void> {
-  // Loaded on demand so the content viewer does not download Phaser.
-  const [{ bus }, { startGame }, { App }] = await Promise.all([import('./core/bus'), import('./game'), import('./ui/App')]);
+  // The learning page comes first; the shop scene (Phaser) is loaded when the learner goes to the shop (src/ui/App.tsx).
+  const { App } = await import('./ui/App');
 
-  // Canvas text is drawn once, so the Thai fonts must be loaded before Phaser renders it.
+  // Canvas text is drawn once, so the Thai fonts must be loaded before Phaser renders it (and the page reads better).
   await Promise.all([
     document.fonts.load('700 32px "Chakra Petch"', 'ร้านซ่อมคอม'),
     document.fonts.load('400 16px "Noto Sans Thai"', 'ก'),
   ]).catch(() => undefined);
 
   render(h(App, {}), document.getElementById('ui')!);
-  bus.on('scene:ready', () => {
-    const splash = document.getElementById('splash');
-    splash?.classList.add('gone');
-    setTimeout(() => splash?.remove(), 400);
-  });
-  startGame(document.getElementById('game')!);
+  const splash = document.getElementById('splash');
+  splash?.classList.add('gone');
+  setTimeout(() => splash?.remove(), 400);
 }
 
 /** ?view=content: the content viewer for people making the game (src/viewer). */

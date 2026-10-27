@@ -268,3 +268,22 @@ test('case 5 rules: the "desktop" goal needs a valid PC name on the ticket; file
   get(files, 'cases/c05-lab-upgrade.json').customer.keepData = true;
   hasError(files, 'both keep the files and not need them');
 });
+
+test('talks: the welcome must exist, scenes belong to cases, faces exist for their speaker', () => {
+  let files = real();
+  const cs = () => get(files, 'cutscenes.json') as { scenes: { id: string; lines: { who: string; face?: string; th: string }[] }[] };
+  cs().scenes = cs().scenes.filter((s) => s.id !== 'intro');
+  hasError(files, 'no "intro" scene');
+  files = real();
+  cs().scenes[1]!.id = 'c99-nobody';
+  hasError(files, 'scene "c99-nobody" is not "intro" or a case id');
+  files = real();
+  cs().scenes[0]!.lines[0] = { who: 'senior', face: 'surprised', th: 'โอ้' };
+  hasError(files, 'senior has no "surprised" face');
+  files = real();
+  cs().scenes.push({ ...cs().scenes[0]! });
+  hasError(files, 'duplicate scene "intro"');
+  files = real();
+  files = files.filter((f) => f.path !== 'cutscenes.json');
+  hasError(files, 'cutscenes.json: missing');
+});

@@ -2,6 +2,7 @@
 // step ordering, the shop's cases, post-test, reflection, results. Pure data in, data out: the UI keeps the
 // saved progress (src/ui/progress.ts) and asks here what is open and what to do next.
 // Steps not built yet are "soon" and lock nothing, so the path works while items 2-7 are being made.
+// The shop opens once the learning before it is done (docs/learning-page-plan.md, approved 28 Oct 2026).
 
 export const STEPS = ['pre', 'lesson-os', 'lesson-types', 'order', 'cases', 'post', 'reflect', 'results'] as const;
 export type StepId = (typeof STEPS)[number];
@@ -49,9 +50,14 @@ export interface Progress {
   /** Steps finished that keep no score of their own: the lessons, the ordering game, the reflection. */
   done: StepId[];
   cases: Record<string, CaseRecord>;
+  /** Cutscenes already shown on their own: 'intro' (the welcome) and case ids (the talk before a case). */
+  seen: string[];
 }
 
-export const EMPTY: Progress = { coins: 0, learner: null, pre: null, post: null, done: [], cases: {} };
+export const EMPTY: Progress = { coins: 0, learner: null, pre: null, post: null, done: [], cases: {}, seen: [] };
+
+/** What is learned before the shop: the pre-test, both lessons and the step ordering. */
+const BEFORE_SHOP: readonly StepId[] = ['pre', 'lesson-os', 'lesson-types', 'order'];
 
 export type Status = 'soon' | 'locked' | 'open' | 'done';
 
@@ -87,6 +93,7 @@ export function pathView(p: Progress, o: PathOptions): PathView {
   const done = (id: StepId) => isDone(p, id, o);
   // The pre-test comes first, but only once it exists.
   const gate = !o.built.has('pre') || done('pre');
+  const learned = BEFORE_SHOP.every((id) => !o.built.has(id) || done(id));
   const casesDone = done('cases');
   const afterPost = o.built.has('post') ? done('post') : casesDone;
 
@@ -95,8 +102,8 @@ export function pathView(p: Progress, o: PathOptions): PathView {
     'lesson-os': gate,
     'lesson-types': gate,
     order: gate,
-    cases: gate,
-    post: gate && casesDone,
+    cases: learned,
+    post: learned && casesDone,
     reflect: gate && afterPost,
     results: true,
   };
@@ -111,7 +118,7 @@ export function pathView(p: Progress, o: PathOptions): PathView {
   const cases = o.caseIds.map((id, i) => {
     const status: Exclude<Status, 'soon'> = played(p, id)
       ? 'done'
-      : (gate && (i === 0 || played(p, o.caseIds[i - 1]))) || o.unlockAll
+      : (learned && (i === 0 || played(p, o.caseIds[i - 1]))) || o.unlockAll
         ? 'open'
         : 'locked';
     return { id, status, stars: played(p, id) ? p.cases[id]!.stars : null };
@@ -139,6 +146,11 @@ export function recordCase(p: Progress, caseId: string, stars: number): Progress
 /** A lesson, the ordering game or the reflection finished. */
 export function markDone(p: Progress, id: StepId): Progress {
   return p.done.includes(id) ? p : { ...p, done: [...p.done, id] };
+}
+
+/** A cutscene was shown, so it does not start by itself again (it can still be replayed). */
+export function markSeen(p: Progress, id: string): Progress {
+  return p.seen.includes(id) ? p : { ...p, seen: [...p.seen, id] };
 }
 
 /** Stores a test result; the first one stands (tests are taken once). */
@@ -205,5 +217,6 @@ export function parseProgress(raw: string | null, oldRaw: string | null = null):
     }
   const saved = v.done;
   const done = Array.isArray(saved) ? STEPS.filter((s) => saved.includes(s)) : [];
-  return { coins: count(v.coins) ?? 0, learner: learner(v.learner), pre: quiz(v.pre), post: quiz(v.post), done, cases };
+  const seen = Array.isArray(v.seen) ? [...new Set(v.seen.filter((x): x is string => typeof x === 'string' && x.length > 0 && x.length <= 40))] : [];
+  return { coins: count(v.coins) ?? 0, learner: learner(v.learner), pre: quiz(v.pre), post: quiz(v.post), done, cases, seen };
 }

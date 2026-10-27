@@ -10,9 +10,11 @@ export function spriteUrl(name: string): string | undefined {
   return byName.get(name);
 }
 
-/** Characters that have a drawn neutral frame, e.g. "somsri" from somsri-neutral.png (the technician excluded). */
+/** Customers that have a drawn neutral frame, e.g. "somsri" from somsri-neutral.png (the intern and the senior technician excluded). */
 export function characterIds(): string[] {
-  return [...byName.keys()].filter((n) => n.endsWith('-neutral') && !n.startsWith('tech-')).map((n) => n.slice(0, -'-neutral'.length));
+  return [...byName.keys()]
+    .filter((n) => n.endsWith('-neutral') && !n.startsWith('tech-') && !n.startsWith('senior-'))
+    .map((n) => n.slice(0, -'-neutral'.length));
 }
 
 /**

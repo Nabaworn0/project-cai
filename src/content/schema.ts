@@ -329,3 +329,31 @@ export const CardsSchema = z.object({
 export type Problem = z.infer<typeof ProblemSchema>;
 export type Objectives = z.infer<typeof ObjectivesSchema>;
 export type Cards = z.infer<typeof CardsSchema>;
+
+/** Faces each speaker has (sprites `senior-<face>.png`, `tech-<face>.png`). */
+export const CUTSCENE_FACES = { senior: ['neutral', 'happy', 'thinking'], intern: ['neutral', 'happy', 'thinking', 'surprised'] } as const;
+
+/** Talks between the senior technician and the intern (docs/learning-page-plan.md): `intro` the first time in
+ *  the shop, and one per case id before its customer walks in. */
+export const CutscenesSchema = z.object({
+  draft: z.boolean(),
+  scenes: z
+    .array(
+      z.object({
+        id,
+        lines: z
+          .array(
+            z.object({
+              who: z.enum(['senior', 'intern']),
+              face: z.enum(CUTSCENE_FACES.intern).default('neutral'),
+              /** About two lines on a phone. */
+              th: th.max(120),
+            }),
+          )
+          .min(1)
+          .max(12),
+      }),
+    )
+    .min(1),
+});
+export type Cutscenes = z.infer<typeof CutscenesSchema>;

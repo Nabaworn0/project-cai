@@ -12,6 +12,8 @@ import {
   BIOS_SETTINGS,
   BrandSchema,
   CardsSchema,
+  CUTSCENE_FACES,
+  CutscenesSchema,
   Win11CheckSchema,
   CaseSchema,
   CustomersSchema,
@@ -20,6 +22,7 @@ import {
   QuizSchema,
   type Brand,
   type Cards,
+  type Cutscenes,
   type Win11Check,
   type Case,
   type CaseQuestion,
@@ -54,6 +57,7 @@ export interface ParsedContent {
   quizzes: Quiz[];
   cards?: Cards;
   win11Check?: Win11Check;
+  cutscenes?: Cutscenes;
 }
 
 export function validateContent(files: readonly ContentFile[], opts: { seedsPerCase?: number } = {}): Report {
@@ -78,6 +82,7 @@ export function validateContent(files: readonly ContentFile[], opts: { seedsPerC
   checkQuizzes(parsed.quizzes, checkLo, errors, warnings);
   checkCards(parsed, errors, warnings);
   checkWin11Check(parsed, errors);
+  checkCutscenes(parsed, errors, warnings);
 
   return {
     errors,
@@ -108,10 +113,11 @@ export function parseAll(files: readonly ContentFile[], errors: string[]): Parse
     else if (f.path === 'cards.json') out.cards = parse(CardsSchema, f);
     else if (f.path === 'customers.json') out.customers = parse(CustomersSchema, f) ?? [];
     else if (f.path === 'win11-check.json') out.win11Check = parse(Win11CheckSchema, f);
+    else if (f.path === 'cutscenes.json') out.cutscenes = parse(CutscenesSchema, f);
     else if (f.path.startsWith('brands/')) push(out.brands, parse(BrandSchema, f), f.path, errors);
     else if (f.path.startsWith('cases/')) push(out.cases, parse(CaseSchema, f), f.path, errors);
     else if (f.path.startsWith('quizzes/')) push(out.quizzes, parse(QuizSchema, f), f.path, errors);
-    else errors.push(`${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, brands/, cases/, quizzes/)`);
+    else errors.push(`${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, brands/, cases/, quizzes/)`);
   }
   return out;
 }
@@ -359,5 +365,25 @@ function checkCards(parsed: ParsedContent, errors: string[], warnings: string[])
   if (cards.draft) warnings.push('cards.json: เนื้อหาการ์ดยังเป็นร่าง');
   if (cards.sets.length !== 6 || cards.cards.length !== 30) {
     warnings.push(`cards.json: แผนคือ 30 ใบ 6 ชุด ตอนนี้มี ${cards.cards.length} ใบ ${cards.sets.length} ชุด`);
+  }
+}
+
+/** The welcome talk exists, every talk belongs to a case (or is the welcome), faces exist for their speaker. */
+function checkCutscenes(parsed: ParsedContent, errors: string[], warnings: string[]): void {
+  const cs = parsed.cutscenes;
+  if (!cs) {
+    errors.push('cutscenes.json: missing');
+    return;
+  }
+  if (cs.draft) warnings.push('cutscenes.json: บทคุยกับพี่ช่างยังเป็นร่าง (draft) รอบทจริง');
+  dupes(cs.scenes.map((s) => s.id), 'cutscenes.json: duplicate scene', errors);
+  const caseIds = new Set(parsed.cases.map((c) => c.id));
+  if (!cs.scenes.some((s) => s.id === 'intro')) errors.push('cutscenes.json: no "intro" scene (the welcome)');
+  for (const s of cs.scenes) {
+    if (s.id !== 'intro' && !caseIds.has(s.id)) errors.push(`cutscenes.json: scene "${s.id}" is not "intro" or a case id`);
+    for (const [i, l] of s.lines.entries()) {
+      const faces: readonly string[] = CUTSCENE_FACES[l.who];
+      if (!faces.includes(l.face)) errors.push(`cutscenes.json: ${s.id} line ${i + 1}: ${l.who} has no "${l.face}" face`);
+    }
   }
 }

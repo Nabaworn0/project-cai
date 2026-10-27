@@ -27,12 +27,14 @@ import {
   type SessionEvent,
 } from '../../core/session';
 import type { Content } from '../../content';
+import type { Cutscenes } from '../../content/schema';
 import { PcScreen } from '../sim/PcScreen';
 import { RufusScreen } from '../sim/RufusScreen';
 import { play } from '../sound';
 import { ChoiceList, Feedback } from './parts';
 import { SummaryCard } from './SummaryCard';
 import { Win11CheckTable } from './Win11Check';
+import { TalkBox } from './TalkBox';
 import { TicketCard } from './TicketCard';
 
 interface Props {
@@ -48,6 +50,11 @@ interface Props {
   onMenu: () => void;
   /** Where the case is, so the menu button knows whether leaving loses a job in progress. */
   onStage: (stage: string) => void;
+  /** Talks with the senior already shown on their own ('intro', case ids); null skips every talk (?case= links). */
+  seen: readonly string[] | null;
+  onSeen: (id: string) => void;
+  /** The menu's "ดูฉากต้อนรับอีกครั้ง": the welcome talk again before the customer. */
+  replayIntro?: boolean;
 }
 
 /** Cases whose screens exist so far, in play order (Rufus came with case 2, Setup and its partition page with case 3). */
@@ -90,7 +97,7 @@ function startPc(gc: GeneratedCase, usb: Usb): Pc {
 /** What Rufus finds on a stick whose partition Setup deleted. */
 const WIPED_LABEL = 'NO_LABEL';
 
-export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onStage }: Props) {
+export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onStage, seen, onSeen, replayIntro }: Props) {
   const [gc, setGc] = useState(() => newCase(content, null, first));
   const [s, setS] = useState<Session>(() => startSession(gc));
   const [arrived, setArrived] = useState(false);
@@ -132,15 +139,39 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
     return next;
   };
 
-  // The customer walks in when the shop is ready, and again for every new case.
+  /** A talk with the senior on screen: its scenes' ids, its lines, and whether the customer walks in after it. */
+  const [talk, setTalk] = useState<{ ids: string[]; lines: Cutscenes['scenes'][number]['lines']; thenEnter: boolean } | null>(null);
+  const shownIntro = useRef(false);
+  const talkFor = (ids: string[], thenEnter: boolean) => {
+    const scenes = ids.flatMap((id) => content.cutscenes.scenes.filter((sc) => sc.id === id));
+    return scenes.length ? { ids: scenes.map((sc) => sc.id), lines: scenes.flatMap((sc) => sc.lines), thenEnter } : null;
+  };
+  const enterCustomer = (g: GeneratedCase) => {
+    bus.emit('customer:enter', { id: g.template.customer.id, mood: customerMood(g, startSession(g)) });
+    play('bell');
+  };
+
+  // The customer walks in when the shop is ready, and again for every new case; on the learning path the senior
+  // first comes over for the welcome (once, or when asked to replay it) and the talk about this case (its first time).
   useEffect(() => {
     if (!ready) return;
     setArrived(false);
     const off = bus.on('customer:arrived', ({ id }) => id === gc.template.customer.id && setArrived(true));
-    bus.emit('customer:enter', { id: gc.template.customer.id, mood: customerMood(gc, startSession(gc)) });
-    play('bell');
+    const ids: string[] = [];
+    if (seen && (!seen.includes('intro') || (replayIntro && !shownIntro.current))) ids.push('intro');
+    if (seen && !seen.includes(gc.template.id)) ids.push(gc.template.id);
+    shownIntro.current ||= ids.includes('intro');
+    const t = talkFor(ids, true);
+    if (t) setTalk(t);
+    else enterCustomer(gc);
     return off;
   }, [ready, gc]);
+  const talkDone = () => {
+    const t = talk!;
+    t.ids.forEach(onSeen);
+    setTalk(null);
+    if (t.thenEnter) enterCustomer(latest.current.gc);
+  };
 
   // The face follows the session (worried until fixed, then by the result).
   const mood = customerMood(gc, s);
@@ -187,10 +218,10 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
   }, [feedback, s.stage]);
 
   useEffect(() => {
-    const stage = arrived ? s.stage : 'arriving';
+    const stage = talk ? 'talk' : arrived ? s.stage : 'arriving';
     document.body.dataset.caseStage = stage;
     onStage(stage);
-  }, [arrived, s.stage]);
+  }, [arrived, s.stage, talk !== null]);
   // Back to the menu: the customer walks out and the page no longer claims a case stage.
   useEffect(
     () => () => {
@@ -438,6 +469,7 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
     );
   }
 
+  if (ready && talk) return <TalkBox key={talk.ids.join(' ')} lines={talk.lines} onDone={talkDone} />;
   if (!ready || !arrived) return null;
 
   const speaker = <span class="speaker">{name}</span>;
@@ -449,6 +481,11 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
           {speaker}
           <p class="says">“{gc.template.customer.lineTh}”</p>
           <div class="actions">
+            {seen && content.cutscenes.scenes.some((sc) => sc.id === gc.template.id) && (
+              <button class="btn ghost small" type="button" onClick={() => setTalk(talkFor([gc.template.id], false))}>
+                ฟังพี่ช่างอีกครั้ง
+              </button>
+            )}
             <button class="btn" type="button" onClick={() => act({ type: 'next' })}>
               รับเรื่อง
             </button>

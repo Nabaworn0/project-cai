@@ -4,12 +4,14 @@ import {
   BrandSchema,
   CaseSchema,
   CustomersSchema,
+  CutscenesSchema,
   ObjectivesSchema,
   ProblemsSchema,
   Win11CheckSchema,
   type Brand,
   type Case,
   type Customer,
+  type Cutscenes,
   type Objectives,
   type Problem,
   type Win11Check,
@@ -31,6 +33,7 @@ export interface Content {
   cases: Case[];
   customers: Customer[];
   win11Check: Win11Check;
+  cutscenes: Cutscenes;
 }
 
 /** Parses (and so applies schema defaults to) the bundled content. Bad content fails loudly at startup. */
@@ -42,5 +45,6 @@ export function loadContent(): Content {
     cases: pick('cases/').map((d) => CaseSchema.parse(d)).sort((a, b) => a.order - b.order),
     customers: CustomersSchema.parse(raw['./data/customers.json']),
     win11Check: Win11CheckSchema.parse(raw['./data/win11-check.json']),
+    cutscenes: CutscenesSchema.parse(raw['./data/cutscenes.json']),
   };
 }

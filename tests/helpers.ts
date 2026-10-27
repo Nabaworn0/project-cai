@@ -7,7 +7,8 @@ export const LEARNER = { name: 'สมชาย ใจดี', room: 'ปวช.
 /** The menu the game opens on: give the learner's name the first time, then "ทำต่อ". */
 export async function passMenu(page: Page) {
   const menu = page.getByTestId('menu');
-  await expect(menu).toBeVisible();
+  // The first load (fonts, then the page) can take a while when every test runs at once.
+  await expect(menu).toBeVisible({ timeout: 15_000 });
   if (await menu.getByLabel('ชื่อ-สกุล').isVisible()) {
     await menu.getByLabel('ชื่อ-สกุล').fill(LEARNER.name);
     await menu.getByLabel('ชั้น').fill(LEARNER.room);
@@ -18,12 +19,21 @@ export async function passMenu(page: Page) {
   await expect(menu).toHaveCount(0);
 }
 
-/** A first visit: the shop behind the menu, then through the menu to the first customer. */
-export async function openShop(page: Page) {
+/** Every talk with the senior marked as already seen, so tests about other things go straight to the customer. */
+export const ALL_TALKS = ['intro', 'c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip', 'c05-lab-upgrade'];
+
+/** A first visit: the learning page, then through it to the shop and the first customer (talks already seen,
+ *  unless `talks` is set: tests/talk.spec.ts covers them). */
+export async function openShop(page: Page, { talks = false } = {}) {
+  if (!talks)
+    await page.addInitScript(
+      (seen) => !localStorage.getItem('talks-seeded') && (localStorage.setItem('shop.progress.v2', JSON.stringify({ seen })), localStorage.setItem('talks-seeded', '1')),
+      ALL_TALKS,
+    );
   await page.goto('/');
-  await expect(page.locator('body')).toHaveAttribute('data-scene', 'shop');
   await expect(page.locator('#splash')).toHaveCount(0);
   await passMenu(page);
+  await expect(page.locator('body')).toHaveAttribute('data-scene', 'shop');
 }
 
 export const expectStage = (page: Page, stage: string) => expect(page.locator('body')).toHaveAttribute('data-case-stage', stage, { timeout: 8000 });
@@ -65,4 +75,11 @@ export async function playCase1(page: Page) {
   await page.getByRole('button', { name: /เครื่องเลือกบูตตามลำดับที่ตั้งไว้ใน BIOS/ }).click();
   await page.getByRole('button', { name: 'ต่อไป' }).click();
   await expectStage(page, 'summary');
+}
+
+/** A talk with the senior is on screen: skip it and wait for the customer. */
+export async function skipTalk(page: Page) {
+  await expect(page.getByTestId('talk')).toBeVisible({ timeout: 8000 });
+  await page.getByTestId('talk').getByRole('button', { name: 'ข้าม' }).click();
+  await expectStage(page, 'intro');
 }

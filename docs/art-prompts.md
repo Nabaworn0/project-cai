@@ -65,6 +65,41 @@ Transparent background, PNG.
 
 บันทึกเป็น `art-source/tech-neutral.png`, `tech-happy.png`, `tech-thinking.png`, `tech-surprised.png`
 
+## 2.1 พี่ช่าง (`senior`) · 3 ภาพ · เพิ่ม 28 ต.ค. 2026 · ✅ ครบแล้ว
+
+ตัวละครใหม่สำหรับคัตซีน ([learning-page-plan.md](learning-page-plan.md) งาน C) ยืนข้างเด็กฝึกงาน (ตัวช่างข้อ 2) หลังเคาน์เตอร์
+ส่งในแชตเดิมที่ตั้งสไตล์ไว้ **แนบ `tech-neutral.png` ไปด้วย** ให้ขนาดหัวและกรอบภาพเท่ากัน แต่หน้าตาและชุดต่างกันชัด
+
+ภาพแรก (neutral):
+
+```
+Sprite: the senior technician who runs the shop and teaches the intern, a Thai man about 35 years old.
+Use the attached sprite ONLY as the size and framing reference: same canvas size, same head size, same outline style,
+same front view from head to waist, arms at the sides. He must look clearly different from the attached intern:
+short dark hair combed to the side, thin dark moustache, white T-shirt with short sleeves,
+brown work apron (wood #8a5a33, darker edges #5e3b20) with a chest pocket holding a yellow screwdriver,
+no headset, no name badge.
+Expression: NEUTRAL, calm confident small smile.
+Transparent background, PNG, character centered with empty space around it.
+```
+
+ภาพที่ 2–3 (แนบภาพ neutral ของพี่ช่างกลับไปทุกครั้ง):
+
+```
+Edit the attached image. Keep the sprite pixel-for-pixel identical: same hair, moustache, head size, pose, framing,
+canvas size, outline, apron and screwdriver. Change only the face: HAPPY — eyes closed in upside-down U arcs, wide open smile.
+Transparent background, PNG.
+```
+
+```
+Edit the attached image. Keep the sprite pixel-for-pixel identical: same hair, moustache, head size, pose, framing,
+canvas size, outline, apron and screwdriver. Change only the face: THINKING — one eyebrow raised, eyes looking to the side, small sideways mouth.
+Transparent background, PNG.
+```
+
+บันทึกเป็น `art-source/senior-neutral.png`, `senior-happy.png`, `senior-thinking.png` แล้วบอก Claude ให้รัน
+`npm run pixelize -- "art-source/senior-*.png" --height 50` (Claude หาแถวหน้าแล้วใส่ `--same-rows` ให้เอง)
+
 ## 3. ลูกค้า 5 คนของรอบ 1 (รวม 19 ภาพ)
 
 รายละเอียดลูกค้าอยู่ใน [phase1-cases.md](phase1-cases.md) ข้อ 3 · ทุกคนเต็มตัว ยืนหน้าตรง ขนาดใกล้ป้าสมศรี (ประมาณ 34 × 77 พิกเซลอาร์ต)
@@ -185,6 +220,66 @@ a little smaller than the monitor. Transparent background, PNG.
 ```
 
 ได้ภาพแล้ววางไฟล์ไว้ที่ `art-source/laptop.png` (หรือโฟลเดอร์รูปเดิม) แล้วบอกผม ผมจะรัน `npm run pixelize` และใส่ในฉากให้
+
+## 4.1 ทางเข้าร้าน: พื้นหลังหน้าเรียน · 2 ภาพ · เพิ่ม 28 ต.ค. 2026 · ✅ ครบแล้ว (`--keep-bg --out src/assets/scenes`)
+
+ผู้ใช้อยากให้หน้าเรียน ([learning-page-plan.md](learning-page-plan.md)) เป็นหน้าร้านจากด้านนอก เหมือนเด็กฝึกงานยืนอยู่หน้าประตูก่อนเข้าทำงาน
+กระดานเส้นทางเรียนจะวางทับตรงกลางค่อนลงล่าง จึงต้องให้**ป้ายร้านอยู่ส่วนบน**และกลางภาพไม่มีของสำคัญ
+ป้ายเว้นว่าง เกมจะเขียนคำว่า "ร้านซ่อมคอม" ทับเอง (เหมือนป้ายในร้าน)
+ทำ 2 ภาพ ฉากเดียวกัน: แนวนอนสำหรับคอม/มือถือแนวนอน และแนวตั้งสำหรับมือถือ ส่งในแชตเดิมที่ตั้งสไตล์ไว้
+
+ภาพแรก (แนวนอน):
+
+```
+Background scene in the same style: the front entrance of a small Thai computer repair shop, seen straight on
+from the sidewalk, daytime. A two-storey shophouse front: a wide blank sign board across the upper part
+(plain navy #1b2a4a with a yellow #ffd23f border, NO text at all), under it a striped awning in teal #2ec4b6 and cream #fff4e0,
+a glass double door in the middle (slightly open, warm light inside), shop windows on both sides: the left one shows
+a desktop PC and two monitors with blue screens, the right one shows a shelf of computer parts and a laptop.
+A potted plant next to the door, a small step, light grey sidewalk tiles along the bottom, a bit of blue sky at the very top.
+Keep the centre of the picture calm and uncluttered (a menu will be placed over it); the sign board must stay in the top third.
+16:9 landscape, about 320 x 180 art pixels, every art pixel a clearly visible square block.
+No people, no text, no letters, no numbers, no logos.
+```
+
+ภาพที่ 2 (แนวตั้ง แนบภาพแรกไปด้วย):
+
+```
+Redraw the attached scene as a 9:16 portrait picture for phones, about 180 x 320 art pixels, same style, same colours,
+same shop: the blank sign board and the awning across the top quarter, the glass door in the middle, one narrow shop window
+on each side, sidewalk tiles along the bottom. Keep the middle calm (a menu will cover it). No people, no text.
+```
+
+บันทึกเป็น `art-source/entrance-wide.png` และ `art-source/entrance-tall.png` แล้วบอก Claude
+(Claude เพิ่มตัวเลือกให้ `npm run pixelize` เก็บพื้นหลังไว้ เพราะปกติสคริปต์ลบพื้นหลังของตัวละครออก)
+
+## 4.2 หน้าต่างห้องซ่อมหลังร้าน: พี่ช่างนั่งทำงาน · 2 ภาพ · เพิ่ม 28 ต.ค. 2026 · ✅ ครบแล้ว (`--height 76`)
+
+ผู้ใช้เลือกให้พี่ช่างนั่งทำงานในร้าน แล้วเดินมาหาเด็กฝึกงานเมื่อมีลูกค้าหรือต้องช่วย ([learning-page-plan.md](learning-page-plan.md) งาน D)
+โต๊ะวางบนพื้นไม่ได้ เพราะเคาน์เตอร์และกล่องข้อความใช้ส่วนล่างของจอทุกขนาด จึงทำเป็น**หน้าต่างกระจกบนผนังที่มองเข้าไปเห็นห้องซ่อมด้านหลัง** แทนหน้าต่างวิวเดิม (ขนาดเท่ากัน ประมาณ 72×61)
+ภาพแรกมีพี่ช่างนั่งอยู่ ภาพที่สองเหมือนเดิมทุกพิกเซล แต่เก้าอี้ว่าง (ตอนพี่ช่างลุกมาหา) ส่งในแชตเดิม แนบ `window.png` (กรอบหน้าต่างเดิม) และ `senior-neutral.png` ไปด้วย
+
+ภาพแรก (พี่ช่างนั่งทำงาน):
+
+```
+Prop in the same style: an interior window in the shop's back wall, looking into a small repair workshop.
+Use the attached window sprite as the reference for the wooden frame style, size and outline (about 72 x 61 art pixels).
+Through the glass (no sky, it is an indoor room with warm lamp light): a workbench with an open desktop PC tower,
+a small desk lamp, a screwdriver and a few parts. The attached senior technician (same hair, glasses, moustache,
+white T-shirt and brown apron) sits behind the bench, seen from the front, upper body only, small because he is
+further away, busy working on the PC with a THINKING face.
+Transparent background outside the frame, PNG. No text, no letters, no numbers.
+```
+
+ภาพที่ 2 (แนบภาพแรกกลับไป):
+
+```
+Edit the attached image. Keep everything pixel-for-pixel identical: the frame, the glass, the bench, the PC, the lamp,
+the light and the canvas size. Remove only the man: show his empty work stool behind the bench instead.
+Transparent background outside the frame, PNG.
+```
+
+บันทึกเป็น `art-source/workshop-busy.png` และ `art-source/workshop-empty.png` แล้วบอก Claude
 
 ## 5. ไอคอนอะไหล่ (16×16 แต่ละชิ้น)
 

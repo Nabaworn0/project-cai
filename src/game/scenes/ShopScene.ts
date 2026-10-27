@@ -43,8 +43,27 @@ export class ShopScene extends Phaser.Scene {
   private techBaseY = 0;
   /** Real pixelized technician frames (missing expressions reuse neutral), or null for the placeholder. */
   private techSprites = spriteSet(EXPRESSIONS.map((e) => `tech-${e}`), 'tech-neutral');
+  /** The senior technician (พี่ช่าง) who teaches the intern. He works at his bench in the back and walks behind
+   *  the counter to the intern's right shoulder when there is something to say (docs/learning-page-plan.md);
+   *  absent until his art exists (docs/art-prompts.md 2.1). */
+  private senior?: Phaser.GameObjects.Image;
+  private seniorState: 'away' | 'walking' | 'here' = 'away';
+  /** Where he stands beside the intern (set by layout). */
+  private seniorSpot = { x: 0, y: 0 };
+  private seniorWalk?: Phaser.Tweens.Tween;
+  private seniorSprites = spriteSet(['senior-neutral', 'senior-happy', 'senior-thinking'], 'senior-neutral');
   /** Pixelized props; each falls back to its code-drawn version when its file does not exist. */
-  private props = { monitor: spriteUrl('monitor'), window: spriteUrl('window'), shelf: spriteUrl('shelf'), laptop: spriteUrl('laptop') };
+  private props = {
+    monitor: spriteUrl('monitor'),
+    window: spriteUrl('window'),
+    shelf: spriteUrl('shelf'),
+    laptop: spriteUrl('laptop'),
+    // The back-room window where the senior works (docs/art-prompts.md 4.2); it replaces the plain window.
+    'workshop-busy': spriteUrl('workshop-busy'),
+    'workshop-empty': spriteUrl('workshop-empty'),
+  };
+  /** The back-room window is in use (both its frames exist). */
+  private workshop = !!(this.props['workshop-busy'] && this.props['workshop-empty']);
   /** The shop's own laptop (Rufus), on the counter right of the customer's PC; absent without its sprite. */
   private laptop?: Phaser.GameObjects.Image;
   /** Customer frames by id; a missing mood reuses that customer's neutral frame. */
@@ -70,6 +89,7 @@ export class ShopScene extends Phaser.Scene {
 
   preload(): void {
     this.techSprites?.forEach((url, key) => this.load.image(key, url));
+    this.seniorSprites?.forEach((url, key) => this.load.image(key, url));
     for (const [key, url] of Object.entries(this.props)) if (url) this.load.image(key, url);
     for (const set of this.customerSprites.values()) set.forEach((url, key) => this.load.image(key, url));
   }
@@ -79,8 +99,14 @@ export class ShopScene extends Phaser.Scene {
     if (!this.props.monitor) this.addPixelTexture('monitor', MONITOR);
 
     this.bg = this.add.graphics();
-    if (this.props.window) this.windowImg = this.add.image(0, 0, 'window').setOrigin(0, 0);
+    if (this.workshop) {
+      this.windowImg = this.add.image(0, 0, 'workshop-busy').setOrigin(0, 0);
+      document.body.dataset.workshop = 'busy';
+    }
+    else if (this.props.window) this.windowImg = this.add.image(0, 0, 'window').setOrigin(0, 0);
     if (this.props.shelf) this.shelfImg = this.add.image(0, 0, 'shelf').setOrigin(0, 0);
+    // He stands a step behind the intern, so he is drawn first.
+    if (this.seniorSprites) this.senior = this.add.image(0, 0, 'senior-neutral').setOrigin(0, 0).setVisible(false);
     this.tech = this.add.image(0, 0, 'tech-neutral').setOrigin(0, 0);
     this.tech.setInteractive({ useHandCursor: true, pixelPerfect: true });
     this.tech.on('pointerdown', (p: Phaser.Input.Pointer) => this.onCanvas(p) && this.react());
@@ -100,6 +126,9 @@ export class ShopScene extends Phaser.Scene {
       bus.on('customer:mood', ({ mood }) => this.setCustomerMood(mood)),
       bus.on('customer:leave', () => this.leaveCustomer()),
       bus.on('customer:cheer', () => this.cheer()),
+      bus.on('senior:come', () => this.seniorTo('here')),
+      bus.on('senior:go', () => this.seniorTo('away')),
+      bus.on('talk:line', ({ who, face }) => this.speak(who, face)),
     ];
     this.events.once('shutdown', () => offs.forEach((off) => off()));
 
@@ -203,9 +232,23 @@ export class ShopScene extends Phaser.Scene {
     // Technician behind the counter: the counter front hides everything below their hands.
     const techW = this.tech.width;
     const techH = this.tech.height;
-    const techX = Math.round(W * (portrait ? 0.38 : 0.42) - techW / 2);
+    // With the senior beside the intern, a narrow (portrait) shop moves them left to fit the PC and laptop.
+    let techX = Math.round(W * (portrait ? (this.senior ? 0.3 : 0.38) : 0.42) - techW / 2);
+    // Phones on their side: the case panel covers the right part of the screen (from about 54%, case.css),
+    // so the intern, the senior and the customer's PC all keep to the left of it.
+    if (!portrait && H * zoom < 520) {
+      const row = techW - 4 + (this.senior ? this.senior.width + 4 : 10) + this.monitor.width;
+      techX = Math.max(4, Math.min(techX, Math.floor(W * 0.54) - row - 2));
+    }
     this.techBaseY = counterTop - techH + Math.round(techH * 0.1);
     this.tech.setPosition(techX, this.techBaseY);
+    // The senior's frame runs from head to thigh: 70% of it shows above the counter, which puts his head
+    // level with the intern's.
+    if (this.senior) {
+      this.seniorSpot = { x: techX + techW - 4, y: counterTop - Math.round(this.senior.height * 0.7) };
+      this.senior.setY(this.seniorSpot.y);
+      if (this.seniorState === 'here') this.senior.setX(this.seniorSpot.x);
+    }
 
     // Counter (drawn over the technician).
     const f = this.front.clear();
@@ -219,8 +262,10 @@ export class ShopScene extends Phaser.Scene {
     f.fillStyle(hex(P.yellow)).fillRect(cx - 1, counterTop + 1, cw + 2, 3);
     f.fillStyle(hex(P.white)).fillRect(cx, counterTop + 1, cw, 1);
 
-    // Customer's PC sits on the counter to the technician's right.
-    const mx = Math.min(techX + techW + 10, W - this.monitor.width - 6);
+    // Customer's PC sits on the counter to the technician's right (past the senior when he is there).
+    // His spot stays free whether he is at the counter or at his bench.
+    const beside = this.senior ? this.seniorSpot.x + this.senior.width + 4 : techX + techW + 10;
+    const mx = Math.min(beside, W - this.monitor.width - 6);
     this.monitor.setPosition(mx, counterTop - this.monitor.height + 1);
 
     // The customer stands on the floor in front of the counter, to the technician's left (the PC is on the right).
@@ -233,7 +278,7 @@ export class ShopScene extends Phaser.Scene {
     // so it goes to the free left end of the counter, clear of the customer standing in front.
     if (this.laptop) {
       const lx = portrait
-        ? Math.min(mx + this.monitor.width + 6, W - this.laptop.width - 8)
+        ? Math.min(mx + this.monitor.width + 4, W - this.laptop.width - 8)
         : Math.max(8, Math.min(Math.round(W * 0.06), this.stand.x - this.laptop.width - 12));
       this.laptop.setPosition(lx, counterTop - this.laptop.height + 1);
     }
@@ -242,6 +287,7 @@ export class ShopScene extends Phaser.Scene {
     const css = (v: number) => Math.round(v * zoom);
     const face = this.techSprites ? { x: Math.round(techW / 2), y: Math.round(techH * 0.3) } : TECH_FACE;
     document.body.dataset.techAt = `${css(techX + face.x)},${css(this.techBaseY + face.y)}`;
+    if (this.senior) document.body.dataset.seniorAt = `${css(this.seniorSpot.x + this.senior.width / 2)},${css(this.seniorSpot.y + this.senior.height * 0.25)}`;
     document.body.dataset.pcAt = `${css(mx + this.monitor.width / 2)},${css(this.monitor.y + 6)}`;
     if (this.laptop) document.body.dataset.laptopAt = `${css(this.laptop.x + this.laptop.width / 2)},${css(this.laptop.y + 6)}`;
     const layout: ShopLayout = { sign: { x: css(signX), y: css(signY), w: css(signW), h: css(signH) } };
@@ -274,6 +320,69 @@ export class ShopScene extends Phaser.Scene {
     this.customerMood = mood;
     this.customer.setTexture(`${this.customerId}-${mood}`);
     this.syncCustomerData();
+  }
+
+  // ---- the senior technician ----
+
+  private showBench(state: 'busy' | 'empty'): void {
+    this.windowImg?.setTexture(`workshop-${state}`);
+    document.body.dataset.workshop = state;
+  }
+
+  /** Where he steps out of the back room: under its window when it is on the wall, else off the left edge. */
+  private benchX(): number {
+    const w = this.windowImg;
+    const sw = this.senior?.width ?? 0;
+    return this.workshop && w?.visible ? Math.round(w.x + w.width / 2 - sw / 2) : -sw - 2;
+  }
+
+  /** Walks him from his bench to the intern's side, or back; each end is announced. The back-room window shows
+   *  his empty stool while he is away from it. */
+  private seniorTo(where: 'here' | 'away'): void {
+    const s = this.senior;
+    const done = () => {
+      this.seniorState = where;
+      s?.setVisible(where === 'here');
+      if (where === 'away' && this.workshop) this.showBench('busy');
+      document.body.dataset.senior = where;
+      bus.emit(where === 'here' ? 'senior:arrived' : 'senior:left', {});
+    };
+    if (!s || this.seniorState === where) return done();
+    this.seniorWalk?.stop();
+    const away = this.benchX();
+    if (where === 'here' && this.workshop) this.showBench('empty');
+    const from = this.seniorState === 'walking' ? s.x : where === 'here' ? away : this.seniorSpot.x;
+    const to = where === 'here' ? this.seniorSpot.x : away;
+    this.seniorState = 'walking';
+    document.body.dataset.senior = 'walking';
+    if (where === 'here') s.setTexture('senior-neutral');
+    s.setVisible(true).setX(Math.round(from));
+    const pos = { x: from };
+    this.seniorWalk = this.tweens.add({
+      targets: pos,
+      x: to,
+      duration: Math.max(200, (Math.abs(to - from) / WALK_SPEED) * 1000),
+      onUpdate: () => s.setX(Math.round(pos.x)).setY(this.seniorSpot.y - (Math.floor(pos.x / 4) % 2)),
+      onComplete: () => {
+        this.seniorWalk = undefined;
+        s.setPosition(Math.round(to), this.seniorSpot.y);
+        done();
+      },
+    });
+  }
+
+  /** One line of a talk: the speaker's face, and a small hop so it is clear who is talking. */
+  private speak(who: 'senior' | 'intern', face: Expression): void {
+    const target = who === 'senior' ? this.senior : this.tech;
+    if (!target) return;
+    if (who === 'senior') {
+      target.setTexture(this.textures.exists(`senior-${face}`) ? `senior-${face}` : 'senior-neutral');
+      document.body.dataset.seniorFace = face;
+    } else this.setExpression(face);
+    const baseY = who === 'senior' ? this.seniorSpot.y : this.techBaseY;
+    this.tweens.killTweensOf(target);
+    target.y = baseY;
+    this.tweens.add({ targets: target, y: baseY - 3, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
   }
 
   /** Little hops for joy while the customer stands at the counter. */

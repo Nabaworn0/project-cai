@@ -2,7 +2,7 @@
 // saved progress, "ผู้เรียนคนใหม่", and the links that skip it (?case=) or open everything (?unlock=all).
 
 import { expect, test, type Page } from '@playwright/test';
-import { expectStage, LEARNER, passMenu } from './helpers';
+import { expectStage, LEARNER, passMenu, skipTalk } from './helpers';
 
 /** Set SHOTS=<folder> to keep a picture of the menu per screen size, for checking the layout by eye. */
 const shot = async (page: Page, name: string, project: string) => {
@@ -80,7 +80,8 @@ test('a first visit asks for the name, checks it, then shows the path with case 
     .getByRole('button', { name: /^ทำต่อ/ })
     .click();
   await expect(menu(page)).toHaveCount(0);
-  await expectStage(page, 'intro');
+  // The first time in the shop the senior comes over to talk first (tests/talk.spec.ts).
+  await skipTalk(page);
   await expect(page.locator('.case-panel')).toContainText('ป้าสมศรี');
   expect(errors).toEqual([]);
 });
@@ -93,7 +94,7 @@ test('the name stays after a reload, and the case 1 card also starts the case', 
   await expect(menu(page).getByLabel('ชื่อ-สกุล')).toHaveCount(0);
   await caseRow(page, 'c01-boot-order').getByRole('button').click();
   await expect(menu(page)).toHaveCount(0);
-  await expectStage(page, 'intro');
+  await skipTalk(page);
 });
 
 test('saved stars show on the case cards and the next case opens', async ({ page }, info) => {
@@ -142,4 +143,43 @@ test('?case= skips the menu; ?unlock=all opens every case', async ({ page }) => 
   await seed(page, 'shop.progress.v2', { learner: LEARNER });
   await page.goto('/?unlock=all');
   for (const id of ['c02-rufus-scheme', 'c05-lab-upgrade']) await expect(caseRow(page, id).getByRole('button')).toBeEnabled();
+});
+
+test('the learning page is a page of its own: no shop behind it, and the shop scene loads only on the way there', async ({ page }, info) => {
+  const scripts = () => page.evaluate(() => performance.getEntriesByType('resource').filter((e) => /\/game-[^/]*\.js$/.test(e.name)).length);
+  await seed(page, 'shop.progress.v2', { coins: 30, learner: LEARNER });
+  await page.goto('/');
+  await expect(menu(page)).toBeVisible();
+  await expect(page.locator('body')).toHaveAttribute('data-view', 'menu');
+  await expect(page.locator('#game canvas')).toHaveCount(0);
+  expect(await scripts()).toBe(0);
+  // The shop's own HUD is not on this page; the coins are in the page's header.
+  await expect(page.getByRole('button', { name: '☰ เมนู' })).toHaveCount(0);
+  await expect(page.getByText('โหมดจำลอง')).toHaveCount(0);
+  await expect(menu(page).getByTestId('coins')).toHaveAttribute('aria-label', 'เหรียญ 30');
+  // Dark ink on the light chip, not the header's white.
+  await expect(menu(page).getByTestId('coins')).toHaveCSS('color', 'rgb(27, 42, 74)');
+  await shot(page, 'learn-page', info.project.name);
+
+  await menu(page)
+    .getByRole('button', { name: /^ทำต่อ/ })
+    .click();
+  await expect(page.locator('body')).toHaveAttribute('data-scene', 'shop');
+  await skipTalk(page);
+  await expect(page.locator('#game canvas')).toBeVisible();
+  await expect(page.locator('body')).toHaveAttribute('data-shop-running', 'true');
+
+  await page.getByRole('button', { name: '☰ เมนู' }).click();
+  await expect(menu(page)).toBeVisible();
+  await expect(page.locator('#game canvas')).toBeHidden();
+  // Paused once the customer has walked out.
+  await expect(page.locator('body')).toHaveAttribute('data-shop-running', 'false', { timeout: 8000 });
+
+  await menu(page)
+    .getByRole('button', { name: /^ทำต่อ/ })
+    .click();
+  await expectStage(page, 'intro');
+  await expect(page.locator('body')).toHaveAttribute('data-shop-running', 'true');
+  await expect(page.locator('#game canvas')).toHaveCount(1);
+  expect(await scripts()).toBe(1);
 });

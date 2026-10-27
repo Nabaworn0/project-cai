@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openShop, playToRepair } from './helpers';
+import { expectStage, openShop, passMenu, playToRepair } from './helpers';
 
 const errorsOf = (page: Page) => {
   const errors: string[] = [];
@@ -88,6 +88,8 @@ test('the scene re-lays out when the window size changes (phone rotation)', asyn
 
 test('tapping the technician changes their expression', async ({ page }) => {
   await openShop(page);
+  // Once the customer stands at the counter, so nothing is walking past when the tap lands.
+  await expectStage(page, 'intro');
   await expect(page.locator('body')).toHaveAttribute('data-expression', 'neutral');
   await tapAt(page, 'techAt');
   await expect(page.locator('body')).toHaveAttribute('data-expression', 'happy');
@@ -121,6 +123,8 @@ test('installable PWA that keeps working offline', async ({ page, context }, inf
   await page.evaluate(() => navigator.serviceWorker.ready);
   await context.setOffline(true);
   await page.reload();
+  // The shop scene is loaded only on the way to the shop, so that part must come from the cache too.
+  await passMenu(page);
   await expect(page.locator('body')).toHaveAttribute('data-scene', 'shop');
   await expect(page.getByRole('status')).toHaveText('โหมดจำลอง');
   await context.setOffline(false);
