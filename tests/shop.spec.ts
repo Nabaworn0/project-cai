@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { playToRepair } from './helpers';
+import { openShop, playToRepair } from './helpers';
 
 const errorsOf = (page: Page) => {
   const errors: string[] = [];
@@ -7,12 +7,6 @@ const errorsOf = (page: Page) => {
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   return errors;
 };
-
-async function openShop(page: Page) {
-  await page.goto('/');
-  await expect(page.locator('body')).toHaveAttribute('data-scene', 'shop');
-  await expect(page.locator('#splash')).toHaveCount(0);
-}
 
 async function tapAt(page: Page, attr: 'techAt' | 'pcAt') {
   const at = await page.evaluate((a) => document.body.dataset[a], attr);

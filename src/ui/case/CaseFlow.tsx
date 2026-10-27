@@ -39,21 +39,28 @@ interface Props {
   content: Content;
   /** The shop scene is on screen, so the customer can walk in. */
   ready: boolean;
-  /** Coins earned, once per finished case. */
-  onCoins: (coins: number) => void;
+  /** The case picked in the menu; without one, ?case= or case 1. */
+  first?: string;
+  /** Started from the menu's learning path: after the last case the way on is the menu, not a random customer. */
+  inPath: boolean;
+  /** Once per finished case, when the summary appears: its stars and coins. */
+  onFinish: (caseId: string, stars: number, coins: number) => void;
+  onMenu: () => void;
+  /** Where the case is, so the menu button knows whether leaving loses a job in progress. */
+  onStage: (stage: string) => void;
 }
 
-/** Cases whose screens exist so far (Rufus came with case 2, Setup and its partition page with case 3). */
-const PLAYABLE = ['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip', 'c05-lab-upgrade'];
+/** Cases whose screens exist so far, in play order (Rufus came with case 2, Setup and its partition page with case 3). */
+export const PLAYABLE = ['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip', 'c05-lab-upgrade'];
 
 /**
- * The next customer: case 1, then 2, then 3, then mixed (nextCase). The first one can be chosen with ?case=<id>
+ * The next customer: case 1, then 2, then 3, then mixed (nextCase). The first one is the menu's pick, or ?case=<id>
  * (for teachers and tests). A new seed gives a new machine each time.
  */
-function newCase(content: Content, lastId: string | null): GeneratedCase {
+function newCase(content: Content, lastId: string | null, first?: string): GeneratedCase {
   const playable = content.cases.filter((c) => PLAYABLE.includes(c.id));
   const params = lastId === null ? new URLSearchParams(location.search) : null;
-  const wanted = params?.get('case');
+  const wanted = lastId === null ? (first ?? params?.get('case')) : null;
   const template = playable.find((c) => c.id === wanted) ?? nextCase(playable, lastId, Math.random);
   // ?seed= fixes the first customer's machine (hidden extras such as "no product key"), for tests and teachers.
   return generateCase(template, content, params?.get('seed') || `${Date.now()}`);
@@ -83,8 +90,8 @@ function startPc(gc: GeneratedCase, usb: Usb): Pc {
 /** What Rufus finds on a stick whose partition Setup deleted. */
 const WIPED_LABEL = 'NO_LABEL';
 
-export function CaseFlow({ content, ready, onCoins }: Props) {
-  const [gc, setGc] = useState(() => newCase(content, null));
+export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onStage }: Props) {
+  const [gc, setGc] = useState(() => newCase(content, null, first));
   const [s, setS] = useState<Session>(() => startSession(gc));
   const [arrived, setArrived] = useState(false);
   const [simOpen, setSimOpen] = useState(false);
@@ -169,7 +176,7 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   const summary = useMemo(() => (s.stage === 'summary' ? summarize(gc, s) : null), [gc, s]);
   useEffect(() => {
     if (!summary) return;
-    onCoins(summary.coins);
+    onFinish(gc.template.id, summary.stars, summary.coins);
     if (summary.stars >= 2) bus.emit('customer:cheer', {});
   }, [summary !== null]);
 
@@ -180,8 +187,18 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
   }, [feedback, s.stage]);
 
   useEffect(() => {
-    document.body.dataset.caseStage = arrived ? s.stage : 'arriving';
+    const stage = arrived ? s.stage : 'arriving';
+    document.body.dataset.caseStage = stage;
+    onStage(stage);
   }, [arrived, s.stage]);
+  // Back to the menu: the customer walks out and the page no longer claims a case stage.
+  useEffect(
+    () => () => {
+      bus.emit('customer:leave', {});
+      delete document.body.dataset.caseStage;
+    },
+    [],
+  );
 
   const openSim = () => {
     setLaptopOpen(false);
@@ -302,6 +319,8 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
     });
     bus.emit('customer:leave', {});
   };
+
+  const lastInPath = inPath && gc.template.id === PLAYABLE[PLAYABLE.length - 1];
 
   const hintButton = s.stage === 'repair' && !s.route && (
     <button class="btn ghost small" type="button" disabled={s.hintsUsed >= s.hints.length} onClick={() => act({ type: 'hint' })}>
@@ -580,10 +599,16 @@ export function CaseFlow({ content, ready, onCoins }: Props) {
           {speaker}
           <p class="says" data-testid="goodbye">“{goodbyeLine(gc.template.customer.reactionsTh, summary!.stars)}”</p>
           <SummaryCard summary={summary!} />
+          {lastInPath && <p class="coach-tip">ฝึกครบทุกเคสแล้ว กลับไปที่เมนูเพื่อทำขั้นต่อไป</p>}
           <div class="actions">
-            <button class="btn" type="button" onClick={nextCustomer}>
-              รับลูกค้าคนถัดไป
+            <button class={lastInPath ? 'btn' : 'btn ghost'} type="button" onClick={onMenu}>
+              กลับเมนู
             </button>
+            {!lastInPath && (
+              <button class="btn" type="button" onClick={nextCustomer}>
+                รับลูกค้าคนถัดไป
+              </button>
+            )}
           </div>
         </>
       );

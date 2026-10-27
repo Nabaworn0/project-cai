@@ -1,25 +1,23 @@
-// What the player has earned, kept on this device (localStorage) so closing the page loses nothing.
+// What the learner has done and earned, kept on this device (localStorage) so closing the page loses nothing.
 // Storage can be missing or refused (private windows): the game then just starts from zero each visit.
+// The shape and its checks live in src/core/path.ts; version 1 (coins only) is carried over on first load.
 
-const KEY = 'shop.progress.v1';
+import { EMPTY, OLD_STORAGE_KEY, parseProgress, STORAGE_KEY, type Progress } from '../core/path';
 
-export interface Progress {
-  coins: number;
-}
+export type { Progress };
 
 export function loadProgress(): Progress {
   try {
-    const p = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Progress>;
-    return { coins: Number.isInteger(p.coins) && p.coins! >= 0 ? p.coins! : 0 };
+    return parseProgress(localStorage.getItem(STORAGE_KEY), localStorage.getItem(OLD_STORAGE_KEY));
   } catch {
-    return { coins: 0 };
+    return EMPTY;
   }
 }
 
 export function saveProgress(p: Progress): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(p));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
   } catch {
-    // Not saved: the coins still count for this visit.
+    // Not saved: it still counts for this visit.
   }
 }

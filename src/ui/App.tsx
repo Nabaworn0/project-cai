@@ -5,18 +5,32 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { bus } from '../core/bus';
 import { loadContent } from '../content';
 import type { ShopLayout } from '../game/scenes/ShopScene';
-import { CaseFlow } from './case/CaseFlow';
+import { CaseFlow, PLAYABLE } from './case/CaseFlow';
 import { SUMMARY_REVEAL_MS } from './case/SummaryCard';
-import { loadProgress, saveProgress } from './progress';
+import { MenuScreen } from './menu/MenuScreen';
+import { loadProgress, saveProgress, type Progress } from './progress';
+import { EMPTY, pathView, recordCase, type PathOptions, type StepId } from '../core/path';
 import { isMuted, onMuted, play, setMuted, unlockOnGesture } from './sound';
 import './case/case.css';
 
 const content = loadContent();
+const params = new URLSearchParams(location.search);
+
+/** Steps whose screens exist (docs/learning-path-plan.md); the rest show as "เร็วๆ นี้". */
+const BUILT: ReadonlySet<StepId> = new Set<StepId>(['cases']);
+const pathOptions: PathOptions = { built: BUILT, caseIds: PLAYABLE, unlockAll: params.get('unlock') === 'all' };
 
 export function App() {
   const [ready, setReady] = useState(false);
   const [sign, setSign] = useState<ShopLayout['sign'] | null>(null);
-  const [coins, setCoins] = useState(() => loadProgress().coins);
+  const [progress, setProgress] = useState(loadProgress);
+  // The game opens on the menu; ?case= (teachers, tests) goes straight to that customer.
+  const [view, setView] = useState<'menu' | 'shop'>(() => (params.has('case') ? 'shop' : 'menu'));
+  /** The case picked in the menu, and a count that gives each visit to the shop a fresh case flow. */
+  const [first, setFirst] = useState<string | undefined>(undefined);
+  const [visit, setVisit] = useState(0);
+  const stage = useRef('');
+  const [askLeave, setAskLeave] = useState(false);
   const [muted, setMutedState] = useState(isMuted);
 
   useEffect(() => {
@@ -29,11 +43,25 @@ export function App() {
     return () => offs.forEach((off) => off());
   }, []);
 
-  const earn = (c: number) =>
-    setCoins((n) => {
-      saveProgress({ coins: n + c });
-      return n + c;
+  const update = (f: (p: Progress) => Progress) =>
+    setProgress((p) => {
+      const next = f(p);
+      saveProgress(next);
+      return next;
     });
+  const finish = (caseId: string, stars: number, coins: number) => update((p) => recordCase({ ...p, coins: p.coins + coins }, caseId, stars));
+  const enter = (step: StepId, caseId?: string) => {
+    if (step !== 'cases') return;
+    setFirst(caseId ?? pathView(progress, pathOptions).cases.find((c) => c.status === 'open')?.id);
+    setVisit((n) => n + 1);
+    setView('shop');
+  };
+  const toMenu = () => {
+    setAskLeave(false);
+    setView('menu');
+  };
+  // Leaving before the job starts or after it ends loses nothing; in the middle, ask first.
+  const menuTapped = () => (['', 'arriving', 'intro', 'summary'].includes(stage.current) ? toMenu() : setAskLeave(true));
 
   return (
     <>
@@ -45,11 +73,16 @@ export function App() {
       )}
 
       <header class="hud">
+        {view === 'shop' && (
+          <button class="chip menu-chip" type="button" onClick={menuTapped}>
+            ☰ เมนู
+          </button>
+        )}
         <h1 class="chip brand">
           ร้านซ่อมคอม <small>รอบ 1</small>
         </h1>
         <div class="hud-right">
-          <CoinChip coins={coins} />
+          <CoinChip coins={progress.coins} />
           <button
             class="chip sound-chip"
             type="button"
@@ -67,7 +100,43 @@ export function App() {
         </div>
       </header>
 
-      <CaseFlow content={content} ready={ready} onCoins={earn} />
+      {view === 'menu' ? (
+        <MenuScreen
+          content={content}
+          progress={progress}
+          options={pathOptions}
+          onLearner={(learner) => update((p) => ({ ...p, learner }))}
+          onReset={() => update(() => EMPTY)}
+          onEnter={enter}
+        />
+      ) : (
+        <CaseFlow
+          key={visit}
+          content={content}
+          ready={ready}
+          first={first}
+          inPath={!params.has('case')}
+          onFinish={finish}
+          onMenu={toMenu}
+          onStage={(st) => (stage.current = st)}
+        />
+      )}
+
+      {askLeave && (
+        <div class="menu-backdrop" role="alertdialog" aria-modal="true" aria-labelledby="leave-q">
+          <div class="menu pixel-box leave-ask">
+            <p id="leave-q">กลับไปที่เมนูตอนนี้ เคสนี้จะเริ่มใหม่ตั้งแต่ต้นเมื่อกลับมาเล่น</p>
+            <div class="actions">
+              <button class="btn ghost" type="button" onClick={() => setAskLeave(false)}>
+                ทำเคสต่อ
+              </button>
+              <button class="btn" type="button" onClick={toMenu}>
+                กลับเมนู
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

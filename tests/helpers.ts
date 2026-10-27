@@ -2,10 +2,28 @@
 
 import { expect, type Page } from '@playwright/test';
 
+export const LEARNER = { name: 'สมชาย ใจดี', room: 'ปวช.1/2', no: '7' };
+
+/** The menu the game opens on: give the learner's name the first time, then "ทำต่อ". */
+export async function passMenu(page: Page) {
+  const menu = page.getByTestId('menu');
+  await expect(menu).toBeVisible();
+  if (await menu.getByLabel('ชื่อ-สกุล').isVisible()) {
+    await menu.getByLabel('ชื่อ-สกุล').fill(LEARNER.name);
+    await menu.getByLabel('ชั้น').fill(LEARNER.room);
+    await menu.getByLabel('เลขที่').fill(LEARNER.no);
+    await menu.getByRole('button', { name: 'เริ่มเรียน' }).click();
+  }
+  await menu.getByRole('button', { name: /^ทำต่อ/ }).click();
+  await expect(menu).toHaveCount(0);
+}
+
+/** A first visit: the shop behind the menu, then through the menu to the first customer. */
 export async function openShop(page: Page) {
   await page.goto('/');
   await expect(page.locator('body')).toHaveAttribute('data-scene', 'shop');
   await expect(page.locator('#splash')).toHaveCount(0);
+  await passMenu(page);
 }
 
 export const expectStage = (page: Page, stage: string) => expect(page.locator('body')).toHaveAttribute('data-case-stage', stage, { timeout: 8000 });
@@ -29,4 +47,22 @@ export async function openPc(page: Page) {
   await playToRepair(page);
   await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
   await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'post');
+}
+
+/** Case 1 from its intro to the summary, the textbook route on the keyboard: 3 stars. */
+export async function playCase1(page: Page) {
+  await expectStage(page, 'intro');
+  await page.getByRole('button', { name: 'รับเรื่อง' }).click();
+  await page.getByRole('button', { name: 'รับงาน' }).click();
+  await page.getByRole('button', { name: C1_DIAGNOSIS }).click();
+  await page.getByRole('button', { name: 'ไปซ่อมเครื่อง' }).click();
+  await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
+  for (const k of ['F2', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowDown', 'ArrowDown', 'Enter', 'Enter', 'ArrowDown', 'Enter', 'F10', 'Enter', 'Enter', 'x']) {
+    await page.keyboard.press(k);
+  }
+  await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'setup');
+  await page.getByRole('button', { name: 'กลับไปคุยกับลูกค้า' }).click();
+  await page.getByRole('button', { name: /เครื่องเลือกบูตตามลำดับที่ตั้งไว้ใน BIOS/ }).click();
+  await page.getByRole('button', { name: 'ต่อไป' }).click();
+  await expectStage(page, 'summary');
 }

@@ -3,7 +3,7 @@
 // order of customers (case 1 then 2) comes with task E. Screenshots go to test-results/.
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { expectStage } from './helpers';
+import { expectStage, openShop } from './helpers';
 
 const shot = (page: Page, info: TestInfo, name: string) => page.screenshot({ path: info.outputPath(`${info.project.name}-${name}.png`) });
 const key = (page: Page, k: string) => page.locator(`.keybar [data-key="${k}"]`).click();
@@ -106,7 +106,7 @@ test('a stick written before the PC was ever opened is the one the PC boots', as
 });
 
 test('case 1 has no laptop button and tapping the laptop there does nothing', async ({ page }) => {
-  await page.goto('/');
+  await openShop(page);
   await expectStage(page, 'intro');
   await page.getByRole('button', { name: 'รับเรื่อง' }).click();
   await page.getByRole('button', { name: 'รับงาน' }).click();

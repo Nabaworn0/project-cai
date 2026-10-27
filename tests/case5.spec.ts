@@ -21,8 +21,8 @@ const UEFI_ON = ['F2', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'Enter', 'Minus
 const SAVE = ['F10', 'Enter'];
 
 /** Her case up to the repair stage. */
-async function toRepair(page: Page, seed: string, info?: TestInfo, ticketHas?: string) {
-  await page.goto(`/?case=c05-lab-upgrade&seed=${seed}`);
+async function toRepair(page: Page, seed: string, info?: TestInfo, ticketHas?: string, open: () => Promise<unknown> = () => page.goto(`/?case=c05-lab-upgrade&seed=${seed}`)) {
+  await open();
   await expectStage(page, 'intro');
   await expect(page.locator('.case-panel')).toContainText('ครูวิไล');
   await page.getByRole('button', { name: 'รับเรื่อง' }).click();
@@ -321,4 +321,33 @@ test('the order of customers: after Ton (case 4) comes Teacher Wilai (case 5)', 
   await expectStage(page, 'intro');
   await expect(page.locator('.case-panel')).toContainText('ครูวิไล');
   await expect(page.locator('.case-panel')).toContainText('ข้อมูลในเครื่องไม่ต้องเก็บนะคะ');
+});
+
+test('through the menu, case 5 is the last: its summary leads back to the menu, which shows every case done', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'the menu itself is checked at every size in menu.spec.ts');
+  test.setTimeout(120_000);
+  const played = Object.fromEntries(['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip'].map((id) => [id, { stars: 2, plays: 1 }]));
+  await page.addInitScript(
+    (v) => !localStorage.getItem('seeded') && (localStorage.setItem('shop.progress.v2', v), localStorage.setItem('seeded', '1')),
+    JSON.stringify({ coins: 0, learner: { name: 'สมชาย ใจดี', room: 'ปวช.1/2', no: '7' }, done: [], cases: played }),
+  );
+  await toRepair(page, 's1', undefined, undefined, async () => {
+    await page.goto('/?seed=s1');
+    await page.getByTestId('menu').getByRole('button', { name: 'ทำต่อ: ฝึกงานที่ร้าน · เคส 5 ครูวิไล' }).click();
+  });
+  await toSetup(page);
+  await installAndRestart(page);
+  await toAccount(page);
+  await page.getByRole('button', { name: 'ยื่นเครื่องให้ครูวิไลลงชื่อเอง' }).click();
+  await oobePage(page, 'privacy');
+  await toDesktop(page);
+  await finish(page);
+  await expect(page.locator('.case-panel')).toContainText('ฝึกครบทุกเคสแล้ว');
+  await expect(page.getByRole('button', { name: 'รับลูกค้าคนถัดไป' })).toHaveCount(0);
+  await page.locator('.case-panel').getByRole('button', { name: 'กลับเมนู' }).click();
+  const menu = page.getByTestId('menu');
+  await expect(menu.locator('[data-step="cases"]')).toHaveAttribute('data-status', 'done');
+  await expect(menu.locator('[data-case="c05-lab-upgrade"]')).toHaveAttribute('data-status', 'done');
+  // Nothing else is built yet, so there is no "ทำต่อ".
+  await expect(menu.getByRole('button', { name: /^ทำต่อ/ })).toHaveCount(0);
 });
