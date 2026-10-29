@@ -4,7 +4,7 @@
 // ?seed= fixes her PC: s1 legacy only, s3 no product key too, s5 TPM off too.
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { ALL_TALKS, expectStage } from './helpers';
+import { ALL_TALKS, expectStage, PRE_DONE } from './helpers';
 
 const shot = (page: Page, info: TestInfo, name: string) => page.screenshot({ path: info.outputPath(`${info.project.name}-${name}.png`) });
 const body = (page: Page) => page.locator('body');
@@ -329,7 +329,7 @@ test('through the menu, case 5 is the last: its summary leads back to the menu, 
   const played = Object.fromEntries(['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip'].map((id) => [id, { stars: 2, plays: 1 }]));
   await page.addInitScript(
     (v) => !localStorage.getItem('seeded') && (localStorage.setItem('shop.progress.v2', v), localStorage.setItem('seeded', '1')),
-    JSON.stringify({ coins: 0, learner: { name: 'สมชาย ใจดี', room: 'ปวช.1/2', no: '7' }, done: [], cases: played, seen: ALL_TALKS }),
+    JSON.stringify({ coins: 0, learner: { name: 'สมชาย ใจดี', room: 'ปวช.1/2', no: '7' }, done: [], cases: played, seen: ALL_TALKS, pre: PRE_DONE }),
   );
   await toRepair(page, 's1', undefined, undefined, async () => {
     await page.goto('/?seed=s1');
@@ -348,6 +348,7 @@ test('through the menu, case 5 is the last: its summary leads back to the menu, 
   const menu = page.getByTestId('menu');
   await expect(menu.locator('[data-step="cases"]')).toHaveAttribute('data-status', 'done');
   await expect(menu.locator('[data-case="c05-lab-upgrade"]')).toHaveAttribute('data-status', 'done');
-  // Nothing else is built yet, so there is no "ทำต่อ".
-  await expect(menu.getByRole('button', { name: /^ทำต่อ/ })).toHaveCount(0);
+  // Every case played: the post-test is next (tests/quiz.spec.ts).
+  await expect(menu.locator('[data-step="post"]')).toHaveAttribute('data-status', 'open');
+  await expect(menu.getByRole('button', { name: 'ทำต่อ: แบบทดสอบหลังเรียน' })).toBeVisible();
 });

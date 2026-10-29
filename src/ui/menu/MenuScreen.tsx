@@ -38,7 +38,114 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
     : STEP_INFO[next.step].th;
 
   return (
-    <main class="learn-page" aria-labelledby="menu-title" data-testid="menu">
+    <LearnPage
+      title="เส้นทางเด็กฝึกงาน"
+      testid="menu"
+      who={
+        progress.learner && (
+          <p class="menu-who" data-testid="learner">
+            {progress.learner.name} · {progress.learner.room} เลขที่ {progress.learner.no}
+          </p>
+        )
+      }
+      aside={coins}
+      // Keyed so the path starts at the top after the name form, not where the form was scrolled.
+      scrollKey={progress.learner ? 'path' : 'form'}
+    >
+      {!progress.learner ? (
+        <LearnerForm onSave={onLearner} />
+      ) : (
+        <>
+          {nextOk && (
+            <button class="btn menu-next" type="button" onClick={() => onEnter(next.step, next.caseId)}>
+              ทำต่อ: {nextLabel}
+            </button>
+          )}
+          <ol class="path">
+            {view.steps.map((s, i) => {
+              const info = STEP_INFO[s.id];
+              return (
+                <li key={s.id} class={`path-step ${s.status}`} data-step={s.id} data-status={s.status}>
+                  <button class="path-row" type="button" disabled={!s.canEnter} onClick={() => onEnter(s.id)}>
+                    <span class="path-no" aria-hidden="true">
+                      {i + 1}
+                    </span>
+                    <span class="path-text">
+                      <b>{info.th}</b>
+                      {info.objective && <small>วัตถุประสงค์ข้อ {info.objective}</small>}
+                    </span>
+                    <span class="path-status">
+                      <span aria-hidden="true">{STATUS_ICON[s.status]}</span>{' '}
+                      {s.status === 'open' && progress.testDraft?.kind === s.id ? 'ทำค้างไว้' : STATUS_TH[s.status]}
+                      {s.id === 'pre' && progress.pre && ` ${progress.pre.score}/${progress.pre.total}`}
+                      {s.id === 'post' && progress.post && ` ${progress.post.score}/${progress.post.total}`}
+                    </span>
+                  </button>
+                  {s.id === 'cases' && s.status !== 'soon' && (
+                    <ol class="case-list">
+                      {view.cases.map((c, k) => {
+                        const n = caseName(c.id);
+                        return (
+                          <li key={c.id} data-case={c.id} data-status={c.status}>
+                            <button class="case-row" type="button" disabled={c.status === 'locked'} onClick={() => onEnter('cases', c.id)}>
+                              <span class="case-text">
+                                <b>
+                                  เคส {k + 1} {n.who}
+                                </b>
+                                <small>{n.title}</small>
+                              </span>
+                              <span class="case-status">
+                                {c.stars !== null ? (
+                                  <span class="case-stars" aria-label={`ได้ ${c.stars} ดาว`}>
+                                    {'★'.repeat(c.stars)}
+                                    <span class="off">{'★'.repeat(3 - c.stars)}</span>
+                                  </span>
+                                ) : (
+                                  <>
+                                    <span aria-hidden="true">{STATUS_ICON[c.status]}</span> {STATUS_TH[c.status]}
+                                  </>
+                                )}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+          {progress.seen.includes('intro') && view.steps.find((st) => st.id === 'cases')?.canEnter && (
+            <div class="menu-foot">
+              <button class="btn ghost small" type="button" onClick={() => onEnter('cases', undefined, { replayIntro: true })}>
+                ดูฉากต้อนรับของพี่ช่างอีกครั้ง
+              </button>
+            </div>
+          )}
+          <ResetButton name={progress.learner.name} onReset={onReset} />
+        </>
+      )}
+    </LearnPage>
+  );
+}
+
+/** The page outside the shop with its notice board, for the learning path and the tests. */
+export function LearnPage(props: {
+  title: string;
+  testid: string;
+  /** Under the title (the learner's name). */
+  who?: ComponentChildren;
+  /** Right of the title (the coins, or the way back). */
+  aside?: ComponentChildren;
+  /** A new key scrolls the board back to the top. */
+  scrollKey: string;
+  /** The board rises over the sign and takes the whole height (the test, which needs the room). */
+  tall?: boolean;
+  children: ComponentChildren;
+}) {
+  return (
+    <main class={`learn-page${props.tall ? ' tall' : ''}`} aria-labelledby="menu-title" data-testid={props.testid}>
       <div class="entrance" aria-hidden="true">
         <span class="entrance-sign">ร้านซ่อมคอม</span>
       </div>
@@ -46,91 +153,13 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
         <header class="menu-head">
           <div class="menu-head-text">
             <p class="menu-shop">ร้านซ่อมคอม</p>
-            <h1 id="menu-title">เส้นทางเด็กฝึกงาน</h1>
-            {progress.learner && (
-              <p class="menu-who" data-testid="learner">
-                {progress.learner.name} · {progress.learner.room} เลขที่ {progress.learner.no}
-              </p>
-            )}
+            <h1 id="menu-title">{props.title}</h1>
+            {props.who}
           </div>
-          {coins}
+          {props.aside}
         </header>
-
-        {/* Keyed so the path starts at the top after the name form, not where the form was scrolled. */}
-        <div class="menu-scroll" key={progress.learner ? 'path' : 'form'}>
-          {!progress.learner ? (
-            <LearnerForm onSave={onLearner} />
-          ) : (
-            <>
-              {nextOk && (
-                <button class="btn menu-next" type="button" onClick={() => onEnter(next.step, next.caseId)}>
-                  ทำต่อ: {nextLabel}
-                </button>
-              )}
-              <ol class="path">
-                {view.steps.map((s, i) => {
-                  const info = STEP_INFO[s.id];
-                  return (
-                    <li key={s.id} class={`path-step ${s.status}`} data-step={s.id} data-status={s.status}>
-                      <button class="path-row" type="button" disabled={!s.canEnter} onClick={() => onEnter(s.id)}>
-                        <span class="path-no" aria-hidden="true">
-                          {i + 1}
-                        </span>
-                        <span class="path-text">
-                          <b>{info.th}</b>
-                          {info.objective && <small>วัตถุประสงค์ข้อ {info.objective}</small>}
-                        </span>
-                        <span class="path-status">
-                          <span aria-hidden="true">{STATUS_ICON[s.status]}</span> {STATUS_TH[s.status]}
-                          {s.id === 'pre' && progress.pre && ` ${progress.pre.score}/${progress.pre.total}`}
-                          {s.id === 'post' && progress.post && ` ${progress.post.score}/${progress.post.total}`}
-                        </span>
-                      </button>
-                      {s.id === 'cases' && s.status !== 'soon' && (
-                        <ol class="case-list">
-                          {view.cases.map((c, k) => {
-                            const n = caseName(c.id);
-                            return (
-                              <li key={c.id} data-case={c.id} data-status={c.status}>
-                                <button class="case-row" type="button" disabled={c.status === 'locked'} onClick={() => onEnter('cases', c.id)}>
-                                  <span class="case-text">
-                                    <b>
-                                      เคส {k + 1} {n.who}
-                                    </b>
-                                    <small>{n.title}</small>
-                                  </span>
-                                  <span class="case-status">
-                                    {c.stars !== null ? (
-                                      <span class="case-stars" aria-label={`ได้ ${c.stars} ดาว`}>
-                                        {'★'.repeat(c.stars)}
-                                        <span class="off">{'★'.repeat(3 - c.stars)}</span>
-                                      </span>
-                                    ) : (
-                                      <>
-                                        <span aria-hidden="true">{STATUS_ICON[c.status]}</span> {STATUS_TH[c.status]}
-                                      </>
-                                    )}
-                                  </span>
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ol>
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-              {progress.seen.includes('intro') && view.steps.find((st) => st.id === 'cases')?.canEnter && (
-                <div class="menu-foot">
-                  <button class="btn ghost small" type="button" onClick={() => onEnter('cases', undefined, { replayIntro: true })}>
-                    ดูฉากต้อนรับของพี่ช่างอีกครั้ง
-                  </button>
-                </div>
-              )}
-              <ResetButton name={progress.learner.name} onReset={onReset} />
-            </>
-          )}
+        <div class="menu-scroll" key={props.scrollKey}>
+          {props.children}
         </div>
       </div>
     </main>

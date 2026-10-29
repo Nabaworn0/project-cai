@@ -9,7 +9,8 @@
      kept to the top, so on very wide screens the pavement is cut off rather than the sign. */
   --pic-h: max(100dvh, 100vw / var(--ar));
   --sign-bottom: calc(0.29 * var(--pic-h));
-  position: absolute; inset: 0; overflow: hidden; display: flex; align-items: flex-start; justify-content: center;
+  /* clip, not hidden: a hidden box can still be scrolled (by focus), which slid the picture sideways. */
+  position: absolute; inset: 0; overflow: hidden; overflow: clip; display: flex; align-items: flex-start; justify-content: center;
   background: var(--navy);
   padding: max(12px, var(--sign-bottom)) max(18px, var(--safe-r)) calc(18px + var(--safe-b)) max(18px, var(--safe-l));
 }
@@ -36,7 +37,10 @@
 @media (orientation: landscape) and (max-height: 520px) {
   .learn-page { justify-content: flex-end; padding-top: calc(16px + var(--safe-t)); }
   .learn-page .menu { width: min(460px, 56%); }
+  .learn-page.tall .menu { width: min(620px, 72%); }
 }
+/* The test needs the room: the board rises over the sign (its own header names the shop). */
+.learn-page.tall { padding-top: calc(16px + var(--safe-t)); }
 /* The notice board: a wood frame with a dark edge, and a coral pin at the top. */
 .learn-page .menu {
   position: relative;
@@ -131,4 +135,4 @@
   background: var(--navy); color: var(--yellow); font-family: var(--f-head); font-size: 22px;
 }
 /* The shop canvas stays loaded but out of sight on the learning page. */
-body[data-view='menu'] #game { visibility: hidden; }
+body:not([data-view='shop']) #game { visibility: hidden; }

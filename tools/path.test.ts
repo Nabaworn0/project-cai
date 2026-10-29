@@ -20,7 +20,7 @@ import {
 
 const CASES = ['c1', 'c2', 'c3'];
 const ALL: PathOptions = { built: new Set(STEPS), caseIds: CASES };
-const quiz: QuizResult = { score: 6, total: 10, answers: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1], at: 1 };
+const quiz: QuizResult = { score: 6, total: 10, answers: { q1: 0, q2: 3 }, at: 1, seconds: 300 };
 const status = (p: Progress, o: PathOptions, id: StepId) => pathView(p, o).steps.find((s) => s.id === id)!;
 const playAll = (p: Progress) => CASES.reduce((acc, c) => recordCase(acc, c, 2), p);
 /** Pre-test, both lessons and the ordering game: the shop opens. */
@@ -201,11 +201,30 @@ test('bad fields are dropped one by one, keeping the rest', () => {
       coins: -3,
       learner: { name: '', room: 'ปวช.1/2', no: '7' },
       pre: { score: 11, total: 10, answers: [], at: 1 },
-      post: { ...quiz, answers: ['a'] },
+      post: { ...quiz, answers: { q1: 'a' } },
       done: ['order', 'nope', 'order', 5],
       cases: { c1: { stars: 4, plays: 1 }, c2: { stars: 2, plays: 1.5 }, c3: 'x', c4: { stars: 2, plays: 3 } },
       seen: ['intro', 'intro', '', 7, 'x'.repeat(41), 'c1'],
     }),
   );
   assert.deepEqual(p, { ...EMPTY, done: ['order'], cases: { c4: { stars: 2, plays: 3 } }, seen: ['intro', 'c1'] });
+});
+
+test('an unfinished test is kept, read back, and cleared by its result', () => {
+  const d = { kind: 'pre' as const, order: ['q2', 'q1'], choices: { q1: [1, 0], q2: [0, 1] }, answers: { q2: 1 }, startedAt: 5 };
+  const p: Progress = { ...EMPTY, testDraft: d };
+  assert.deepEqual(parseProgress(JSON.stringify(p)).testDraft, d);
+  assert.equal(recordQuiz(p, 'pre', quiz).testDraft, null);
+  assert.deepEqual(recordQuiz(p, 'post', quiz).testDraft, d, 'a post result leaves a pre sitting alone');
+  const retake = recordQuiz({ ...p, pre: quiz }, 'pre', { ...quiz, score: 10 });
+  assert.equal(retake.testDraft, null, "a teacher's retake (?unlock=all) also clears its sitting");
+  assert.equal(retake.pre!.score, 6);
+  for (const bad of [
+    { ...d, kind: 'mid' },
+    { ...d, order: [1] },
+    { ...d, choices: { q1: ['x'] } },
+    { ...d, answers: { q1: -1 } },
+    { ...d, startedAt: undefined },
+  ])
+    assert.equal(parseProgress(JSON.stringify({ testDraft: bad })).testDraft, null, JSON.stringify(bad));
 });

@@ -1,5 +1,5 @@
 // Content validator: schema checks plus game-rule checks (every case fixable, no
-// contradictory hidden problems, BIOS screens expose the settings a fix needs, A/B quizzes parallel).
+// contradictory hidden problems, BIOS screens expose the settings a fix needs, the course test answerable).
 // Pure function so the CLI, unit tests and (later) an in-game editor can all use it.
 
 import { z } from 'zod';
@@ -19,7 +19,7 @@ import {
   CustomersSchema,
   ObjectivesSchema,
   ProblemsSchema,
-  QuizSchema,
+  CourseTestSchema,
   type Brand,
   type Cards,
   type Cutscenes,
@@ -29,7 +29,7 @@ import {
   type Customer,
   type Objectives,
   type Problem,
-  type Quiz,
+  type CourseTest,
 } from './schema';
 import { WIN11_CHECK_IDS } from '../core/win11check';
 import { nameError } from '../core/oobe';
@@ -54,7 +54,7 @@ export interface ParsedContent {
   brands: Brand[];
   cases: Case[];
   customers: Customer[];
-  quizzes: Quiz[];
+  test?: CourseTest;
   cards?: Cards;
   win11Check?: Win11Check;
   cutscenes?: Cutscenes;
@@ -79,7 +79,7 @@ export function validateContent(files: readonly ContentFile[], opts: { seedsPerC
   checkBrands(parsed.brands, errors, warnings);
   checkProblems(parsed, checkLo, errors);
   const generated = checkCases(parsed, seeds, checkLo, errors, warnings);
-  checkQuizzes(parsed.quizzes, checkLo, errors, warnings);
+  checkTest(parsed.test, errors, warnings);
   checkCards(parsed, errors, warnings);
   checkWin11Check(parsed, errors);
   checkCutscenes(parsed, errors, warnings);
@@ -91,7 +91,7 @@ export function validateContent(files: readonly ContentFile[], opts: { seedsPerC
       cases: parsed.cases.length,
       problems: parsed.problems.length,
       brands: parsed.brands.length,
-      quizzes: parsed.quizzes.length,
+      testItems: parsed.test?.items.length ?? 0,
       cards: parsed.cards?.cards.length ?? 0,
       machinesChecked: generated,
     },
@@ -100,7 +100,7 @@ export function validateContent(files: readonly ContentFile[], opts: { seedsPerC
 
 /** Schema-parses every file (applying defaults); problems go into `errors`. */
 export function parseAll(files: readonly ContentFile[], errors: string[]): ParsedContent {
-  const out: ParsedContent = { problems: [], brands: [], cases: [], customers: [], quizzes: [] };
+  const out: ParsedContent = { problems: [], brands: [], cases: [], customers: [] };
   const parse = <S extends z.ZodType>(schema: S, f: ContentFile): z.infer<S> | undefined => {
     const r = schema.safeParse(f.data);
     if (r.success) return r.data;
@@ -116,8 +116,8 @@ export function parseAll(files: readonly ContentFile[], errors: string[]): Parse
     else if (f.path === 'cutscenes.json') out.cutscenes = parse(CutscenesSchema, f);
     else if (f.path.startsWith('brands/')) push(out.brands, parse(BrandSchema, f), f.path, errors);
     else if (f.path.startsWith('cases/')) push(out.cases, parse(CaseSchema, f), f.path, errors);
-    else if (f.path.startsWith('quizzes/')) push(out.quizzes, parse(QuizSchema, f), f.path, errors);
-    else errors.push(`${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, brands/, cases/, quizzes/)`);
+    else if (f.path === 'test.json') out.test = parse(CourseTestSchema, f);
+    else errors.push(`${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, test, brands/, cases/)`);
   }
   return out;
 }
@@ -322,34 +322,19 @@ function checkQuestion(where: string, q: CaseQuestion, errors: string[]): void {
   dupes(q.choicesTh, `${where}: duplicate choice`, errors);
 }
 
-function checkQuizzes(quizzes: readonly Quiz[], checkLo: (w: string, l: readonly string[]) => void, errors: string[], warnings: string[]): void {
-  dupes(quizzes.map((q) => q.id), 'quizzes: duplicate quiz', errors);
-  dupes(quizzes.flatMap((q) => q.items.map((i) => i.id)), 'quizzes: duplicate question id', errors);
-  for (const q of quizzes) {
-    const where = `quizzes/${q.id}.json`;
-    if (q.draft) warnings.push(`${where}: ข้อสอบยังเป็นร่าง`);
-    dupes(q.items.map((i) => i.pair), `${where}: duplicate pair`, errors);
-    for (const it of q.items) {
-      checkLo(`${where}[${it.id}]`, [it.lo]);
-      if (it.answer >= it.choicesTh.length) errors.push(`${where}[${it.id}]: answer ${it.answer} is out of range`);
-      dupes(it.choicesTh, `${where}[${it.id}]: duplicate choice`, errors);
-    }
+/** Every answer is one of its choices, choices differ, and objectives 1-3 are each tested. */
+function checkTest(test: CourseTest | undefined, errors: string[], warnings: string[]): void {
+  if (!test) {
+    errors.push('test.json: missing');
+    return;
   }
-  for (const kind of ['pre', 'mid', 'post'] as const) {
-    const a = quizzes.find((q) => q.kind === kind && q.form === 'A');
-    const b = quizzes.find((q) => q.kind === kind && q.form === 'B');
-    if (!a && !b) continue;
-    if (!a || !b) {
-      errors.push(`quizzes: ${kind}-test has form ${a ? 'A' : 'B'} but no parallel form ${a ? 'B' : 'A'}`);
-      continue;
-    }
-    for (const ia of a.items) {
-      const ib = b.items.find((x) => x.pair === ia.pair);
-      if (!ib) errors.push(`quizzes: ${a.id} pair "${ia.pair}" has no parallel item in ${b.id}`);
-      else if (ib.lo !== ia.lo) errors.push(`quizzes: pair "${ia.pair}" tests ${ia.lo} in ${a.id} but ${ib.lo} in ${b.id}`);
-    }
-    for (const ib of b.items) if (!a.items.some((x) => x.pair === ib.pair)) errors.push(`quizzes: ${b.id} pair "${ib.pair}" has no parallel item in ${a.id}`);
+  if (test.draft) warnings.push('test.json: ข้อสอบยังเป็นร่าง');
+  dupes(test.items.map((i) => i.id), 'test.json: duplicate question id', errors);
+  for (const it of test.items) {
+    if (it.answer >= it.choicesTh.length) errors.push(`test.json[${it.id}]: answer ${it.answer} is out of range`);
+    dupes(it.choicesTh, `test.json[${it.id}]: duplicate choice`, errors);
   }
+  for (const o of [1, 2, 3]) if (!test.items.some((i) => i.objective === o)) errors.push(`test.json: no question for objective ${o}`);
 }
 
 function checkCards(parsed: ParsedContent, errors: string[], warnings: string[]): void {

@@ -63,10 +63,23 @@ test('a fix that does not repair its problem is rejected', () => {
   hasError(files, 'fix "upgrade-ram" does not clear blocker tpm-disabled');
 });
 
-test('A/B quiz items must be parallel and test the same objective', () => {
-  const files = real();
-  get(files, 'quizzes/pre-b.json').items[1].lo = 'LO5';
-  hasError(files, 'tests LO1 in pre-a but LO5 in pre-b');
+test('the course test: answers in range, choices differ, objectives 1-3 each tested', () => {
+  let files = real();
+  get(files, 'test.json').items[0].answer = 4;
+  hasError(files, 'test.json[os-meaning]: answer 4 is out of range');
+  files = real();
+  get(files, 'test.json').items[1].choicesTh[3] = get(files, 'test.json').items[1].choicesTh[0];
+  hasError(files, 'test.json[os-memory]: duplicate choice');
+  files = real();
+  for (const it of get(files, 'test.json').items) if (it.objective === 2) it.objective = 1;
+  hasError(files, 'no question for objective 2');
+  files = real();
+  get(files, 'test.json').items[1].id = 'os-meaning';
+  hasError(files, 'duplicate question id "os-meaning"');
+  hasError(
+    real().filter((f) => f.path !== 'test.json'),
+    'test.json: missing',
+  );
 });
 
 test('unknown references are reported', () => {

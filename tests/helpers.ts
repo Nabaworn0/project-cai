@@ -4,7 +4,26 @@ import { expect, type Page } from '@playwright/test';
 
 export const LEARNER = { name: 'สมชาย ใจดี', room: 'ปวช.1/2', no: '7' };
 
-/** The menu the game opens on: give the learner's name the first time, then "ทำต่อ". */
+/** A pre-test already taken, for seeding progress: the shop stays shut until there is one. */
+export const PRE_DONE = { score: 4, total: 10, answers: {}, at: 1, seconds: 300 };
+
+/** From the learning page, the pre-test start to finish (always the first choice), back to the page. */
+export async function takePreTest(page: Page) {
+  await page.getByTestId('menu').getByRole('button', { name: 'ทำต่อ: แบบทดสอบก่อนเรียน' }).click();
+  const quiz = page.getByTestId('quiz');
+  await quiz.getByRole('button', { name: 'เริ่มทำแบบทดสอบ' }).click();
+  for (let n = 1; n <= 10; n++) {
+    await expect(quiz.getByTestId('quiz-count')).toHaveText(`ข้อ ${n} จาก 10`);
+    await quiz.locator('.quiz-choice').first().click();
+    await quiz.getByRole('button', { name: n === 10 ? 'ตรวจก่อนส่ง' : 'ข้อต่อไป →' }).click();
+  }
+  await quiz.getByRole('button', { name: 'ส่งคำตอบ' }).click();
+  await quiz.getByRole('button', { name: 'ไปเรียนต่อ' }).click();
+  await expect(page.getByTestId('menu')).toBeVisible();
+}
+
+/** The menu the game opens on: give the learner's name the first time, take the pre-test if it is still to do,
+ *  then "ทำต่อ". */
 export async function passMenu(page: Page) {
   const menu = page.getByTestId('menu');
   // The first load (fonts, then the page) can take a while when every test runs at once.
@@ -15,6 +34,7 @@ export async function passMenu(page: Page) {
     await menu.getByLabel('เลขที่').fill(LEARNER.no);
     await menu.getByRole('button', { name: 'เริ่มเรียน' }).click();
   }
+  if (await menu.getByRole('button', { name: 'ทำต่อ: แบบทดสอบก่อนเรียน' }).isVisible()) await takePreTest(page);
   await menu.getByRole('button', { name: /^ทำต่อ/ }).click();
   await expect(menu).toHaveCount(0);
 }
@@ -22,13 +42,15 @@ export async function passMenu(page: Page) {
 /** Every talk with the senior marked as already seen, so tests about other things go straight to the customer. */
 export const ALL_TALKS = ['intro', 'c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip', 'c05-lab-upgrade'];
 
-/** A first visit: the learning page, then through it to the shop and the first customer (talks already seen,
- *  unless `talks` is set: tests/talk.spec.ts covers them). */
+/** A first visit: the learning page, then through it to the shop and the first customer (pre-test taken and talks
+ *  already seen, unless `talks` is set: tests/talk.spec.ts covers them, and then the pre-test is taken here). */
 export async function openShop(page: Page, { talks = false } = {}) {
   if (!talks)
     await page.addInitScript(
-      (seen) => !localStorage.getItem('talks-seeded') && (localStorage.setItem('shop.progress.v2', JSON.stringify({ seen })), localStorage.setItem('talks-seeded', '1')),
-      ALL_TALKS,
+      ([seen, pre]) =>
+        !localStorage.getItem('talks-seeded') &&
+        (localStorage.setItem('shop.progress.v2', JSON.stringify({ seen, pre })), localStorage.setItem('talks-seeded', '1')),
+      [ALL_TALKS, PRE_DONE] as const,
     );
   await page.goto('/');
   await expect(page.locator('#splash')).toHaveCount(0);
@@ -67,7 +89,22 @@ export async function playCase1(page: Page) {
   await page.getByRole('button', { name: C1_DIAGNOSIS }).click();
   await page.getByRole('button', { name: 'ไปซ่อมเครื่อง' }).click();
   await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
-  for (const k of ['F2', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowDown', 'ArrowDown', 'Enter', 'Enter', 'ArrowDown', 'Enter', 'F10', 'Enter', 'Enter', 'x']) {
+  for (const k of [
+    'F2',
+    'ArrowRight',
+    'ArrowRight',
+    'ArrowRight',
+    'ArrowDown',
+    'ArrowDown',
+    'Enter',
+    'Enter',
+    'ArrowDown',
+    'Enter',
+    'F10',
+    'Enter',
+    'Enter',
+    'x',
+  ]) {
     await page.keyboard.press(k);
   }
   await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'setup');

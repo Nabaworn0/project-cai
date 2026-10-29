@@ -96,7 +96,7 @@ export function ContentViewer() {
                   <li><b>{report.stats.cases}</b> เคส</li>
                   <li><b>{report.stats.problems}</b> ปัญหา</li>
                   <li><b>{report.stats.brands}</b> ยี่ห้อ BIOS</li>
-                  <li><b>{report.stats.quizzes}</b> ชุดข้อสอบ</li>
+                  <li><b>{report.stats.testItems}</b> ข้อสอบ</li>
                   <li><b>{report.stats.cards}</b> การ์ด</li>
                   <li><b>{ACTIONS.length}</b> วิธีซ่อม</li>
                 </ul>
@@ -236,48 +236,31 @@ export function ContentViewer() {
 
         {tab === 'sims' && parsed.brands.find((b) => b.menu) && <SimLab brand={parsed.brands.find((b) => b.menu)!} />}
 
-        {tab === 'quizzes' && (
+        {tab === 'quizzes' && parsed.test && (
           <section class="v-stack">
-            {(['pre', 'mid', 'post'] as const).map((kind) => {
-              const a = parsed.quizzes.find((q) => q.kind === kind && q.form === 'A');
-              const b = parsed.quizzes.find((q) => q.kind === kind && q.form === 'B');
-              if (!a && !b) return null;
-              const pairs = [...new Set([...(a?.items ?? []), ...(b?.items ?? [])].map((i) => i.pair))];
-              const title = { pre: 'ก่อนเรียน', mid: 'กลางคอร์ส', post: 'หลังเรียน' }[kind];
-              return (
-                <article key={kind} class="v-card">
-                  <header class="v-card-head">
-                    <h3>แบบทดสอบ{title}</h3>
-                    {(a?.draft || b?.draft) && <span class="v-badge warn">ร่าง</span>}
-                  </header>
-                  {pairs.map((pair) => (
-                    <div key={pair} class="v-pair">
-                      {[a, b].map((q, i) => {
-                        const it = q?.items.find((x) => x.pair === pair);
-                        return (
-                          <div key={i} class="v-q">
-                            <div class="v-dim">ฟอร์ม {i ? 'B' : 'A'} · <LoTags ids={it ? [it.lo] : []} objectives={objectives} /></div>
-                            {it ? (
-                              <>
-                                <p>{it.stemTh}</p>
-                                <ol class="v-choices">
-                                  {it.choicesTh.map((c, k) => (
-                                    <li key={c} class={k === it.answer ? 'right' : ''}>{c}</li>
-                                  ))}
-                                </ol>
-                                <p class="v-dim">{it.explainTh}</p>
-                              </>
-                            ) : (
-                              <p class="v-bad">ไม่มีข้อคู่ขนาน</p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </article>
-              );
-            })}
+            <article class="v-card">
+              <header class="v-card-head">
+                <h3>แบบทดสอบก่อน/หลังเรียน ({parsed.test.items.length} ข้อ ชุดเดียวกัน สลับข้อและตัวเลือก)</h3>
+                {parsed.test.draft && <span class="v-badge warn">ร่าง</span>}
+              </header>
+              {parsed.test.source && <p class="v-dim">{parsed.test.source}</p>}
+              {parsed.test.items.map((it, n) => (
+                <div key={it.id} class="v-q">
+                  <div class="v-dim">
+                    ข้อ {n + 1} · วัตถุประสงค์ข้อ {it.objective}
+                  </div>
+                  <p>{it.stemTh}</p>
+                  <ol class="v-choices">
+                    {it.choicesTh.map((c, k) => (
+                      <li key={c} class={k === it.answer ? 'right' : ''}>
+                        {c}
+                      </li>
+                    ))}
+                  </ol>
+                  <p class="v-dim">{it.explainTh}</p>
+                </div>
+              ))}
+            </article>
           </section>
         )}
 

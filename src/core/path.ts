@@ -4,6 +4,8 @@
 // Steps not built yet are "soon" and lock nothing, so the path works while items 2-7 are being made.
 // The shop opens once the learning before it is done (docs/learning-page-plan.md, approved 28 Oct 2026).
 
+import type { TestDraft } from './quiz';
+
 export const STEPS = ['pre', 'lesson-os', 'lesson-types', 'order', 'cases', 'post', 'reflect', 'results'] as const;
 export type StepId = (typeof STEPS)[number];
 
@@ -31,9 +33,11 @@ export interface Learner {
 export interface QuizResult {
   score: number;
   total: number;
-  /** The chosen choice per item, in the order the items were shown. */
-  answers: number[];
+  /** Per item id, the original index of the choice picked (src/core/quiz.ts). */
+  answers: Record<string, number>;
   at: number;
+  /** Time taken. */
+  seconds: number;
 }
 
 export interface CaseRecord {
@@ -52,9 +56,11 @@ export interface Progress {
   cases: Record<string, CaseRecord>;
   /** Cutscenes already shown on their own: 'intro' (the welcome) and case ids (the talk before a case). */
   seen: string[];
+  /** A test left half way, to carry on with. */
+  testDraft: TestDraft | null;
 }
 
-export const EMPTY: Progress = { coins: 0, learner: null, pre: null, post: null, done: [], cases: {}, seen: [] };
+export const EMPTY: Progress = { coins: 0, learner: null, pre: null, post: null, done: [], cases: {}, seen: [], testDraft: null };
 
 /** What is learned before the shop: the pre-test, both lessons and the step ordering. */
 const BEFORE_SHOP: readonly StepId[] = ['pre', 'lesson-os', 'lesson-types', 'order'];
@@ -153,9 +159,11 @@ export function markSeen(p: Progress, id: string): Progress {
   return p.seen.includes(id) ? p : { ...p, seen: [...p.seen, id] };
 }
 
-/** Stores a test result; the first one stands (tests are taken once). */
+/** Stores a test result; the first one stands (tests are taken once, a teacher's retake is not kept).
+ *  The finished sitting goes either way. */
 export function recordQuiz(p: Progress, kind: 'pre' | 'post', r: QuizResult): Progress {
-  return p[kind] ? p : { ...p, [kind]: r };
+  const testDraft = p.testDraft?.kind === kind ? null : p.testDraft;
+  return p[kind] ? { ...p, testDraft } : { ...p, [kind]: r, testDraft };
 }
 
 /** Why the name form cannot be saved yet, or null. */
@@ -178,14 +186,36 @@ const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object
 const count = (v: unknown) => (Number.isInteger(v) && (v as number) >= 0 ? (v as number) : null);
 const str = (v: unknown) => (typeof v === 'string' ? v : null);
 
+/** { id: index } with whole numbers only. */
+function indexMap(v: unknown): Record<string, number> | null {
+  if (!isObj(v)) return null;
+  return Object.values(v).every((a) => count(a) !== null) ? (v as Record<string, number>) : null;
+}
+
 function quiz(v: unknown): QuizResult | null {
   if (!isObj(v)) return null;
   const score = count(v.score);
   const total = count(v.total);
   const at = count(v.at);
-  const answers = Array.isArray(v.answers) && v.answers.every((a) => count(a) !== null) ? (v.answers as number[]) : null;
+  const seconds = count(v.seconds) ?? 0;
+  const answers = indexMap(v.answers);
   if (score === null || total === null || at === null || !answers || score > total) return null;
-  return { score, total, answers, at };
+  return { score, total, answers, at, seconds };
+}
+
+/** The shape only; whether it still fits the test is quiz.ts's resumable(). */
+function draft(v: unknown): TestDraft | null {
+  if (!isObj(v) || (v.kind !== 'pre' && v.kind !== 'post')) return null;
+  const order = Array.isArray(v.order) && v.order.every((x) => typeof x === 'string') ? (v.order as string[]) : null;
+  const answers = indexMap(v.answers);
+  const startedAt = count(v.startedAt);
+  if (!order || !answers || startedAt === null || !isObj(v.choices)) return null;
+  const choices: Record<string, number[]> = {};
+  for (const [id, c] of Object.entries(v.choices)) {
+    if (!Array.isArray(c) || !c.every((x) => count(x) !== null)) return null;
+    choices[id] = c as number[];
+  }
+  return { kind: v.kind, order, choices, answers, startedAt };
 }
 
 function learner(v: unknown): Learner | null {
@@ -218,5 +248,14 @@ export function parseProgress(raw: string | null, oldRaw: string | null = null):
   const saved = v.done;
   const done = Array.isArray(saved) ? STEPS.filter((s) => saved.includes(s)) : [];
   const seen = Array.isArray(v.seen) ? [...new Set(v.seen.filter((x): x is string => typeof x === 'string' && x.length > 0 && x.length <= 40))] : [];
-  return { coins: count(v.coins) ?? 0, learner: learner(v.learner), pre: quiz(v.pre), post: quiz(v.post), done, cases, seen };
+  return {
+    coins: count(v.coins) ?? 0,
+    learner: learner(v.learner),
+    pre: quiz(v.pre),
+    post: quiz(v.post),
+    done,
+    cases,
+    seen,
+    testDraft: draft(v.testDraft),
+  };
 }

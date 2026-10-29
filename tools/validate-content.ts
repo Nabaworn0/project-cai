@@ -35,6 +35,6 @@ for (const e of errors) console.log(`  ERROR ${e}`);
 const s = report.stats;
 console.log(
   `\n${errors.length ? 'FAILED' : 'OK'}: ${s.cases} cases (${s.machinesChecked} machines), ${s.problems} problems, ` +
-    `${s.brands} brands, ${s.quizzes} quizzes, ${s.cards} cards — ${errors.length} errors, ${report.warnings.length} warnings`,
+    `${s.brands} brands, ${s.testItems} test items, ${s.cards} cards — ${errors.length} errors, ${report.warnings.length} warnings`,
 );
 process.exit(errors.length ? 1 : 0);

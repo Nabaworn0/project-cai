@@ -1,7 +1,8 @@
 // HTML overlay above the Phaser canvas: HUD, the case panels, and the simulated screen.
 // Text that people read or type lives here (sharp at any DPI, Thai input works), not in the canvas.
-// Two places (docs/learning-page-plan.md): the learning page, a page of its own, and the shop, whose scene
-// (Phaser) is only loaded the first time the learner goes there and is paused while they are away.
+// Two places (docs/learning-page-plan.md): the learning page, a page of its own (with the pre/post test on its
+// board, docs/quiz-plan.md), and the shop, whose scene (Phaser) is only loaded the first time the learner goes
+// there and is paused while they are away.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Game } from 'phaser';
@@ -11,8 +12,10 @@ import type { ShopLayout } from '../game/scenes/ShopScene';
 import { CaseFlow, PLAYABLE } from './case/CaseFlow';
 import { SUMMARY_REVEAL_MS } from './case/SummaryCard';
 import { MenuScreen } from './menu/MenuScreen';
+import { QuizScreen } from './quiz/QuizScreen';
 import { loadProgress, saveProgress, type Progress } from './progress';
-import { EMPTY, markSeen, pathView, recordCase, type PathOptions, type StepId } from '../core/path';
+import { EMPTY, markSeen, pathView, recordCase, recordQuiz, type PathOptions, type StepId } from '../core/path';
+import type { TestKind } from '../core/quiz';
 import { isMuted, onMuted, play, setMuted, unlockOnGesture } from './sound';
 import './case/case.css';
 
@@ -20,7 +23,7 @@ const content = loadContent();
 const params = new URLSearchParams(location.search);
 
 /** Steps whose screens exist (docs/learning-path-plan.md); the rest show as "เร็วๆ นี้". */
-const BUILT: ReadonlySet<StepId> = new Set<StepId>(['cases']);
+const BUILT: ReadonlySet<StepId> = new Set<StepId>(['pre', 'cases', 'post']);
 const pathOptions: PathOptions = { built: BUILT, caseIds: PLAYABLE, unlockAll: params.get('unlock') === 'all' };
 
 /** The shop scene, started once on the first visit. */
@@ -34,9 +37,10 @@ export function App() {
   const [sign, setSign] = useState<ShopLayout['sign'] | null>(null);
   const [progress, setProgress] = useState(loadProgress);
   // The game opens on the menu; ?case= (teachers, tests) goes straight to that customer.
-  const [view, setView] = useState<'menu' | 'shop'>(() => (params.has('case') ? 'shop' : 'menu'));
+  const [view, setView] = useState<'menu' | 'test' | 'shop'>(() => (params.has('case') ? 'shop' : 'menu'));
   /** The case picked in the menu, and a count that gives each visit to the shop a fresh case flow. */
   const [first, setFirst] = useState<string | undefined>(undefined);
+  const [test, setTest] = useState<TestKind>('pre');
   const [visit, setVisit] = useState(0);
   const stage = useRef('');
   const [askLeave, setAskLeave] = useState(false);
@@ -83,6 +87,11 @@ export function App() {
     });
   const finish = (caseId: string, stars: number, coins: number) => update((p) => recordCase({ ...p, coins: p.coins + coins }, caseId, stars));
   const enter = (step: StepId, caseId?: string, opts: { replayIntro?: boolean } = {}) => {
+    if (step === 'pre' || step === 'post') {
+      setTest(step);
+      setView('test');
+      return;
+    }
     if (step !== 'cases') return;
     setReplayIntro(!!opts.replayIntro);
     setFirst(caseId ?? pathView(progress, pathOptions).cases.find((c) => c.status === 'open')?.id);
@@ -146,6 +155,17 @@ export function App() {
           onReset={() => update(() => EMPTY)}
           onEnter={enter}
           coins={<CoinChip coins={progress.coins} />}
+        />
+      ) : view === 'test' ? (
+        <QuizScreen
+          items={content.test.items}
+          kind={test}
+          draft={progress.testDraft}
+          pre={progress.pre}
+          seed={params.get('seed')}
+          onDraft={(d) => update((p) => ({ ...p, testDraft: d }))}
+          onFinish={(r) => update((p) => recordQuiz(p, test, r))}
+          onBack={toMenu}
         />
       ) : !ready ? (
         <div class="shop-loading" role="status">
