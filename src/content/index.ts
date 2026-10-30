@@ -4,6 +4,7 @@ import {
   BrandSchema,
   CaseSchema,
   CourseTestSchema,
+  OrderSchema,
   CustomersSchema,
   CutscenesSchema,
   ObjectivesSchema,
@@ -12,6 +13,7 @@ import {
   type Brand,
   type Case,
   type CourseTest,
+  type Order,
   type Customer,
   type Cutscenes,
   type Objectives,
@@ -38,6 +40,8 @@ export interface Content {
   cutscenes: Cutscenes;
   /** The course test taken before and after learning (docs/quiz-plan.md). */
   test: CourseTest;
+  /** The step-ordering game (docs/order-plan.md). */
+  order: Order;
 }
 
 /** Parses (and so applies schema defaults to) the bundled content. Bad content fails loudly at startup. */
@@ -51,5 +55,6 @@ export function loadContent(): Content {
     win11Check: Win11CheckSchema.parse(raw['./data/win11-check.json']),
     cutscenes: CutscenesSchema.parse(raw['./data/cutscenes.json']),
     test: CourseTestSchema.parse(raw['./data/test.json']),
+    order: OrderSchema.parse(raw['./data/order.json']),
   };
 }

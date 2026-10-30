@@ -2,7 +2,7 @@
 // saved progress, "ผู้เรียนคนใหม่", and the links that skip it (?case=) or open everything (?unlock=all).
 
 import { expect, test, type Page } from '@playwright/test';
-import { expectStage, LEARNER, passMenu, PRE_DONE, skipTalk, takePreTest } from './helpers';
+import { expectStage, LEARNED, LEARNER, passMenu, reopenGame, skipOrder, skipTalk, takePreTest } from './helpers';
 
 /** Set SHOTS=<folder> to keep a picture of the menu per screen size, for checking the layout by eye. */
 const shot = async (page: Page, name: string, project: string) => {
@@ -59,12 +59,12 @@ test('a first visit asks for the name, checks it, then shows the path with case 
   // The pre-test comes first; the shop and the post-test are shut until then.
   await expect(menu(page).getByRole('button', { name: 'ทำต่อ: แบบทดสอบก่อนเรียน' })).toBeVisible();
   await expect(step(page, 'pre')).toHaveAttribute('data-status', 'open');
-  for (const id of ['cases', 'post']) {
+  for (const id of ['order', 'cases', 'post']) {
     await expect(step(page, id)).toHaveAttribute('data-status', 'locked');
     await expect(step(page, id).locator('.path-row')).toBeDisabled();
   }
   // Steps not built yet say so and cannot be tapped.
-  for (const id of ['lesson-os', 'lesson-types', 'order', 'reflect', 'results']) {
+  for (const id of ['lesson-os', 'lesson-types', 'reflect', 'results']) {
     await expect(step(page, id)).toHaveAttribute('data-status', 'soon');
     await expect(step(page, id).locator('.path-row')).toBeDisabled();
   }
@@ -80,9 +80,14 @@ test('a first visit asks for the name, checks it, then shows the path with case 
   await menu(page).getByRole('button', { name: 'ผู้เรียนคนใหม่' }).scrollIntoViewIfNeeded();
   await expect(menu(page).getByRole('button', { name: 'ผู้เรียนคนใหม่' })).toBeInViewport();
 
-  // After the pre-test the cases open one by one (tests/quiz.spec.ts covers the test itself).
+  // After the pre-test the ordering game opens, the shop still shut (tests/quiz.spec.ts and order.spec.ts cover them).
   await takePreTest(page);
   await expect(step(page, 'pre')).toHaveAttribute('data-status', 'done');
+  await expect(step(page, 'order')).toHaveAttribute('data-status', 'open');
+  await expect(step(page, 'cases')).toHaveAttribute('data-status', 'locked');
+  await expect(menu(page).getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' })).toBeVisible();
+  // Then the cases open one by one.
+  await skipOrder(page);
   await expect(step(page, 'cases')).toHaveAttribute('data-status', 'open');
   await expect(caseRow(page, 'c01-boot-order').getByRole('button')).toBeEnabled();
   await expect(caseRow(page, 'c02-rufus-scheme')).toHaveAttribute('data-status', 'locked');
@@ -97,7 +102,7 @@ test('a first visit asks for the name, checks it, then shows the path with case 
 test('the name stays after a reload, and the case 1 card also starts the case', async ({ page }) => {
   await page.goto('/');
   await passMenu(page);
-  await page.reload();
+  await reopenGame(page);
   await expect(menu(page).getByTestId('learner')).toContainText(LEARNER.name);
   await expect(menu(page).getByLabel('ชื่อ-สกุล')).toHaveCount(0);
   await caseRow(page, 'c01-boot-order').getByRole('button').click();
@@ -106,7 +111,7 @@ test('the name stays after a reload, and the case 1 card also starts the case', 
 });
 
 test('saved stars show on the case cards and the next case opens', async ({ page }, info) => {
-  await seed(page, 'shop.progress.v2', { coins: 30, learner: LEARNER, pre: PRE_DONE, done: [], cases: { 'c01-boot-order': { stars: 2, plays: 1 } } });
+  await seed(page, 'shop.progress.v2', { coins: 30, learner: LEARNER, ...LEARNED, cases: { 'c01-boot-order': { stars: 2, plays: 1 } } });
   await page.goto('/');
   await expect(caseRow(page, 'c01-boot-order')).toHaveAttribute('data-status', 'done');
   await expect(caseRow(page, 'c01-boot-order').getByLabel('ได้ 2 ดาว')).toBeVisible();
@@ -119,7 +124,7 @@ test('saved stars show on the case cards and the next case opens', async ({ page
 });
 
 test('"ผู้เรียนคนใหม่" asks first, then clears the name, stars and coins', async ({ page }) => {
-  await seed(page, 'shop.progress.v2', { coins: 30, learner: LEARNER, pre: PRE_DONE, done: [], cases: { 'c01-boot-order': { stars: 3, plays: 2 } } });
+  await seed(page, 'shop.progress.v2', { coins: 30, learner: LEARNER, ...LEARNED, cases: { 'c01-boot-order': { stars: 3, plays: 2 } } });
   await page.goto('/');
   await menu(page).getByRole('button', { name: 'ผู้เรียนคนใหม่' }).click();
   const ask = menu(page).getByRole('alertdialog');
@@ -148,14 +153,14 @@ test('?case= skips the menu; ?unlock=all opens every case', async ({ page }) => 
   await expectStage(page, 'intro');
   await expect(menu(page)).toHaveCount(0);
 
-  await seed(page, 'shop.progress.v2', { learner: LEARNER, pre: PRE_DONE });
+  await seed(page, 'shop.progress.v2', { learner: LEARNER, ...LEARNED });
   await page.goto('/?unlock=all');
   for (const id of ['c02-rufus-scheme', 'c05-lab-upgrade']) await expect(caseRow(page, id).getByRole('button')).toBeEnabled();
 });
 
 test('the learning page is a page of its own: no shop behind it, and the shop scene loads only on the way there', async ({ page }, info) => {
   const scripts = () => page.evaluate(() => performance.getEntriesByType('resource').filter((e) => /\/game-[^/]*\.js$/.test(e.name)).length);
-  await seed(page, 'shop.progress.v2', { coins: 30, learner: LEARNER, pre: PRE_DONE });
+  await seed(page, 'shop.progress.v2', { coins: 30, learner: LEARNER, ...LEARNED });
   await page.goto('/');
   await expect(menu(page)).toBeVisible();
   await expect(page.locator('body')).toHaveAttribute('data-view', 'menu');

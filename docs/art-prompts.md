@@ -281,6 +281,24 @@ Transparent background outside the frame, PNG.
 
 บันทึกเป็น `art-source/workshop-busy.png` และ `art-source/workshop-empty.png` แล้วบอก Claude
 
+## 4.3 สายพานงานซ่อม: ฉากด่านบอสของเกมเรียงขั้นตอน · 1 ภาพ · เพิ่ม 29 ต.ค. 2026
+
+ด่านบอสของ [order-plan.md](order-plan.md) แบบ 2.5D: สายพานวิ่งจากผนังห้องซ่อมด้านหลังเข้ามาหาผู้เล่น การ์ดขั้นตอนเป็น HTML วางทับ (ตัวหนังสือไทยต้องคม) **ในภาพจึงห้ามมีการ์ดหรือของบนสายพาน** · ลายสายพานที่เลื่อนได้ผมทำด้วย CSS ทับผิวสายพานอีกที ผิวจึงควรเป็นสีเรียบ
+ส่งในแชตเดิมที่ทำภาพร้าน แนบ `art-source/workshop-busy.png` เป็นตัวอย่างสไตล์และห้องเดียวกัน
+
+```
+Scene in the same 16-bit pixel art style and palette as the attached image: the inside of the same small computer
+repair workshop, seen from the front in one-point perspective, about 160 x 120 art pixels (4:3).
+A wide conveyor belt starts at a small hatch in the back wall and comes straight towards the viewer, getting wider:
+its far end is about one third of the image width, centred, at about one quarter from the top; its near end reaches
+almost the full width at the bottom edge of the image. The belt surface is plain dark grey rubber with NO stripes,
+NO objects and NO cards on it, with metal side rails and small rollers along both sides.
+Around the belt: shelves with PC parts, cables and a lamp on the back wall, warm light, wooden floor at the sides.
+No people. No text, no letters, no numbers. PNG.
+```
+
+บันทึกเป็น `art-source/belt.png` แล้วบอก Claude (ผมจะ `npm run pixelize -- --keep-bg --out src/assets/scenes` และจัดลายสายพานให้ตรงขอบในภาพ) · ระหว่างรอ เกมใช้สายพานวาดด้วย CSS
+
 ## 5. ไอคอนอะไหล่ (16×16 แต่ละชิ้น)
 
 ```

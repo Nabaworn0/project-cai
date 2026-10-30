@@ -4,7 +4,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 import courseTest from '../src/content/data/test.json' with { type: 'json' };
-import { LEARNER, PRE_DONE } from './helpers';
+import { LEARNED, LEARNER, PRE_DONE } from './helpers';
 
 const items = courseTest.items;
 const CASES = ['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip', 'c05-lab-upgrade'];
@@ -83,7 +83,7 @@ test('the pre-test: one question at a time, back to change, a check before sendi
   await expect(quiz(page).locator('.quiz-choice[aria-pressed="true"]')).toHaveCount(1);
   await expect(bar).toHaveAttribute('aria-valuenow', '1');
   // The way on is in sight once a choice is made, even on a phone on its side.
-  await expect(next).toBeInViewport({ ratio: 1 });
+  await expect(next).toBeInViewport({ ratio: 0.95 }); // not 1: the edge can land half a pixel out (sub-pixel rounding)
   await fits(page);
   await shot(page, 'quiz-question', info.project.name);
   await next.click();
@@ -140,8 +140,9 @@ test('the pre-test: one question at a time, back to change, a check before sendi
   await expect(step(page, 'pre')).toContainText('6/10');
   // Taken once: the card cannot be opened again.
   await expect(step(page, 'pre').locator('.path-row')).toBeDisabled();
-  await expect(step(page, 'cases')).toHaveAttribute('data-status', 'open');
-  await expect(menu(page).getByRole('button', { name: 'ทำต่อ: ฝึกงานที่ร้าน · เคส 1 ป้าสมศรี' })).toBeVisible();
+  // Next comes the ordering game (tests/order.spec.ts), then the shop.
+  await expect(step(page, 'order')).toHaveAttribute('data-status', 'open');
+  await expect(menu(page).getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' })).toBeVisible();
   await fits(page);
   expect(errors).toEqual([]);
 });
@@ -180,6 +181,7 @@ test('the post-test: the score beside the pre-test, per objective, and every ans
   const preAnswers = Object.fromEntries(items.map((i) => [i.id, i.objective === 1 ? i.answer : (i.answer + 1) % 4]));
   await seed(page, {
     learner: LEARNER,
+    ...LEARNED,
     pre: { ...PRE_DONE, score: 3, answers: preAnswers },
     cases: Object.fromEntries(CASES.map((c) => [c, { stars: 2, plays: 1 }])),
   });

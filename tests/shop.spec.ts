@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectStage, openShop, passMenu, playToRepair } from './helpers';
+import { expectStage, openShop, passMenu, playToRepair, reopenGame } from './helpers';
 
 const errorsOf = (page: Page) => {
   const errors: string[] = [];
@@ -122,7 +122,7 @@ test('installable PWA that keeps working offline', async ({ page, context }, inf
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null || document.body.dataset.offlineReady === 'true', null, { timeout: 15_000 });
   await page.evaluate(() => navigator.serviceWorker.ready);
   await context.setOffline(true);
-  await page.reload();
+  await reopenGame(page);
   // The shop scene is loaded only on the way to the shop, so that part must come from the cache too.
   await passMenu(page);
   await expect(page.locator('body')).toHaveAttribute('data-scene', 'shop');

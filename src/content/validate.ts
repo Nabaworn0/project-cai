@@ -20,6 +20,7 @@ import {
   ObjectivesSchema,
   ProblemsSchema,
   CourseTestSchema,
+  OrderSchema,
   type Brand,
   type Cards,
   type Cutscenes,
@@ -30,6 +31,7 @@ import {
   type Objectives,
   type Problem,
   type CourseTest,
+  type Order,
 } from './schema';
 import { WIN11_CHECK_IDS } from '../core/win11check';
 import { nameError } from '../core/oobe';
@@ -58,6 +60,7 @@ export interface ParsedContent {
   cards?: Cards;
   win11Check?: Win11Check;
   cutscenes?: Cutscenes;
+  order?: Order;
 }
 
 export function validateContent(files: readonly ContentFile[], opts: { seedsPerCase?: number } = {}): Report {
@@ -80,6 +83,7 @@ export function validateContent(files: readonly ContentFile[], opts: { seedsPerC
   checkProblems(parsed, checkLo, errors);
   const generated = checkCases(parsed, seeds, checkLo, errors, warnings);
   checkTest(parsed.test, errors, warnings);
+  checkOrder(parsed.order, errors, warnings);
   checkCards(parsed, errors, warnings);
   checkWin11Check(parsed, errors);
   checkCutscenes(parsed, errors, warnings);
@@ -92,6 +96,7 @@ export function validateContent(files: readonly ContentFile[], opts: { seedsPerC
       problems: parsed.problems.length,
       brands: parsed.brands.length,
       testItems: parsed.test?.items.length ?? 0,
+      orderSteps: parsed.order?.rounds.reduce((n, r) => n + r.steps.length, 0) ?? 0,
       cards: parsed.cards?.cards.length ?? 0,
       machinesChecked: generated,
     },
@@ -117,7 +122,8 @@ export function parseAll(files: readonly ContentFile[], errors: string[]): Parse
     else if (f.path.startsWith('brands/')) push(out.brands, parse(BrandSchema, f), f.path, errors);
     else if (f.path.startsWith('cases/')) push(out.cases, parse(CaseSchema, f), f.path, errors);
     else if (f.path === 'test.json') out.test = parse(CourseTestSchema, f);
-    else errors.push(`${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, test, brands/, cases/)`);
+    else if (f.path === 'order.json') out.order = parse(OrderSchema, f);
+    else errors.push(`${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, test, order, brands/, cases/)`);
   }
   return out;
 }
@@ -335,6 +341,24 @@ function checkTest(test: CourseTest | undefined, errors: string[], warnings: str
     dupes(it.choicesTh, `test.json[${it.id}]: duplicate choice`, errors);
   }
   for (const o of [1, 2, 3]) if (!test.items.some((i) => i.objective === o)) errors.push(`test.json: no question for objective ${o}`);
+}
+
+/** The ordering game: every card is told apart by id and by its text (the learner sees only the text), and the
+ *  boss opens up a step of the first round into another round. */
+function checkOrder(order: Order | undefined, errors: string[], warnings: string[]): void {
+  if (!order) {
+    errors.push('order.json: missing');
+    return;
+  }
+  if (order.draft) warnings.push('order.json: คำใบ้และการ์ดกับดักยังเป็นร่าง รอข้อความจาก ChatGPT');
+  const cards = [...order.rounds.flatMap((r) => r.steps), ...order.traps];
+  dupes(order.rounds.map((r) => r.id), 'order.json: duplicate round', errors);
+  dupes(cards.map((c) => c.id), 'order.json: duplicate card id', errors);
+  dupes(cards.map((c) => c.th), 'order.json: duplicate card text', errors);
+  const [first, ...rest] = order.rounds;
+  if (!first!.steps.some((s) => s.id === order.boss.expand)) errors.push(`order.json: boss expands "${order.boss.expand}", not a step of the first round`);
+  if (!rest.some((r) => r.id === order.boss.into)) errors.push(`order.json: boss opens into "${order.boss.into}", not a later round`);
+  if (order.traps.length < 4) warnings.push(`order.json: มีการ์ดกับดักแค่ ${order.traps.length} ใบ (แผนคือ 4–6)`);
 }
 
 function checkCards(parsed: ParsedContent, errors: string[], warnings: string[]): void {

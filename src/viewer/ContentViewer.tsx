@@ -1,5 +1,5 @@
 // Content viewer for the people making the game (?view=content): every case, problem, BIOS brand,
-// quiz and card as the game reads them, a lab to roll machines from each case, and the validator's
+// quiz, ordering game and card as the game reads them, a lab to roll machines from each case, and the validator's
 // report. Not part of the game students play; nothing here changes the content files.
 
 import { useEffect, useMemo, useState } from 'preact/hooks';
@@ -20,6 +20,7 @@ const TABS = [
   ['bios', 'BIOS'],
   ['sims', 'หน้าจอจำลอง'],
   ['quizzes', 'ข้อสอบ'],
+  ['order', 'เรียงขั้นตอน'],
   ['cards', 'การ์ด'],
 ] as const;
 type Tab = (typeof TABS)[number][0];
@@ -260,6 +261,48 @@ export function ContentViewer() {
                   <p class="v-dim">{it.explainTh}</p>
                 </div>
               ))}
+            </article>
+          </section>
+        )}
+
+        {tab === 'order' && parsed.order && (
+          <section class="v-stack">
+            {parsed.order.source && (
+              <p class="v-lead">
+                {parsed.order.draft && <span class="v-badge warn">ร่าง</span>} {parsed.order.source}
+              </p>
+            )}
+            {parsed.order.rounds.map((r, k) => (
+              <article key={r.id} class="v-card" data-testid={`order-${r.id}`}>
+                <header class="v-card-head">
+                  <h3>
+                    รอบ {k + 1} {r.titleTh} ({r.steps.length} ขั้น)
+                  </h3>
+                </header>
+                <ol class="v-choices">
+                  {r.steps.map((s) => (
+                    <li key={s.id}>
+                      <b>{s.th}</b>
+                      {s.id === parsed.order!.boss.expand && <span class="v-badge">บอส: แตกเป็นรอบ "{parsed.order!.boss.into}"</span>}
+                      <div class="v-dim">คำใบ้: {s.hintTh}</div>
+                      <div class="v-dim">เหตุผล: {s.whyTh}</div>
+                    </li>
+                  ))}
+                </ol>
+              </article>
+            ))}
+            <article class="v-card" data-testid="order-traps">
+              <header class="v-card-head">
+                <h3>การ์ดกับดักในบอสสายพาน ({parsed.order.traps.length} ใบ)</h3>
+              </header>
+              <ul>
+                {parsed.order.traps.map((t) => (
+                  <li key={t.id}>
+                    <b>{t.th}</b>
+                    <div class="v-dim">{t.whyTh}</div>
+                  </li>
+                ))}
+              </ul>
             </article>
           </section>
         )}

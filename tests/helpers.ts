@@ -7,6 +7,27 @@ export const LEARNER = { name: 'สมชาย ใจดี', room: 'ปวช.
 /** A pre-test already taken, for seeding progress: the shop stays shut until there is one. */
 export const PRE_DONE = { score: 4, total: 10, answers: {}, at: 1, seconds: 300 };
 
+/** Closing the tab and opening the game again: the address without its page (#/shop …) opens the learning page,
+ *  where a reload would stay on the same page (tests/routes.spec.ts). */
+export async function reopenGame(page: Page) {
+  await page.evaluate(() => history.replaceState(null, '', location.pathname + location.search));
+  await page.reload();
+}
+
+/** The learning before the shop, done (the pre-test and the ordering game), for seeding progress. */
+export const LEARNED = { pre: PRE_DONE, done: ['order'], order: { stars: 2, plays: 1, first: { tries: [3, 4], solved: [true, true], lost: 1 } } };
+
+/** The ordering game marked done on this device and the page reloaded: tests about the shop do not play it
+ *  (tests/order.spec.ts does). */
+export async function skipOrder(page: Page) {
+  await page.evaluate((learned) => {
+    const p = JSON.parse(localStorage.getItem('shop.progress.v2') ?? '{}');
+    localStorage.setItem('shop.progress.v2', JSON.stringify({ ...p, done: [...(p.done ?? []), ...learned.done], order: learned.order }));
+  }, LEARNED);
+  await page.reload();
+  await expect(page.getByTestId('menu')).toBeVisible({ timeout: 15_000 });
+}
+
 /** From the learning page, the pre-test start to finish (always the first choice), back to the page. */
 export async function takePreTest(page: Page) {
   await page.getByTestId('menu').getByRole('button', { name: 'ทำต่อ: แบบทดสอบก่อนเรียน' }).click();
@@ -22,8 +43,8 @@ export async function takePreTest(page: Page) {
   await expect(page.getByTestId('menu')).toBeVisible();
 }
 
-/** The menu the game opens on: give the learner's name the first time, take the pre-test if it is still to do,
- *  then "ทำต่อ". */
+/** The menu the game opens on: give the learner's name the first time, take the pre-test and skip the ordering
+ *  game if they are still to do, then "ทำต่อ". */
 export async function passMenu(page: Page) {
   const menu = page.getByTestId('menu');
   // The first load (fonts, then the page) can take a while when every test runs at once.
@@ -35,22 +56,25 @@ export async function passMenu(page: Page) {
     await menu.getByRole('button', { name: 'เริ่มเรียน' }).click();
   }
   if (await menu.getByRole('button', { name: 'ทำต่อ: แบบทดสอบก่อนเรียน' }).isVisible()) await takePreTest(page);
+  if (await menu.getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' }).isVisible()) await skipOrder(page);
   await menu.getByRole('button', { name: /^ทำต่อ/ }).click();
   await expect(menu).toHaveCount(0);
+  // The shutter between pages is fully up again (src/ui/Shutter.tsx).
+  await expect(page.locator('body')).toHaveAttribute('data-shutter', 'idle', { timeout: 15_000 });
 }
 
 /** Every talk with the senior marked as already seen, so tests about other things go straight to the customer. */
 export const ALL_TALKS = ['intro', 'c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip', 'c05-lab-upgrade'];
 
-/** A first visit: the learning page, then through it to the shop and the first customer (pre-test taken and talks
+/** A first visit: the learning page, then through it to the shop and the first customer (pre-test and ordering game done, talks
  *  already seen, unless `talks` is set: tests/talk.spec.ts covers them, and then the pre-test is taken here). */
 export async function openShop(page: Page, { talks = false } = {}) {
   if (!talks)
     await page.addInitScript(
-      ([seen, pre]) =>
+      ([seen, learned]) =>
         !localStorage.getItem('talks-seeded') &&
-        (localStorage.setItem('shop.progress.v2', JSON.stringify({ seen, pre })), localStorage.setItem('talks-seeded', '1')),
-      [ALL_TALKS, PRE_DONE] as const,
+        (localStorage.setItem('shop.progress.v2', JSON.stringify({ seen, ...learned })), localStorage.setItem('talks-seeded', '1')),
+      [ALL_TALKS, LEARNED] as const,
     );
   await page.goto('/');
   await expect(page.locator('#splash')).toHaveCount(0);

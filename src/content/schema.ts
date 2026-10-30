@@ -309,6 +309,23 @@ export const CourseTestSchema = z.object({
 });
 export type CourseTest = z.infer<typeof CourseTestSchema>;
 
+/** The step-ordering game (docs/order-plan.md): rounds of steps to put in order (the colour-hint part), the
+ *  boss belt's full sequence (one overview step opened up into another round), and traps that should never be
+ *  done. Each step has a hint (said when it is the first one still wrong) and a reason (said in the answer). */
+const OrderStepSchema = z.object({ id, th: z.string().min(1).max(60), hintTh: th, whyTh: th }).strict();
+export const OrderSchema = z
+  .object({
+    draft: z.boolean(),
+    source: z.string().optional(),
+    rounds: z.array(z.object({ id, titleTh: th, steps: z.array(OrderStepSchema).min(4).max(10) }).strict()).min(1),
+    /** The belt plays the first round with step `expand` replaced by the steps of round `into`. */
+    boss: z.object({ expand: id, into: id }).strict(),
+    traps: z.array(z.object({ id, th: z.string().min(1).max(60), whyTh: th }).strict()),
+  })
+  .strict();
+export type Order = z.infer<typeof OrderSchema>;
+export type OrderStep = z.infer<typeof OrderStepSchema>;
+
 export const CardsSchema = z.object({
   draft: z.boolean(),
   sets: z.array(z.object({ id, nameTh: th })).min(1),

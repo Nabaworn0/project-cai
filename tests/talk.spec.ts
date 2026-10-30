@@ -4,7 +4,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 import cutscenes from '../src/content/data/cutscenes.json' with { type: 'json' };
-import { expectStage, LEARNER, openShop, passMenu, playCase1, PRE_DONE, skipTalk } from './helpers';
+import { expectStage, LEARNER, openShop, passMenu, playCase1, LEARNED, reopenGame, skipTalk } from './helpers';
 
 const talk = (page: Page) => page.getByTestId('talk');
 const body = (page: Page) => page.locator('body');
@@ -49,7 +49,7 @@ test('the first time in the shop: the senior walks over, the welcome and the cas
   expect(await seen(page)).toEqual(['intro', 'c01-boot-order']);
 
   // Seen once: next time straight to the customer.
-  await page.reload();
+  await reopenGame(page);
   await page
     .getByTestId('menu')
     .getByRole('button', { name: /^ทำต่อ/ })
@@ -81,7 +81,7 @@ test('the menu replays the welcome; a new case has its own talk the first time',
   test.skip(info.project.name !== 'desktop', 'the talk box itself is checked at every size above');
   await page.addInitScript(
     (v) => !localStorage.getItem('seeded') && (localStorage.setItem('shop.progress.v2', v), localStorage.setItem('seeded', '1')),
-    JSON.stringify({ learner: LEARNER, pre: PRE_DONE, seen: ['intro', 'c01-boot-order'] }),
+    JSON.stringify({ learner: LEARNER, ...LEARNED, seen: ['intro', 'c01-boot-order'] }),
   );
   await page.goto('/');
   await page.getByTestId('menu').getByRole('button', { name: 'ดูฉากต้อนรับของพี่ช่างอีกครั้ง' }).click();

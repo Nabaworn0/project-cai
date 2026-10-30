@@ -25,6 +25,9 @@ test.describe('content viewer (?view=content)', () => {
     await expect(page.getByRole('heading', { name: 'Acer', exact: true })).toBeVisible();
     await tab('ข้อสอบ').click();
     await expect(page.getByRole('heading', { name: /แบบทดสอบก่อน\/หลังเรียน \(10 ข้อ/ })).toBeVisible();
+    await tab('เรียงขั้นตอน').click();
+    await expect(page.getByRole('heading', { name: 'รอบ 1 ภาพรวมทั้งงาน (8 ขั้น)' })).toBeVisible();
+    await expect(page.getByTestId('order-traps')).toContainText('ถอด USB ระหว่างคัดลอกไฟล์');
     await tab('การ์ด').click();
     await expect(page.getByText('ผู้พิทักษ์ GPT')).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

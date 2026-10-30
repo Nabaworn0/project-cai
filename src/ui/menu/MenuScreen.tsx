@@ -79,6 +79,13 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
                       {s.status === 'open' && progress.testDraft?.kind === s.id ? 'ทำค้างไว้' : STATUS_TH[s.status]}
                       {s.id === 'pre' && progress.pre && ` ${progress.pre.score}/${progress.pre.total}`}
                       {s.id === 'post' && progress.post && ` ${progress.post.score}/${progress.post.total}`}
+                      {s.id === 'order' && progress.order && (
+                        <span class="case-stars" aria-label={`ได้ ${progress.order.stars} ดาว`}>
+                          {' '}
+                          {'★'.repeat(progress.order.stars)}
+                          <span class="off">{'★'.repeat(3 - progress.order.stars)}</span>
+                        </span>
+                      )}
                     </span>
                   </button>
                   {s.id === 'cases' && s.status !== 'soon' && (

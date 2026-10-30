@@ -1,0 +1,101 @@
+/* The step-ordering game (OrderScreen.tsx) on the learning page's notice board (menu.css). Marks carry a sign
+   as well as a colour, so they read without colour too. */
+.order-intro p, .order-answer p, .order-result p { margin: 0 0 10px; font-size: 15px; }
+.menu-scroll .order-note { color: #5f6b80; font-size: 14px; }
+
+.order-senior { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; padding: 8px 10px; background: #fff; box-shadow: inset 4px 0 0 #8a5a33, inset 0 0 0 2px var(--navy); }
+.order-senior p { margin: 0; font-size: 15px; }
+.order-senior b { font-family: var(--f-head); color: #8a5a33; }
+/* The head of the 33×64 sprite, shown at 2× */
+.order-face { flex: none; width: 48px; height: 48px; overflow: hidden; background: #e3f6f3; box-shadow: inset 0 0 0 2px var(--navy); }
+.order-face img { display: block; width: 66px; height: 128px; margin: 2px 0 0 -9px; image-rendering: pixelated; }
+
+.order-legend { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 4px; font-size: 15px; }
+.order-mark {
+  flex: none; display: inline-grid; place-items: center; width: 1.6em; height: 1.6em;
+  font-family: var(--f-head); font-weight: 700; color: #fff; box-shadow: inset 0 0 0 2px var(--navy);
+}
+.order-mark.right, .order-sq.right { background: #2f9e44; }
+.order-mark.near, .order-sq.near { background: #e0a800; }
+.order-mark.off, .order-sq.off { background: #8a94a6; }
+
+.order-tries { display: grid; gap: 3px; justify-content: center; margin-bottom: 4px; }
+.order-try { display: flex; gap: 3px; }
+.order-sq { width: 14px; height: 14px; box-shadow: inset 0 0 0 2px var(--navy); }
+.order-count { margin: 0 0 8px; text-align: center; font-size: 13px; color: #5f6b80; }
+
+.order-slots { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 5px; }
+.order-slot {
+  width: 100%; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 4px 8px;
+  font: inherit; font-size: 15px; line-height: 1.35; text-align: left; color: #8a94a6;
+  background: transparent; border: 0; box-shadow: inset 0 0 0 2px #c9d0dc; cursor: default;
+}
+.order-slot.filled { color: var(--ink); background: #fff; box-shadow: inset 0 0 0 2px var(--navy); cursor: pointer; }
+.order-slot.right { background: #e6f6e9; box-shadow: inset 0 0 0 3px #2f9e44; }
+.order-slot.near { background: #fff6d6; box-shadow: inset 0 0 0 3px #e0a800; }
+.order-slot.off { background: #eef1f6; box-shadow: inset 0 0 0 3px #8a94a6; }
+.order-no {
+  flex: none; width: 1.7em; height: 1.7em; display: grid; place-items: center;
+  background: var(--navy); color: #fff; font-family: var(--f-head); font-size: 13px;
+}
+.order-slot:not(.filled) .order-no { background: #c9d0dc; }
+.order-text { flex: 1 1 auto; min-width: 0; }
+
+.order-deck { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; padding: 8px; background: #f3e3c8; box-shadow: inset 0 0 0 2px #8a5a33; }
+.order-card {
+  flex: 1 1 10em; min-height: 44px; padding: 6px 10px; font: inherit; font-size: 15px; line-height: 1.35; text-align: left;
+  color: var(--ink); background: var(--yellow); border: 0; box-shadow: inset 0 0 0 2px var(--navy), 0 3px 0 0 #c9a21c; cursor: pointer;
+}
+.order-card:active { transform: translateY(2px); box-shadow: inset 0 0 0 2px var(--navy); }
+.order-round .btn:disabled { opacity: 0.45; cursor: default; }
+
+.order-why { margin: 0 0 6px; padding-left: 1.6em; display: grid; gap: 6px; font-size: 14px; }
+.order-why b { display: block; font-size: 15px; }
+.order-why span { color: #3c475c; }
+
+.order-result p.order-stars { margin: 4px 0 8px; text-align: center; font-size: 44px; line-height: 1; letter-spacing: 4px; color: #e0a800; text-shadow: 2px 2px 0 var(--navy); }
+.order-stars .off { color: #d8dee8; text-shadow: none; }
+.order-summary { margin: 0 0 8px; padding-left: 1.2em; font-size: 15px; }
+
+/* The boss belt (BossBelt.tsx) in 2.5D: the belt surface is a plane tilted away into the back wall (CSS 3D), its
+   stripes moved by --shift; the cards stand upright on it, placed and scaled in BossBelt's place(). */
+.boss-hud { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 4px; }
+.boss-hearts { font-size: 22px; line-height: 1; color: var(--coral); letter-spacing: 2px; text-shadow: 1px 1px 0 var(--navy); }
+.boss-hearts .lost { color: #d8dee8; text-shadow: none; }
+.boss-progress { font-family: var(--f-head); font-weight: 700; font-size: 15px; }
+.boss-combo { font-family: var(--f-head); font-weight: 700; font-size: 15px; color: #c94b55; }
+.boss-slow { margin-left: auto; cursor: pointer; background: #fff; color: var(--ink); }
+.boss-slow[aria-pressed='true'] { background: var(--teal); }
+.menu-scroll .boss-last { margin: 0 0 6px; font-size: 14px; color: #3c475c; }
+
+.boss-stage {
+  /* What the screen leaves under the board's header and the hearts, so the whole belt is in sight. */
+  position: relative; overflow: hidden; height: clamp(170px, calc(100dvh - 300px), 380px);
+  /* The back wall of the workshop (to be replaced by ChatGPT's belt scene, docs/art-prompts.md 4.3). */
+  background: linear-gradient(#3b4a6b 0 22%, #2c3e66 22% 24%, #8a5a33 24% 100%);
+  box-shadow: inset 0 0 0 3px var(--navy);
+  perspective: 420px; perspective-origin: 50% 0%;
+}
+.boss-belt {
+  position: absolute; left: 14%; right: 14%; top: 20%; height: 120%;
+  transform: rotateX(58deg); transform-origin: 50% 0%;
+  background:
+    linear-gradient(90deg, #9aa3b5 0 4%, transparent 4% 96%, #9aa3b5 96%),
+    repeating-linear-gradient(180deg, #4a5468 0 20px, #3d4659 20px 40px) 0 var(--shift, 0) / 100% 600px;
+  box-shadow: 0 0 0 4px var(--navy);
+}
+.boss-card {
+  position: absolute; width: 46%; padding: 8px 10px; min-height: 44px;
+  font: inherit; font-size: 15px; line-height: 1.3; text-align: center; color: var(--ink);
+  background: var(--yellow); border: 0; cursor: pointer;
+  box-shadow: inset 0 0 0 2px var(--navy), 0 4px 0 0 rgba(27, 42, 74, 0.45);
+  will-change: top, left, transform;
+}
+.boss-card:active { background: #fff; }
+.boss-cover {
+  position: absolute; inset: 0; z-index: 200; display: grid; align-content: center; justify-items: center; gap: 10px;
+  padding: 12px; background: rgba(27, 42, 74, 0.55);
+}
+.boss-cover .order-senior { max-width: 420px; margin: 0; }
+.menu-scroll .boss-say { margin: 8px 0 0; padding: 6px 10px; font-size: 15px; background: #ffe3e3; box-shadow: inset 4px 0 0 var(--coral); }
+.boss-say b { font-family: var(--f-head); color: #8a5a33; }

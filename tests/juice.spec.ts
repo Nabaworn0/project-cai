@@ -2,7 +2,7 @@
 // each request is checked through body[data-sfx] (src/ui/sound.ts); whether they sound good is for a person.
 
 import { expect, test, type Page } from '@playwright/test';
-import { C1_DIAGNOSIS, expectStage, openPc, openShop, passMenu, playToRepair } from './helpers';
+import { C1_DIAGNOSIS, expectStage, openPc, openShop, passMenu, playToRepair, reopenGame } from './helpers';
 
 const sfx = (page: Page) => page.evaluate(() => (document.body.dataset.sfx ?? '').split(' ').filter(Boolean));
 const key = (page: Page, k: string) => page.locator(`.keybar [data-key="${k}"]`).click();
@@ -53,7 +53,7 @@ test('the sound button is a toggle that mutes and is remembered after closing th
   await btn.click();
   await expect(btn).toHaveAttribute('aria-pressed', 'false');
   await expect(btn).toHaveText('🔇');
-  await page.reload();
+  await reopenGame(page);
   await passMenu(page);
   await expect(page.locator('body')).toHaveAttribute('data-scene', 'shop');
   await expect(page.getByRole('button', { name: 'เสียงในเกม' })).toHaveAttribute('aria-pressed', 'false');
@@ -66,7 +66,7 @@ test('coins count up into the purse and are still there after closing and reopen
   await expect(summaryCoins).toHaveText('+150');
   await expect(page.getByTestId('coins')).toHaveAttribute('aria-label', 'เหรียญ 150');
   await expect(page.getByTestId('coins')).toHaveText(/^🪙 150/);
-  await page.reload();
+  await reopenGame(page);
   // The page reopens on the learning page, whose header shows the purse too.
   await expect(page.getByTestId('menu').getByTestId('coins'), 'saved on this device').toHaveText(/^🪙 150/);
 });

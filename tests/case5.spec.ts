@@ -4,7 +4,7 @@
 // ?seed= fixes her PC: s1 legacy only, s3 no product key too, s5 TPM off too.
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { ALL_TALKS, expectStage, PRE_DONE } from './helpers';
+import { ALL_TALKS, expectStage, LEARNED } from './helpers';
 
 const shot = (page: Page, info: TestInfo, name: string) => page.screenshot({ path: info.outputPath(`${info.project.name}-${name}.png`) });
 const body = (page: Page) => page.locator('body');
@@ -329,7 +329,7 @@ test('through the menu, case 5 is the last: its summary leads back to the menu, 
   const played = Object.fromEntries(['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip'].map((id) => [id, { stars: 2, plays: 1 }]));
   await page.addInitScript(
     (v) => !localStorage.getItem('seeded') && (localStorage.setItem('shop.progress.v2', v), localStorage.setItem('seeded', '1')),
-    JSON.stringify({ coins: 0, learner: { name: 'สมชาย ใจดี', room: 'ปวช.1/2', no: '7' }, done: [], cases: played, seen: ALL_TALKS, pre: PRE_DONE }),
+    JSON.stringify({ coins: 0, learner: { name: 'สมชาย ใจดี', room: 'ปวช.1/2', no: '7' }, cases: played, seen: ALL_TALKS, ...LEARNED }),
   );
   await toRepair(page, 's1', undefined, undefined, async () => {
     await page.goto('/?seed=s1');

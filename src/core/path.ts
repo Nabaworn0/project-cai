@@ -4,6 +4,7 @@
 // Steps not built yet are "soon" and lock nothing, so the path works while items 2-7 are being made.
 // The shop opens once the learning before it is done (docs/learning-page-plan.md, approved 28 Oct 2026).
 
+import { orderStars, type OrderResult } from './order';
 import type { TestDraft } from './quiz';
 
 export const STEPS = ['pre', 'lesson-os', 'lesson-types', 'order', 'cases', 'post', 'reflect', 'results'] as const;
@@ -46,6 +47,14 @@ export interface CaseRecord {
   plays: number;
 }
 
+export interface OrderRecord {
+  /** Best stars over all plays (1-3). */
+  stars: number;
+  plays: number;
+  /** The first play as it went, for the teacher's page. */
+  first: OrderResult;
+}
+
 export interface Progress {
   coins: number;
   learner: Learner | null;
@@ -58,9 +67,11 @@ export interface Progress {
   seen: string[];
   /** A test left half way, to carry on with. */
   testDraft: TestDraft | null;
+  /** The step-ordering game (docs/order-plan.md). */
+  order: OrderRecord | null;
 }
 
-export const EMPTY: Progress = { coins: 0, learner: null, pre: null, post: null, done: [], cases: {}, seen: [], testDraft: null };
+export const EMPTY: Progress = { coins: 0, learner: null, pre: null, post: null, done: [], cases: {}, seen: [], testDraft: null, order: null };
 
 /** What is learned before the shop: the pre-test, both lessons and the step ordering. */
 const BEFORE_SHOP: readonly StepId[] = ['pre', 'lesson-os', 'lesson-types', 'order'];
@@ -154,6 +165,13 @@ export function markDone(p: Progress, id: StepId): Progress {
   return p.done.includes(id) ? p : { ...p, done: [...p.done, id] };
 }
 
+/** The ordering game finished: the step is done, the best stars kept, the first play kept as it went. */
+export function recordOrder(p: Progress, r: OrderResult): Progress {
+  const rec = p.order;
+  const order = { stars: Math.max(orderStars(r), rec?.stars ?? 0), plays: (rec?.plays ?? 0) + 1, first: rec?.first ?? r };
+  return { ...markDone(p, 'order'), order };
+}
+
 /** A cutscene was shown, so it does not start by itself again (it can still be replayed). */
 export function markSeen(p: Progress, id: string): Progress {
   return p.seen.includes(id) ? p : { ...p, seen: [...p.seen, id] };
@@ -218,6 +236,17 @@ function draft(v: unknown): TestDraft | null {
   return { kind: v.kind, order, choices, answers, startedAt };
 }
 
+function orderRecord(v: unknown): OrderRecord | null {
+  if (!isObj(v) || !isObj(v.first)) return null;
+  const stars = count(v.stars);
+  const plays = count(v.plays);
+  const { tries, solved, lost } = v.first;
+  const okTries = Array.isArray(tries) && tries.every((t) => count(t) !== null);
+  const okSolved = Array.isArray(solved) && solved.every((s) => typeof s === 'boolean');
+  if (stars === null || stars < 1 || stars > 3 || plays === null || plays < 1 || !okTries || !okSolved || count(lost) === null) return null;
+  return { stars, plays, first: { tries: tries as number[], solved: solved as boolean[], lost: lost as number } };
+}
+
 function learner(v: unknown): Learner | null {
   if (!isObj(v)) return null;
   const name = str(v.name);
@@ -257,5 +286,6 @@ export function parseProgress(raw: string | null, oldRaw: string | null = null):
     cases,
     seen,
     testDraft: draft(v.testDraft),
+    order: orderRecord(v.order),
   };
 }

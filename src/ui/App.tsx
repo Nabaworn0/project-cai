@@ -3,6 +3,9 @@
 // Two places (docs/learning-page-plan.md): the learning page, a page of its own (with the pre/post test on its
 // board, docs/quiz-plan.md), and the shop, whose scene (Phaser) is only loaded the first time the learner goes
 // there and is paused while they are away.
+// Each page has its own address (#/learn, #/pre, #/post, #/order, #/shop: docs/pages-plan.md), so Back, reloading
+// and links work as on any website; which page an address may open is src/core/routes.ts. Between pages the shop's
+// shutter rolls down and up (Shutter.tsx), held down the first time the shop's scene loads.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Game } from 'phaser';
@@ -12,10 +15,13 @@ import type { ShopLayout } from '../game/scenes/ShopScene';
 import { CaseFlow, PLAYABLE } from './case/CaseFlow';
 import { SUMMARY_REVEAL_MS } from './case/SummaryCard';
 import { MenuScreen } from './menu/MenuScreen';
+import { OrderScreen } from './order/OrderScreen';
 import { QuizScreen } from './quiz/QuizScreen';
 import { loadProgress, saveProgress, type Progress } from './progress';
-import { EMPTY, markSeen, pathView, recordCase, recordQuiz, type PathOptions, type StepId } from '../core/path';
-import type { TestKind } from '../core/quiz';
+import { EMPTY, markSeen, pathView, recordCase, recordOrder, recordQuiz, type PathOptions, type StepId } from '../core/path';
+import { allowedRoute, parseRoute, routeHash, type Route } from '../core/routes';
+import { prefersLessMotion } from './motion';
+import { Shutter, SHUTTER_MS, type ShutterPhase } from './Shutter';
 import { isMuted, onMuted, play, setMuted, unlockOnGesture } from './sound';
 import './case/case.css';
 
@@ -23,7 +29,7 @@ const content = loadContent();
 const params = new URLSearchParams(location.search);
 
 /** Steps whose screens exist (docs/learning-path-plan.md); the rest show as "เร็วๆ นี้". */
-const BUILT: ReadonlySet<StepId> = new Set<StepId>(['pre', 'cases', 'post']);
+const BUILT: ReadonlySet<StepId> = new Set<StepId>(['pre', 'order', 'cases', 'post']);
 const pathOptions: PathOptions = { built: BUILT, caseIds: PLAYABLE, unlockAll: params.get('unlock') === 'all' };
 
 /** The shop scene, started once on the first visit. */
@@ -32,17 +38,60 @@ const startShop = () => (game ??= import('../game').then(({ startGame }) => star
 /** Long enough for a customer to walk out before the scene is paused. */
 const PAUSE_AFTER_MS = 3000;
 
+type View = 'menu' | 'test' | 'order' | 'shop';
+const VIEW: Record<Route, View> = { learn: 'menu', pre: 'test', post: 'test', order: 'order', shop: 'shop' };
+/** ?case= (teachers, tests) goes straight to that customer, outside the pages. */
+const caseLink = params.has('case');
+/** The same page with another address (the query, such as ?seed=, stays). */
+const urlOf = (r: Route) => `${location.pathname}${location.search}${routeHash(r)}`;
+const nextCase = (p: Progress) => pathView(p, pathOptions).cases.find((c) => c.status === 'open')?.id;
+/** Leaving before the job starts or after it ends loses nothing; in the middle, ask first. */
+const CALM_STAGES = ['', 'arriving', 'talk', 'intro', 'summary'];
+const fade = prefersLessMotion();
+const shutterMs = fade ? SHUTTER_MS.fade : SHUTTER_MS.roll;
+
 export function App() {
   const [ready, setReady] = useState(false);
   const [sign, setSign] = useState<ShopLayout['sign'] | null>(null);
   const [progress, setProgress] = useState(loadProgress);
-  // The game opens on the menu; ?case= (teachers, tests) goes straight to that customer.
-  const [view, setView] = useState<'menu' | 'test' | 'shop'>(() => (params.has('case') ? 'shop' : 'menu'));
+  // The page the address asks for, if it may open now; else the learning page.
+  const [route, setRoute] = useState<Route>(() => allowedRoute(parseRoute(location.hash), !!progress.learner, pathView(progress, pathOptions)));
+  const view: View = caseLink ? 'shop' : VIEW[route];
+  const test = route === 'post' ? 'post' : 'pre';
   /** The case picked in the menu, and a count that gives each visit to the shop a fresh case flow. */
-  const [first, setFirst] = useState<string | undefined>(undefined);
-  const [test, setTest] = useState<TestKind>('pre');
+  const [first, setFirst] = useState<string | undefined>(() => (route === 'shop' ? nextCase(progress) : undefined));
   const [visit, setVisit] = useState(0);
   const stage = useRef('');
+  // The address listener reads these, not the values of the render it was set up in.
+  const progressRef = useRef(progress);
+  progressRef.current = progress;
+  const routeRef = useRef(route);
+  /** What the tap that changed the address asked for: a case, the welcome again, or leaving a case without asking. */
+  const pending = useRef<{ caseId?: string; replayIntro?: boolean; leaving?: boolean }>({});
+  const [shutter, setShutter] = useState<{ phase: ShutterPhase; to: Route }>({ phase: 'idle', to: route });
+  /** Counts page changes, so the timers of one cut short by the next do nothing. */
+  const changes = useRef(0);
+
+  // The shutter rolls down, the page changes behind it; it rolls up once the new page can be shown.
+  const changePage = (r: Route) => {
+    const n = ++changes.current;
+    setShutter({ phase: 'down', to: r });
+    setTimeout(() => {
+      if (changes.current !== n) return;
+      setRoute(r);
+      setShutter({ phase: 'closed', to: r });
+    }, shutterMs.down);
+  };
+  // The shop's scene, the first time, takes a while to load: the shutter stays down until it is ready.
+  useEffect(() => {
+    if (shutter.phase !== 'closed' || (view === 'shop' && !ready)) return;
+    const n = changes.current;
+    setShutter((sh) => ({ ...sh, phase: 'up' }));
+    setTimeout(() => changes.current === n && setShutter((sh) => ({ ...sh, phase: 'idle' })), shutterMs.up);
+  }, [shutter.phase, view, ready]);
+  useEffect(() => {
+    document.body.dataset.shutter = shutter.phase;
+  }, [shutter.phase]);
   const [askLeave, setAskLeave] = useState(false);
   const [replayIntro, setReplayIntro] = useState(false);
   const [muted, setMutedState] = useState(isMuted);
@@ -69,6 +118,40 @@ export function App() {
     return () => clearTimeout(t);
   }, [view]);
 
+  // A page reached by its address: a tap here, Back/Forward, or a typed or shared link.
+  const arrive = (wanted: Route) => {
+    const p = progressRef.current;
+    const r = allowedRoute(wanted, !!p.learner, pathView(p, pathOptions));
+    const { leaving, ...asked } = pending.current;
+    pending.current = {};
+    // Back in the middle of a case: stay (on a new entry, so Back can ask again), and ask as "☰ เมนู" does.
+    if (routeRef.current === 'shop' && r !== 'shop' && !leaving && !CALM_STAGES.includes(stage.current)) {
+      history.pushState(null, '', urlOf('shop'));
+      setAskLeave(true);
+      return;
+    }
+    if (location.hash !== routeHash(r)) history.replaceState(null, '', urlOf(r));
+    setAskLeave(false);
+    if (r === routeRef.current) return;
+    if (r === 'shop') {
+      setReplayIntro(!!asked.replayIntro);
+      setFirst(asked.caseId ?? nextCase(p));
+      setVisit((n) => n + 1);
+    }
+    routeRef.current = r;
+    changePage(r);
+  };
+  const go = (r: Route) => (location.hash === routeHash(r) ? arrive(r) : (location.hash = routeHash(r)));
+
+  useEffect(() => {
+    if (caseLink) return;
+    // The address says which page is showing (the learning page if it asked for one that cannot open yet).
+    history.replaceState(null, '', urlOf(route));
+    const onHash = () => arrive(parseRoute(location.hash));
+    addEventListener('hashchange', onHash);
+    return () => removeEventListener('hashchange', onHash);
+  }, []);
+
   useEffect(() => {
     unlockOnGesture();
     const offs = [bus.on('scene:ready', () => setReady(true)), bus.on('layout:shop', (l) => setSign(l.sign)), onMuted(setMutedState)];
@@ -87,23 +170,16 @@ export function App() {
     });
   const finish = (caseId: string, stars: number, coins: number) => update((p) => recordCase({ ...p, coins: p.coins + coins }, caseId, stars));
   const enter = (step: StepId, caseId?: string, opts: { replayIntro?: boolean } = {}) => {
-    if (step === 'pre' || step === 'post') {
-      setTest(step);
-      setView('test');
-      return;
-    }
-    if (step !== 'cases') return;
-    setReplayIntro(!!opts.replayIntro);
-    setFirst(caseId ?? pathView(progress, pathOptions).cases.find((c) => c.status === 'open')?.id);
-    setVisit((n) => n + 1);
-    setView('shop');
+    if (step === 'cases') {
+      pending.current = { caseId, replayIntro: opts.replayIntro };
+      go('shop');
+    } else if (step === 'pre' || step === 'post' || step === 'order') go(step);
   };
   const toMenu = () => {
-    setAskLeave(false);
-    setView('menu');
+    pending.current = { leaving: true };
+    go('learn');
   };
-  // Leaving before the job starts or after it ends loses nothing; in the middle, ask first.
-  const menuTapped = () => (['', 'arriving', 'talk', 'intro', 'summary'].includes(stage.current) ? toMenu() : setAskLeave(true));
+  const menuTapped = () => (CALM_STAGES.includes(stage.current) ? toMenu() : setAskLeave(true));
 
   return (
     <>
@@ -158,6 +234,7 @@ export function App() {
         />
       ) : view === 'test' ? (
         <QuizScreen
+          key={test}
           items={content.test.items}
           kind={test}
           draft={progress.testDraft}
@@ -167,6 +244,8 @@ export function App() {
           onFinish={(r) => update((p) => recordQuiz(p, test, r))}
           onBack={toMenu}
         />
+      ) : view === 'order' ? (
+        <OrderScreen order={content.order} seed={params.get('seed')} onFinish={(r) => update((p) => recordOrder(p, r))} onBack={toMenu} />
       ) : !ready ? (
         <div class="shop-loading" role="status">
           กำลังไปที่ร้าน…
@@ -177,15 +256,17 @@ export function App() {
           content={content}
           ready={ready}
           first={first}
-          inPath={!params.has('case')}
+          inPath={!caseLink}
           onFinish={finish}
           onMenu={toMenu}
           onStage={(st) => (stage.current = st)}
-          seen={params.has('case') ? null : progress.seen}
+          seen={caseLink ? null : progress.seen}
           onSeen={(id) => update((p) => markSeen(p, id))}
           replayIntro={replayIntro}
         />
       )}
+
+      <Shutter phase={shutter.phase} to={shutter.to} fade={fade} />
 
       {askLeave && (
         <div class="menu-backdrop" role="alertdialog" aria-modal="true" aria-labelledby="leave-q">
