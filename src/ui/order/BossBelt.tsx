@@ -1,12 +1,13 @@
-// The boss of the ordering game (docs/order-plan.md task C): the conveyor belt in 2.5D. The belt runs from the
-// workshop's back wall towards the learner; step cards ride it, small far away and growing as they come, upright so
-// the Thai stays readable. Tap the step that comes next before it falls off the front; traps and steps that are not
+// The boss of the ordering game (docs/order-plan.md task C): the conveyor belt in 2.5D. The belt in the belt room
+// picture runs from the hatch in the back wall towards the learner (beltScene.ts); step cards ride it, small far
+// away and growing as they come, upright so the Thai stays readable. Tap the step that comes next before it falls off the front; traps and steps that are not
 // due yet cost a heart. The rules are src/core/order.ts; this runs the clock and draws.
 
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { Order } from '../../content/schema';
 import { beltDone, beltOut, bossSequence, GAP, HEARTS, setSlow, startBelt, tap, tick, type Belt, type BeltEvent } from '../../core/order';
 import { prefersLessMotion } from '../motion';
+import { cardPlace, ROOM, roomView, stripes } from './beltScene';
 import { Senior } from './Senior';
 
 interface Props {
@@ -16,14 +17,6 @@ interface Props {
 }
 
 type Phase = 'ready' | 'run' | 'out' | 'done';
-
-/** Screen place of a card `x` along the belt (0 far, 1 at the front edge): how far down, how big, and its lane.
- *  Cards come on in turn left and right, so two in a row never overlap and each is easy to tap. */
-function place(x: number, key: number) {
-  const scale = 0.65 + 0.35 * x;
-  const lane = key % 2 ? 1 : -1;
-  return { top: 24 + 62 * x ** 1.25, left: 50 + lane * 25 * scale, scale };
-}
 
 export function BossBelt({ order, seed, onDone }: Props) {
   const seq = bossSequence(order.rounds, order.boss);
@@ -37,6 +30,16 @@ export function BossBelt({ order, seed, onDone }: Props) {
   const belt = useRef<Belt>(startBelt(seq, traps, seed, slow));
   const [, redraw] = useState(0);
   const [say, setSay] = useState<{ text: string; good: boolean } | null>(null);
+  // The stage's size, for placing things on the picture (it changes with the screen).
+  const stage = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  useLayoutEffect(() => {
+    const el = stage.current!;
+    // It reports the size once on observing too.
+    const ro = new ResizeObserver(() => setSize({ w: el.clientWidth, h: el.clientHeight }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const handle = (events: BeltEvent[]) => {
     for (const e of events) {
@@ -87,6 +90,7 @@ export function BossBelt({ order, seed, onDone }: Props) {
 
   const b = belt.current;
   const doneId = b.at > 0 ? b.seq[b.at - 1] : null;
+  const view = roomView(size.w, size.h);
   return (
     <div class="boss" data-testid="boss" data-phase={phase} data-hearts={b.hearts} data-at={b.at}>
       <div class="boss-hud">
@@ -106,22 +110,37 @@ export function BossBelt({ order, seed, onDone }: Props) {
         {doneId ? `ล่าสุด: ${textOf(doneId)}` : 'เริ่มงาน: ขั้นแรกของการลง Windows 11 คืออะไร'}
       </p>
 
-      <div class="boss-stage" aria-label="สายพานงานซ่อม">
-        <div
-          class="boss-belt"
-          aria-hidden="true" // The surface moves with the cards: the distance travelled, as cards came on GAP apart.
-          style={{ '--shift': `${((b.spawned * GAP + b.sinceSpawn) * 300) % 600}px` }}
-        />
+      <div class="boss-stage" aria-label="สายพานงานซ่อม" ref={stage}>
+        <div class="boss-room" aria-hidden="true" style={{ left: `${view.x}px`, top: `${view.y}px`, width: `${view.w}px`, height: `${view.h}px` }} />
+        <svg
+          class="boss-stripes"
+          aria-hidden="true"
+          width={size.w}
+          height={size.h}
+          shape-rendering="crispEdges"
+          stroke-width={Math.max(1, Math.round(view.w / ROOM.w))} // one art pixel
+        >
+          {/* The surface moves with the cards: the distance travelled, as cards came on GAP apart. */}
+          {stripes(view, size.h, b.spawned * GAP + b.sinceSpawn).map((l, i) => (
+            <line key={i} x1={l.l} x2={l.r} y1={l.y} y2={l.y} />
+          ))}
+        </svg>
         {phase === 'run' &&
           b.cards.map((c) => {
-            const p = place(c.x, c.key);
+            const p = cardPlace(view, size.w, size.h, c.x, c.key);
             return (
               <button
                 key={c.key}
                 class="boss-card"
                 type="button"
                 data-step={c.id}
-                style={{ top: `${p.top}%`, left: `${p.left}%`, transform: `translate(-50%, -50%) scale(${p.scale})`, zIndex: Math.round(c.x * 100) }}
+                data-along={c.x.toFixed(4)}
+                style={{
+                  top: `${p.top}px`,
+                  left: `${p.left}px`,
+                  transform: `translate(-50%, -50%) scale(${p.scale})`,
+                  zIndex: Math.round(c.x * 100),
+                }}
                 onClick={() => tapCard(c.key)}
               >
                 {textOf(c.id)}

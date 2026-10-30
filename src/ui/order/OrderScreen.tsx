@@ -76,6 +76,7 @@ export function OrderScreen({ order, seed, onFinish, onBack }: Props) {
       }
       scrollKey={phase.at === 'round' || phase.at === 'answer' ? `${phase.at}${phase.k}` : phase.at}
       tall
+      scene="room"
     >
       {phase.at === 'intro' && (
         <div class="order-intro">

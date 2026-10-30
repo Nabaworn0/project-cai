@@ -62,16 +62,62 @@ async function startBelt(page: Page) {
   await expect(boss(page)).toHaveAttribute('data-phase', 'run');
 }
 
-/** How far along the belt (0-1) a card at `top`% is: the inverse of BossBelt's place(). */
-const along = (top: number) => Math.max(0, (top - 24) / 62) ** 0.8;
-/** Where a card `dx` further along the belt shows (top, %). */
-const topAfter = (top: number, dx: number) => 24 + 62 * (along(top) + dx) ** 1.25;
+/** The belt room picture (src/assets/scenes/order-room.png, 197 art pixels wide) as measured by hand, apart from
+ *  beltScene.ts: the hatch's top row, the row where the belt leaves the hatch, and its surface's left and right edge
+ *  on two rows. */
+const PIC = {
+  w: 197,
+  hatch: 38,
+  far: 57,
+  rows: [
+    [60, 81, 115],
+    [120, 35, 161],
+  ],
+} as const;
 
-/** Card `id`'s place: how far down the belt (%), and its size on screen. */
+/** Where the picture lies on the page, and the belt's edges on screen at a height `y` on the page. */
+async function picture(page: Page) {
+  const pic = (await boss(page).locator('.boss-room').boundingBox())!;
+  const px = pic.width / PIC.w;
+  const [[y0, l0, r0], [y1, l1, r1]] = PIC.rows;
+  const edges = (y: number) => {
+    const t = ((y - pic.y) / px - y0) / (y1 - y0);
+    return { l: pic.x + (l0 + (l1 - l0) * t) * px, r: pic.x + (r0 + (r1 - r0) * t + 1) * px };
+  };
+  return { ...pic, px, row: (artY: number) => pic.y + artY * px, edges };
+}
+
+/** Card `id`'s place: how far along the belt (0-1), and its box and centre on screen. */
 const where = async (page: Page, id: string) => {
   const card = boss(page).locator(`.boss-card[data-step="${id}"]`);
-  return { top: parseFloat(await card.evaluate((e) => (e as HTMLElement).style.top)), box: (await card.boundingBox())! };
+  const box = (await card.boundingBox())!;
+  return { along: Number(await card.getAttribute('data-along')), box, cx: box.x + box.width / 2, cy: box.y + box.height / 2 };
 };
+
+/** The cards are apart and in the stage, and the stripes run across the picture's belt from edge to edge. */
+async function onTheBelt(page: Page) {
+  const pic = await picture(page);
+  const stage = (await boss(page).locator('.boss-stage').boundingBox())!;
+  const boxes = await Promise.all((await boss(page).locator('.boss-card').all()).map(async (c) => (await c.boundingBox())!));
+  for (const [i, a] of boxes.entries()) {
+    expect(a.x, 'inside the stage').toBeGreaterThanOrEqual(stage.x);
+    expect(a.x + a.width, 'inside the stage').toBeLessThanOrEqual(stage.x + stage.width);
+    for (const b of boxes.slice(i + 1)) {
+      const apart = a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y;
+      expect(apart, 'two cards overlap').toBe(true);
+    }
+  }
+  const lines = await boss(page)
+    .locator('.boss-stripes line')
+    .evaluateAll((ls) => ls.map((l) => ['x1', 'x2', 'y1'].map((a) => Number(l.getAttribute(a)))));
+  expect(lines.length).toBeGreaterThan(4);
+  for (const [x1, x2, y] of lines) {
+    const e = pic.edges(stage.y + y!);
+    expect(Math.abs(stage.x + x1! - e.l), `a stripe starts at the belt's left edge (${y})`).toBeLessThan(pic.px * 2.5);
+    expect(Math.abs(stage.x + x2! - e.r), `a stripe ends at the belt's right edge (${y})`).toBeLessThan(pic.px * 2.5);
+  }
+  return lines.map(([, , y]) => y!);
+}
 
 /** Runs the belt a quarter second at a time, tapping the step needed next once it is a little way down the belt
  *  (and, if asked, one trap first), until the run ends. */
@@ -89,7 +135,7 @@ async function playBelt(page: Page, { trap = false } = {}) {
     }
     const at = Number(await boss(page).getAttribute('data-at'));
     const card = boss(page).locator(`.boss-card[data-step="${SEQ[at]}"]`);
-    if ((await card.count()) && (await where(page, SEQ[at]!)).top > 30) await card.click({ force: true });
+    if ((await card.count()) && (await where(page, SEQ[at]!)).along > 0.1) await card.click({ force: true });
   }
 }
 
@@ -117,6 +163,10 @@ test('two rounds: tap into slots, colour marks, a hint after two misses, the ans
   await menu(page).getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' }).click();
   await expect(box(page).getByTestId('senior-says')).toContainText('2 รอบ: ภาพรวมทั้งงาน แล้วก็ ในหน้า Windows Setup แล้วปิดท้ายด้วยสายพานงานซ่อม');
   await expect(box(page).locator('.order-legend li')).toHaveText([/ถูกตำแหน่ง/, /ห่างไป 1 ช่อง/, /ยังห่าง/]);
+  // The page stands in the belt room, not outside the shop.
+  await expect(box(page)).toHaveAttribute('data-backdrop', 'room');
+  await expect(box(page).locator('.room-scene')).toHaveCSS('background-image', /order-room/);
+  await expect(box(page).locator('.entrance')).toHaveCount(0);
   await fits(page);
   await shot(page, 'order-intro', info.project.name);
   await box(page).getByRole('button', { name: 'เริ่มรอบ 1' }).click();
@@ -268,15 +318,33 @@ test('the boss belt in 2.5D: cards come from the back and grow; a trap costs a h
   await expect(boss(page).locator('.boss-card')).toHaveCount(1);
   await expect(boss(page).locator('.boss-card')).toHaveText(textOf(SEQ[0]!));
   await expect(boss(page).getByTestId('boss-last')).toHaveText('เริ่มงาน: ขั้นแรกของการลง Windows 11 คืออะไร');
+  // The belt room picture covers the stage, the hatch in sight; the card comes out of the hatch.
+  const pic = await picture(page);
+  const stage = (await boss(page).locator('.boss-stage').boundingBox())!;
+  expect(pic.x).toBeLessThanOrEqual(stage.x + 0.5);
+  expect(pic.y).toBeLessThanOrEqual(stage.y + 0.5);
+  expect(pic.x + pic.width).toBeGreaterThanOrEqual(stage.x + stage.width - 0.5);
+  expect(pic.y + pic.height).toBeGreaterThanOrEqual(stage.y + stage.height - 0.5);
+  expect(pic.row(PIC.hatch), 'the hatch is in sight').toBeGreaterThanOrEqual(stage.y);
   const far = await where(page, SEQ[0]!);
+  expect(far.along).toBeLessThan(0.05);
+  expect(Math.abs(far.cy - pic.row(PIC.far)), 'out of the hatch').toBeLessThan(pic.px * 3 + (far.along * stage.height) / 2);
+  const stripes = await onTheBelt(page);
   await page.clock.runFor(2000);
   const near = await where(page, SEQ[0]!);
-  // 2 s at 0.1 belt widths a second: down the belt, and bigger on screen.
-  expect(far.top).toBeLessThan(26);
-  expect(near.top).toBeCloseTo(topAfter(far.top, 0.2), 0);
+  // 2 s at 0.1 belt lengths a second: down the belt, and bigger on screen; the stripes moved with it.
+  expect(near.along - far.along).toBeCloseTo(0.2, 1);
+  expect(near.cy).toBeGreaterThan(far.cy + 10);
   expect(near.box.width).toBeGreaterThan(far.box.width * 1.05);
+  expect(await onTheBelt(page)).not.toEqual(stripes);
   await page.clock.runFor(2000);
   expect(await boss(page).locator('.boss-card').count()).toBeGreaterThan(1);
+  await onTheBelt(page);
+  // Down to the front edge, where the belt is wider than a phone's stage, the cards stay inside it.
+  while ((await where(page, SEQ[0]!)).along < 0.95) {
+    await page.clock.runFor(250);
+    await onTheBelt(page);
+  }
   await fits(page);
   // The hearts and the whole belt, down to its front edge, are in sight without scrolling.
   await expect(boss(page).locator('.boss-hearts')).toBeInViewport({ ratio: 1 });
@@ -333,14 +401,19 @@ test('the senior explains each mistake: a trap, a step too early; three hearts g
   await expect(boss(page)).toHaveAttribute('data-phase', 'run');
 });
 
-test('a dropped step: the senior says it fell and will come round again', async ({ page }, info) => {
-  test.skip(info.project.name !== 'desktop', 'the belt itself is checked at every size above');
+test('a dropped step: the senior says it fell and will come round again; cards on both sides stay in the stage', async ({ page }) => {
   await seed(page, { learner: LEARNER, pre: PRE_DONE });
   await page.goto('/?seed=b3');
   await toBoss(page);
   await startBelt(page);
   for (let i = 0; i < 100 && (await boss(page).getAttribute('data-hearts')) === '3'; i++) await page.clock.runFor(250);
   await expect(boss(page).getByTestId('boss-say')).toHaveText(`พี่ช่าง: "${textOf(SEQ[0]!)}" หลุดไปแล้ว! ขั้นนี้ต้องทำตอนนี้ เดี๋ยวมันวนกลับมา`);
+  // The next cards, on the other side too, ride down to the front edge, where the belt is wider than a phone's
+  // stage, and stay inside it.
+  for (let i = 0; i < 14; i++) {
+    await page.clock.runFor(250);
+    await onTheBelt(page);
+  }
 });
 
 test('slow mode: the belt runs slower; it is on from the start when the device asks for less motion', async ({ page }, info) => {
@@ -352,14 +425,14 @@ test('slow mode: the belt runs slower; it is on from the start when the device a
   const slow = boss(page).getByRole('button', { name: '🐢 โหมดช้า' });
   await expect(slow).toHaveAttribute('aria-pressed', 'true');
   await startBelt(page);
-  const start = (await where(page, SEQ[0]!)).top;
+  const start = (await where(page, SEQ[0]!)).along;
   await page.clock.runFor(2000);
-  // 2 s at 0.06 belt widths a second.
-  const slowed = (await where(page, SEQ[0]!)).top;
-  expect(slowed).toBeCloseTo(topAfter(start, 0.12), 0);
+  // 2 s at 0.06 belt lengths a second.
+  const slowed = (await where(page, SEQ[0]!)).along;
+  expect(slowed - start).toBeCloseTo(0.12, 1);
   await slow.click({ force: true });
   await expect(slow).toHaveAttribute('aria-pressed', 'false');
   await page.clock.runFor(1000);
   // 1 s more at 0.1.
-  expect((await where(page, SEQ[0]!)).top).toBeCloseTo(topAfter(slowed, 0.1), 0);
+  expect((await where(page, SEQ[0]!)).along - slowed).toBeCloseTo(0.1, 1);
 });

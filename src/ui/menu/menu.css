@@ -21,6 +21,12 @@
   image-rendering: pixelated;
   container-type: inline-size;
 }
+/* The belt room behind the ordering game (docs/pages-plan.md task C): covers the screen, the hatch and belt kept
+   in the middle. */
+.room-scene {
+  position: absolute; inset: 0;
+  background: url('../../assets/scenes/order-room.png') 50% 40% / cover no-repeat; image-rendering: pixelated;
+}
 /* The shop's name on the blank board (inside the yellow border). */
 .entrance-sign {
   position: absolute; left: 12.5%; right: 12.5%; top: 11.1%; height: 15.1%;

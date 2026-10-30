@@ -149,13 +149,20 @@ export function LearnPage(props: {
   scrollKey: string;
   /** The board rises over the sign and takes the whole height (the test, which needs the room). */
   tall?: boolean;
+  /** The picture behind the board: the shop's entrance (the sign in it says the shop's name), or the belt room. */
+  scene?: 'entrance' | 'room';
   children: ComponentChildren;
 }) {
+  const scene = props.scene ?? 'entrance';
   return (
-    <main class={`learn-page${props.tall ? ' tall' : ''}`} aria-labelledby="menu-title" data-testid={props.testid}>
-      <div class="entrance" aria-hidden="true">
-        <span class="entrance-sign">ร้านซ่อมคอม</span>
-      </div>
+    <main class={`learn-page${props.tall ? ' tall' : ''}`} aria-labelledby="menu-title" data-testid={props.testid} data-backdrop={scene}>
+      {scene === 'room' ? (
+        <div class="room-scene" aria-hidden="true" />
+      ) : (
+        <div class="entrance" aria-hidden="true">
+          <span class="entrance-sign">ร้านซ่อมคอม</span>
+        </div>
+      )}
       <div class="menu pixel-box">
         <header class="menu-head">
           <div class="menu-head-text">
