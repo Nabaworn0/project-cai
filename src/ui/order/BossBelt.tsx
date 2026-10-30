@@ -41,7 +41,7 @@ export function BossBelt({ order, seed, onDone }: Props) {
   const handle = (events: BeltEvent[]) => {
     for (const e of events) {
       if (e.kind === 'right') setSay(null);
-      else if (e.kind === 'trap') setSay({ text: `ไม่ได้นะ! ${order.traps.find((t) => t.id === e.id)!.whyTh}`, good: false });
+      else if (e.kind === 'trap') setSay({ text: order.traps.find((t) => t.id === e.id)!.whyTh, good: false });
       else if (e.kind === 'early') setSay({ text: `"${textOf(e.id)}" ยังไม่ถึงคิว ตอนนี้ต้อง "${textOf(e.needed)}" ก่อน`, good: false });
       else if (e.kind === 'missed') setSay({ text: `"${textOf(e.id)}" หลุดไปแล้ว! ขั้นนี้ต้องทำตอนนี้ เดี๋ยวมันวนกลับมา`, good: false });
       else if (e.kind === 'out') setPhase('out');

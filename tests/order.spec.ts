@@ -316,7 +316,7 @@ test('the senior explains each mistake: a trap, a step too early; three hearts g
   for (let i = 0; i < 200 && !(await trapCard.count()); i++) await page.clock.runFor(250);
   const trapId = (await trapCard.first().getAttribute('data-step'))!;
   await trapCard.first().click({ force: true });
-  await expect(say).toHaveText(`พี่ช่าง: ไม่ได้นะ! ${orderData.traps.find((t) => t.id === trapId)!.whyTh}`);
+  await expect(say).toHaveText(`พี่ช่าง: ${orderData.traps.find((t) => t.id === trapId)!.whyTh}`);
   await expect(boss(page)).toHaveAttribute('data-hearts', '2');
   for (let i = 0; i < 200 && !(await early.count()); i++) await page.clock.runFor(250);
   const earlyId = (await early.first().getAttribute('data-step'))!;
