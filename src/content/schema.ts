@@ -46,26 +46,28 @@ export const ObjectivesSchema = z.object({
   items: z.array(z.object({ id: loId, th })).min(1),
 });
 
-export const ProblemSchema = z.object({
-  id,
-  lo: z.array(loId).min(1),
-  source: SourceSchema,
-  /** Textbook page(s) that teach this. */
-  bookPage: z.string().optional(),
-  /** Blocker from src/core/requirements.ts that this problem must produce. */
-  blocker: z.string(),
-  /** Conditions on the machine for this problem to make sense. */
-  requires: MachinePatchSchema.default({}),
-  patch: MachinePatchSchema,
-  /** Action ids (src/core/actions.ts) that each repair this problem on their own. */
-  fixes: z.array(z.string()).min(1),
-  /** What the customer tells the technician, in Thai. */
-  symptomTh: th,
-  /** The message exactly as the real screen shows it (English), when there is one. */
-  screenText: z.string().min(1).optional(),
-  explainTh: th,
-  hintsTh: z.array(th).min(1).max(2),
-}).strict();
+export const ProblemSchema = z
+  .object({
+    id,
+    lo: z.array(loId).min(1),
+    source: SourceSchema,
+    /** Textbook page(s) that teach this. */
+    bookPage: z.string().optional(),
+    /** Blocker from src/core/requirements.ts that this problem must produce. */
+    blocker: z.string(),
+    /** Conditions on the machine for this problem to make sense. */
+    requires: MachinePatchSchema.default({}),
+    patch: MachinePatchSchema,
+    /** Action ids (src/core/actions.ts) that each repair this problem on their own. */
+    fixes: z.array(z.string()).min(1),
+    /** What the customer tells the technician, in Thai. */
+    symptomTh: th,
+    /** The message exactly as the real screen shows it (English), when there is one. */
+    screenText: z.string().min(1).optional(),
+    explainTh: th,
+    hintsTh: z.array(th).min(1).max(2),
+  })
+  .strict();
 export const ProblemsSchema = z.array(ProblemSchema);
 
 const range = z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]).refine(([a, b]) => a <= b, 'range must be [min, max]');
@@ -162,61 +164,65 @@ export const Win11CheckSchema = z
   .strict();
 export type Win11Check = z.infer<typeof Win11CheckSchema>;
 
-export const CaseSchema = z.object({
-  id,
-  order: z.number().int().positive(),
-  difficulty: z.number().int().min(1).max(5),
-  titleTh: th,
-  lo: z.array(loId).min(1),
-  customer: z.object({
-    /** Id in customers.json. */
+export const CaseSchema = z
+  .object({
     id,
-    lineTh: th,
-    /** The customer wants their files kept: destructive repairs lose points. */
-    keepData: z.boolean(),
-    /** The customer said when they came in that the old files are not needed (case 5): no backup question,
-     *  and deleting the old partitions is not a mistake. */
-    filesNotNeeded: z.boolean().default(false),
-    reactionsTh: ReactionsSchema.default({}),
-  }).strict(),
-  /** Step 2 of a case: the player guesses the cause before touching anything. */
-  diagnosis: CaseQuestionSchema,
-  /** Step 4: the customer asks "why?" and the player picks the right explanation. */
-  customerQuestions: z.array(CaseQuestionSchema).min(1),
-  coach: CoachSchema.optional(),
-  /** When the repair is done: the USB reaches Setup's first page (cases 1–2), Windows is installed (cases 3–4:
-   *  the problem shows on a later Setup page), or first-time setup reaches the desktop (case 5). */
-  goal: z.enum(['setup', 'install', 'desktop']).default('setup'),
-  /** The PC's name on the ticket, typed on first-time setup's "Let's name your device" (goal "desktop"). */
-  deviceName: z.string().optional(),
-  /** What the panel asks for during the repair, when the generic "make it boot from the USB" does not fit. */
-  repairTh: th.optional(),
-  /** A photo the customer brings of the error (stage "guess the cause"): the screen text of one of its fixed problems. */
-  diagnosisPhoto: z.object({ problem: id, captionTh: th }).strict().optional(),
-  /** Notes for whoever builds/plays the case (traps, what to watch); not shown to students. */
-  designNotesTh: z.array(th).default([]),
-  brands: z.array(id).min(1),
-  machine: z
-    .object({
-      ramGB: z.array(z.number().int().positive()).min(1),
-      storageGB: z.array(z.number().int().positive()).min(1),
-      cpu: z.array(z.string()).min(1),
-      /** The disk still holds the old Windows (needed for mbr2gpt). Separate from keepData:
-       *  a customer may have an old install yet have backed their files up. */
-      diskHasData: z.boolean().default(true),
-      /** The Windows edition on the ticket (what Setup must be told without a key). Default Windows 11 Home. */
-      windowsEdition: z.enum(EDITIONS).optional(),
-    })
-    .strict(),
-  problems: z.object({
-    fixed: z.array(id).default([]),
-    pool: z.array(id).default([]),
-    /** How many extra problems to draw from `pool`. */
-    extra: range.default([0, 0]),
-  }),
-  minigames: z.array(id).default([]),
-  timeLimitSec: z.number().int().positive().default(300),
-}).strict();
+    order: z.number().int().positive(),
+    difficulty: z.number().int().min(1).max(5),
+    titleTh: th,
+    lo: z.array(loId).min(1),
+    customer: z
+      .object({
+        /** Id in customers.json. */
+        id,
+        lineTh: th,
+        /** The customer wants their files kept: destructive repairs lose points. */
+        keepData: z.boolean(),
+        /** The customer said when they came in that the old files are not needed (case 5): no backup question,
+         *  and deleting the old partitions is not a mistake. */
+        filesNotNeeded: z.boolean().default(false),
+        reactionsTh: ReactionsSchema.default({}),
+      })
+      .strict(),
+    /** Step 2 of a case: the player guesses the cause before touching anything. */
+    diagnosis: CaseQuestionSchema,
+    /** Step 4: the customer asks "why?" and the player picks the right explanation. */
+    customerQuestions: z.array(CaseQuestionSchema).min(1),
+    coach: CoachSchema.optional(),
+    /** When the repair is done: the USB reaches Setup's first page (cases 1–2), Windows is installed (cases 3–4:
+     *  the problem shows on a later Setup page), or first-time setup reaches the desktop (case 5). */
+    goal: z.enum(['setup', 'install', 'desktop']).default('setup'),
+    /** The PC's name on the ticket, typed on first-time setup's "Let's name your device" (goal "desktop"). */
+    deviceName: z.string().optional(),
+    /** What the panel asks for during the repair, when the generic "make it boot from the USB" does not fit. */
+    repairTh: th.optional(),
+    /** A photo the customer brings of the error (stage "guess the cause"): the screen text of one of its fixed problems. */
+    diagnosisPhoto: z.object({ problem: id, captionTh: th }).strict().optional(),
+    /** Notes for whoever builds/plays the case (traps, what to watch); not shown to students. */
+    designNotesTh: z.array(th).default([]),
+    brands: z.array(id).min(1),
+    machine: z
+      .object({
+        ramGB: z.array(z.number().int().positive()).min(1),
+        storageGB: z.array(z.number().int().positive()).min(1),
+        cpu: z.array(z.string()).min(1),
+        /** The disk still holds the old Windows (needed for mbr2gpt). Separate from keepData:
+         *  a customer may have an old install yet have backed their files up. */
+        diskHasData: z.boolean().default(true),
+        /** The Windows edition on the ticket (what Setup must be told without a key). Default Windows 11 Home. */
+        windowsEdition: z.enum(EDITIONS).optional(),
+      })
+      .strict(),
+    problems: z.object({
+      fixed: z.array(id).default([]),
+      pool: z.array(id).default([]),
+      /** How many extra problems to draw from `pool`. */
+      extra: range.default([0, 0]),
+    }),
+    minigames: z.array(id).default([]),
+    timeLimitSec: z.number().int().positive().default(300),
+  })
+  .strict();
 export type Case = z.infer<typeof CaseSchema>;
 
 const BiosItemSchema = z.object({
@@ -279,9 +285,7 @@ export const BrandSchema = z.object({
     bootMenuMustBeEnabled: z.boolean().default(false),
     hasAdvancedMode: z.boolean().default(false),
   }),
-  pages: z
-    .array(z.object({ id, label: z.string().min(1), items: z.array(BiosItemSchema) }))
-    .min(1),
+  pages: z.array(z.object({ id, label: z.string().min(1), items: z.array(BiosItemSchema) })).min(1),
   /** The playable screen; brands without it can be listed but not played yet. */
   menu: BiosMenuSchema.optional(),
   notesTh: z.array(th).default([]),
@@ -373,3 +377,63 @@ export const CutscenesSchema = z.object({
     .min(1),
 });
 export type Cutscenes = z.infer<typeof CutscenesSchema>;
+
+/** The lesson cartoons (docs/lessons-plan.md): the senior's poses (sprites `teach-<pose>.png`, docs/art-prompts.md
+ *  6.1) and the sets the camera shows. */
+export const LESSON_POSES = ['stand', 'point-left', 'point-right', 'explain', 'thumbs', 'chin'] as const;
+export const LESSON_SETS = ['desk', 'screen', 'printer', 'board', 'servers'] as const;
+/** Something the senior says: `say` is read by the voice (English words spelt as Thai say them), `th` is shown
+ *  under it when the lesson's subtitles cannot make it from `say`. */
+const spoken = { say: th.max(160), th: th.max(160).optional() };
+export const LessonsSchema = z
+  .object({
+    draft: z.boolean(),
+    source: z.string().optional(),
+    /** Words the voice says in Thai letters, written as on screen in the subtitles (วินโดวส์ -> Windows). */
+    subtitles: z.record(th, th),
+    lessons: z
+      .array(
+        z
+          .object({
+            id,
+            titleTh: th,
+            objective: z.number().int().min(1).max(4),
+            lines: z
+              .array(
+                z
+                  .object({
+                    ...spoken,
+                    /** The words written on screen with the line (ChatGPT's "ข้อความบนจอ"). */
+                    board: z.string().max(120),
+                    /** What happens on screen, as the script says it (for whoever stages it). */
+                    cue: z.string(),
+                    set: z.enum(LESSON_SETS),
+                    pose: z.enum(LESSON_POSES),
+                    face: z.enum(CUTSCENE_FACES.senior),
+                    intern: z.enum(CUTSCENE_FACES.intern),
+                  })
+                  .strict(),
+              )
+              .min(1),
+            /** Each asked once line `after` (1-based) has been said; a wrong answer can go back to line `replay`. */
+            questions: z.array(
+              z
+                .object({
+                  after: z.number().int().min(1),
+                  replay: z.number().int().min(1),
+                  stemTh: th,
+                  choicesTh: z.array(th).min(2).max(4),
+                  answer: z.number().int().nonnegative(),
+                  right: z.object(spoken).strict(),
+                  wrong: z.object(spoken).strict(),
+                })
+                .strict(),
+            ),
+          })
+          .strict(),
+      )
+      .min(1),
+  })
+  .strict();
+export type Lessons = z.infer<typeof LessonsSchema>;
+export type Lesson = Lessons['lessons'][number];

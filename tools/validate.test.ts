@@ -13,8 +13,7 @@ import { BrandSchema, CaseSchema, ProblemsSchema } from '../src/content/schema';
 import { validateContent, type ContentFile } from '../src/content/validate';
 
 const root = fileURLToPath(new URL('../src/content/data', import.meta.url));
-const walk = (dir: string): string[] =>
-  readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n)) : [join(dir, n)]));
+const walk = (dir: string): string[] => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? walk(join(dir, n)) : [join(dir, n)]));
 const real = (): ContentFile[] =>
   walk(root).map((f) => ({ path: relative(root, f).split(sep).join('/'), data: JSON.parse(readFileSync(f, 'utf8')) }));
 
@@ -22,7 +21,10 @@ const get = (files: ContentFile[], path: string) => files.find((f) => f.path ===
 const run = (files: ContentFile[]) => validateContent(files, { seedsPerCase: 20 });
 const hasError = (files: ContentFile[], text: string) => {
   const { errors } = run(files);
-  assert.ok(errors.some((e) => e.includes(text)), `expected an error containing "${text}", got:\n${errors.join('\n')}`);
+  assert.ok(
+    errors.some((e) => e.includes(text)),
+    `expected an error containing "${text}", got:\n${errors.join('\n')}`,
+  );
 };
 
 test('the shipped content passes', () => {
@@ -107,6 +109,75 @@ test('the ordering game: cards told apart by id and text, the boss opens a real 
   );
 });
 
+test('the lessons: one per lesson step and its objective; questions answerable after a real line, going back before it', () => {
+  const L = (files: ContentFile[]) => get(files, 'lessons.json');
+  let files = real();
+  L(files).lessons[1].id = 'lesson-os';
+  hasError(files, 'duplicate lesson "lesson-os"');
+  hasError(files, 'no lesson for step "lesson-types"');
+  files = real();
+  L(files).lessons[0].id = 'lesson-x';
+  hasError(files, 'lessons.json[lesson-x]: not a lesson step');
+  files = real();
+  L(files).lessons[0].objective = 2;
+  hasError(files, 'lessons.json[lesson-os]: objective 2, but the step is for objective 1');
+  files = real();
+  L(files).lessons[0].questions[0].answer = 3;
+  hasError(files, 'lessons.json[lesson-os] question 1: answer 3 is out of range');
+  files = real();
+  L(files).lessons[0].questions[0].choicesTh[1] = L(files).lessons[0].questions[0].choicesTh[0];
+  hasError(files, 'lessons.json[lesson-os] question 1: duplicate choice');
+  files = real();
+  L(files).lessons[0].questions[1].after = 23;
+  hasError(files, 'lessons.json[lesson-os] question 2: after line 23, but there are 22 lines');
+  files = real();
+  L(files).lessons[0].questions[0].replay = 22;
+  hasError(files, 'lessons.json[lesson-os] question 1: goes back to line 22, after the question (line 21)');
+  files = real();
+  L(files).lessons[0].questions[1].after = 21;
+  hasError(files, 'lessons.json[lesson-os]: two questions after line "21"');
+  files = real();
+  L(files).lessons[0].lines[0].pose = 'dance';
+  hasError(files, 'lessons.json: lessons.0.lines.0.pose');
+  hasError(
+    real().filter((f) => f.path !== 'lessons.json'),
+    'lessons.json: missing',
+  );
+});
+
+test('the lesson voice: everything said has a recording (a warning while the lessons are a draft) and its file exists', () => {
+  const files = real();
+  const lessons = get(files, 'lessons.json');
+  const said: string[] = lessons.lessons.flatMap((l: any) => [
+    ...l.lines.map((x: any) => x.say),
+    ...l.questions.flatMap((q: any) => [q.right.say, q.wrong.say]),
+  ]);
+  const full = { voice: 'v', rate: '+0%', lines: Object.fromEntries(said.map((t, i) => [t, { file: `${i}.mp3`, ms: 1000, words: [] }])) };
+  const all = said.map((_, i) => `${i}.mp3`);
+  const check = (index: any, mp3: string[], draft: boolean) => {
+    lessons.draft = draft;
+    return validateContent(files, { seedsPerCase: 1, voice: { index, files: mp3 } });
+  };
+  const voiceIssues = (r: { errors: string[]; warnings: string[] }) => [...r.errors, ...r.warnings].filter((m) => /เสียง|voice/.test(m));
+  assert.deepEqual(voiceIssues(check(full, all, false)), [], 'all there');
+  const partial = { ...full, lines: Object.fromEntries(Object.entries(full.lines).slice(2)) };
+  assert.ok(
+    check(partial, all, true).warnings.some((w) => w.includes('ยังไม่มีเสียง 2 ประโยค')),
+    'a draft: a warning',
+  );
+  assert.ok(
+    check(partial, all, false).errors.some((e) => e.includes('ยังไม่มีเสียง 2 ประโยค')),
+    'the real lessons: an error',
+  );
+  assert.ok(
+    check(null, [], true).warnings.some((w) => w.includes(`ยังไม่มีเสียง ${said.length} ประโยค`)),
+    'no voice made yet',
+  );
+  assert.ok(check(full, all.slice(1), false).errors.some((e) => e.includes('has no file 0.mp3')));
+  const extra = { ...full, lines: { ...full.lines, ไม่ใช้แล้ว: { file: 'x.mp3', ms: 1, words: [] } } };
+  assert.ok(check(extra, all, false).warnings.some((w) => w.includes('เสียงที่ไม่ได้ใช้แล้ว 1 ประโยค')));
+});
+
 test('unknown references are reported', () => {
   const files = real();
   get(files, 'cases/c04-security-chip.json').brands = ['dell'];
@@ -132,7 +203,10 @@ test('the same seed always builds the same machine', () => {
 test('daily case: every player gets the same problems, but spec details vary between players', () => {
   const files = real();
   const lib = { problems: ProblemsSchema.parse(get(files, 'problems.json')), brands: [BrandSchema.parse(get(files, 'brands/classic.json'))] };
-  const c = CaseSchema.parse({ ...get(files, 'cases/c04-security-chip.json'), machine: { ramGB: [8, 16, 32], storageGB: [256, 512, 1024], cpu: ['A', 'B', 'C'] } });
+  const c = CaseSchema.parse({
+    ...get(files, 'cases/c04-security-chip.json'),
+    machine: { ramGB: [8, 16, 32], storageGB: [256, 512, 1024], cpu: ['A', 'B', 'C'] },
+  });
   const players = Array.from({ length: 12 }, (_, i) => dailySeeds('2026-10-22', `student-${i}`));
   const built = players.map((p) => generateCase(c, lib, p.caseSeed, p.detailSeed));
   const problemSets = new Set(built.map((g) => g.problems.map((p) => p.id).join(',')));
@@ -167,7 +241,13 @@ test('problems that need different values of the same field cannot be combined',
 // --- Windows 11 only (decided 2026-10-24; Windows 10 is just the customers' old system) ---
 
 test('Windows 11 rejects a Legacy BIOS machine, even one set up correctly for it (MBR disk and USB)', () => {
-  const legacy = { ...healthyMachine('classic'), bootMode: 'legacy' as const, secureBoot: false, diskStyle: 'mbr' as const, usbScheme: 'mbr' as const };
+  const legacy = {
+    ...healthyMachine('classic'),
+    bootMode: 'legacy' as const,
+    secureBoot: false,
+    diskStyle: 'mbr' as const,
+    usbScheme: 'mbr' as const,
+  };
   assert.deepEqual(findBlockers(legacy), ['legacy-boot']);
 });
 
@@ -209,7 +289,10 @@ test('the first five cases are warned when they use topics beyond the textbook',
   const files = real();
   get(files, 'cases/c04-security-chip.json').problems = { fixed: ['raid-mode'], pool: [], extra: [0, 0] };
   const { warnings } = run(files);
-  assert.ok(warnings.some((w) => w.includes('c04-security-chip') && w.includes('นอกหนังสือ')), warnings.join('\n'));
+  assert.ok(
+    warnings.some((w) => w.includes('c04-security-chip') && w.includes('นอกหนังสือ')),
+    warnings.join('\n'),
+  );
 });
 
 // --- Phase 1 cases (docs/phase1-cases.md) ---
@@ -265,8 +348,23 @@ test('the playable BIOS menu is checked against the engine and the settings list
   broken((m) => (m.menus['boot-settings'].rows[1].choices[0].value = 'turbo'), 'bootMode cannot be "turbo"');
   broken((m) => (m.menus['hard-disks'].rows[1].slot = 5), 'slot 5 but the machine has 2 drives');
   broken((m) => (m.menus.exit.rows = m.menus.exit.rows.filter((r: any) => r.action !== 'save')), 'no "Save Changes and Exit" row');
-  broken((m) => (m.menus['secure-boot'].rows = [{ type: 'info', label: 'Secure Boot', value: '' }]), 'pages list secureBoot but the playable menu has no row');
-  broken((m) => m.menus.sata.rows.push({ type: 'option', label: 'Password', setting: 'supervisorPassword', choices: [{ label: 'On', value: true }, { label: 'Off', value: false }] }), 'supervisorPassword cannot be an option');
+  broken(
+    (m) => (m.menus['secure-boot'].rows = [{ type: 'info', label: 'Secure Boot', value: '' }]),
+    'pages list secureBoot but the playable menu has no row',
+  );
+  broken(
+    (m) =>
+      m.menus.sata.rows.push({
+        type: 'option',
+        label: 'Password',
+        setting: 'supervisorPassword',
+        choices: [
+          { label: 'On', value: true },
+          { label: 'Off', value: false },
+        ],
+      }),
+    'supervisorPassword cannot be an option',
+  );
   const files = real();
   delete get(files, 'brands/classic.json').menu;
   hasError(files, 'MVP brand has no playable "menu"');

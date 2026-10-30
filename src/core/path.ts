@@ -55,6 +55,12 @@ export interface OrderRecord {
   first: OrderResult;
 }
 
+/** Where a lesson cartoon was left, and the first answer to each of its questions (-1: not answered yet). */
+export interface LessonRecord {
+  at: number;
+  first: number[];
+}
+
 export interface Progress {
   coins: number;
   learner: Learner | null;
@@ -69,9 +75,22 @@ export interface Progress {
   testDraft: TestDraft | null;
   /** The step-ordering game (docs/order-plan.md). */
   order: OrderRecord | null;
+  /** The lesson cartoons by step id (docs/lessons-plan.md). */
+  lessons: Record<string, LessonRecord>;
 }
 
-export const EMPTY: Progress = { coins: 0, learner: null, pre: null, post: null, done: [], cases: {}, seen: [], testDraft: null, order: null };
+export const EMPTY: Progress = {
+  coins: 0,
+  learner: null,
+  pre: null,
+  post: null,
+  done: [],
+  cases: {},
+  seen: [],
+  testDraft: null,
+  order: null,
+  lessons: {},
+};
 
 /** What is learned before the shop: the pre-test, both lessons and the step ordering. */
 const BEFORE_SHOP: readonly StepId[] = ['pre', 'lesson-os', 'lesson-types', 'order'];
@@ -172,6 +191,15 @@ export function recordOrder(p: Progress, r: OrderResult): Progress {
   return { ...markDone(p, 'order'), order };
 }
 
+/** Saves where a lesson was left and its answers; a first answer once given stays. `done` when it was watched
+ *  to the end with every question answered right: the step is done and it starts from the top next time. */
+export function recordLesson(p: Progress, id: StepId, r: { at: number; first: number[]; done: boolean }): Progress {
+  const old = p.lessons[id]?.first ?? [];
+  const first = r.first.map((a, i) => (old[i] !== undefined && old[i] >= 0 ? old[i] : a));
+  const lessons = { ...p.lessons, [id]: { at: r.done ? 0 : r.at, first } };
+  return { ...(r.done ? markDone(p, id) : p), lessons };
+}
+
 /** A cutscene was shown, so it does not start by itself again (it can still be replayed). */
 export function markSeen(p: Progress, id: string): Progress {
   return p.seen.includes(id) ? p : { ...p, seen: [...p.seen, id] };
@@ -247,6 +275,18 @@ function orderRecord(v: unknown): OrderRecord | null {
   return { stars, plays, first: { tries: tries as number[], solved: solved as boolean[], lost: lost as number } };
 }
 
+function lessonRecords(v: unknown): Record<string, LessonRecord> {
+  const out: Record<string, LessonRecord> = {};
+  if (!isObj(v)) return out;
+  for (const [id, r] of Object.entries(v)) {
+    if (!isObj(r) || !(STEPS as readonly string[]).includes(id)) continue;
+    const at = count(r.at);
+    const first = r.first;
+    if (at !== null && Array.isArray(first) && first.every((a) => Number.isInteger(a) && a >= -1)) out[id] = { at, first: first as number[] };
+  }
+  return out;
+}
+
 function learner(v: unknown): Learner | null {
   if (!isObj(v)) return null;
   const name = str(v.name);
@@ -287,5 +327,6 @@ export function parseProgress(raw: string | null, oldRaw: string | null = null):
     seen,
     testDraft: draft(v.testDraft),
     order: orderRecord(v.order),
+    lessons: lessonRecords(v.lessons),
   };
 }

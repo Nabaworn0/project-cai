@@ -5,3 +5,8 @@ test-results/
 playwright-report/
 *.log
 art-source/preview/
+
+# Voice samples to listen to (docs/lessons-plan.md task A), not part of the game
+voice-samples/
+# Pixelized teach-* poses before tools/teach-frames.ts (made again by npm run pixelize)
+art-source/teach-px/

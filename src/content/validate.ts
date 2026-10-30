@@ -21,6 +21,7 @@ import {
   ProblemsSchema,
   CourseTestSchema,
   OrderSchema,
+  LessonsSchema,
   type Brand,
   type Cards,
   type Cutscenes,
@@ -32,9 +33,12 @@ import {
   type Problem,
   type CourseTest,
   type Order,
+  type Lessons,
 } from './schema';
 import { WIN11_CHECK_IDS } from '../core/win11check';
 import { nameError } from '../core/oobe';
+import type { VoiceIndex } from '../core/lesson';
+import { STEPS, STEP_INFO } from '../core/path';
 
 export const MINIGAME_IDS = ['boot-order', 'mbr-gpt', 'win11-check', 'usb-prep', 'partition', 'drivers'] as const;
 
@@ -61,9 +65,16 @@ export interface ParsedContent {
   win11Check?: Win11Check;
   cutscenes?: Cutscenes;
   order?: Order;
+  lessons?: Lessons;
 }
 
-export function validateContent(files: readonly ContentFile[], opts: { seedsPerCase?: number } = {}): Report {
+export interface ValidateOptions {
+  seedsPerCase?: number;
+  /** The lesson voice (src/assets/voice/index.json) and the mp3 files there, when the caller can read them. */
+  voice?: { index: VoiceIndex | null; files: readonly string[] };
+}
+
+export function validateContent(files: readonly ContentFile[], opts: ValidateOptions = {}): Report {
   const errors: string[] = [];
   const warnings: string[] = [];
   const parsed = parseAll(files, errors);
@@ -72,7 +83,11 @@ export function validateContent(files: readonly ContentFile[], opts: { seedsPerC
   const loIds = new Set(parsed.objectives?.items.map((o) => o.id) ?? []);
   if (!parsed.objectives) errors.push('objectives.json: missing');
   else {
-    dupes(parsed.objectives.items.map((o) => o.id), 'objectives.json: duplicate objective', errors);
+    dupes(
+      parsed.objectives.items.map((o) => o.id),
+      'objectives.json: duplicate objective',
+      errors,
+    );
     if (parsed.objectives.draft) warnings.push('objectives.json: ยังเป็นร่าง (draft) ต้องแทนด้วยวัตถุประสงค์จริงของรายวิชา');
   }
   const checkLo = (where: string, los: readonly string[]) => {
@@ -87,6 +102,7 @@ export function validateContent(files: readonly ContentFile[], opts: { seedsPerC
   checkCards(parsed, errors, warnings);
   checkWin11Check(parsed, errors);
   checkCutscenes(parsed, errors, warnings);
+  checkLessons(parsed.lessons, opts.voice, errors, warnings);
 
   return {
     errors,
@@ -98,6 +114,7 @@ export function validateContent(files: readonly ContentFile[], opts: { seedsPerC
       testItems: parsed.test?.items.length ?? 0,
       orderSteps: parsed.order?.rounds.reduce((n, r) => n + r.steps.length, 0) ?? 0,
       cards: parsed.cards?.cards.length ?? 0,
+      lessonLines: parsed.lessons?.lessons.reduce((n, l) => n + l.lines.length, 0) ?? 0,
       machinesChecked: generated,
     },
   };
@@ -123,14 +140,21 @@ export function parseAll(files: readonly ContentFile[], errors: string[]): Parse
     else if (f.path.startsWith('cases/')) push(out.cases, parse(CaseSchema, f), f.path, errors);
     else if (f.path === 'test.json') out.test = parse(CourseTestSchema, f);
     else if (f.path === 'order.json') out.order = parse(OrderSchema, f);
-    else errors.push(`${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, test, order, brands/, cases/)`);
+    else if (f.path === 'lessons.json') out.lessons = parse(LessonsSchema, f);
+    else
+      errors.push(
+        `${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, test, order, lessons, brands/, cases/)`,
+      );
   }
   return out;
 }
 
 function push<T extends { id: string }>(list: T[], item: T | undefined, path: string, errors: string[]): void {
   if (!item) return;
-  const stem = path.split('/').pop()!.replace(/\.json$/, '');
+  const stem = path
+    .split('/')
+    .pop()!
+    .replace(/\.json$/, '');
   if (stem !== item.id) errors.push(`${path}: file name must match id "${item.id}"`);
   list.push(item);
 }
@@ -144,7 +168,11 @@ function dupes(ids: readonly string[], label: string, errors: string[]): void {
 }
 
 function checkBrands(brands: readonly Brand[], errors: string[], warnings: string[]): void {
-  dupes(brands.map((b) => b.id), 'brands: duplicate brand', errors);
+  dupes(
+    brands.map((b) => b.id),
+    'brands: duplicate brand',
+    errors,
+  );
   for (const b of brands) {
     const where = `brands/${b.id}.json`;
     if (!b.verified) warnings.push(`${where}: ยังไม่ได้เทียบกับเครื่องจริงในห้องปฏิบัติการ (verified: false)`);
@@ -176,8 +204,15 @@ function checkMenu(b: Brand, where: string, shown: ReadonlySet<string>, errors: 
         if (!allowed) errors.push(`${where}: ${at}: setting ${r.setting} cannot be an option`);
         else {
           const bad = r.choices.filter((c) => !allowed.includes(c.value));
-          if (bad.length) errors.push(`${where}: ${at}: ${r.setting} cannot be ${bad.map((c) => JSON.stringify(c.value)).join(', ')} (allowed: ${allowed.join(', ')})`);
-          dupes(r.choices.map((c) => String(c.value)), `${where}: ${at}: duplicate choice`, errors);
+          if (bad.length)
+            errors.push(
+              `${where}: ${at}: ${r.setting} cannot be ${bad.map((c) => JSON.stringify(c.value)).join(', ')} (allowed: ${allowed.join(', ')})`,
+            );
+          dupes(
+            r.choices.map((c) => String(c.value)),
+            `${where}: ${at}: duplicate choice`,
+            errors,
+          );
         }
       }
       if (r.type === 'drive' || r.type === 'bootDevice') {
@@ -197,7 +232,11 @@ function checkMenu(b: Brand, where: string, shown: ReadonlySet<string>, errors: 
 }
 
 function checkProblems(parsed: ParsedContent, checkLo: (w: string, l: readonly string[]) => void, errors: string[]): void {
-  dupes(parsed.problems.map((p) => p.id), 'problems.json: duplicate problem', errors);
+  dupes(
+    parsed.problems.map((p) => p.id),
+    'problems.json: duplicate problem',
+    errors,
+  );
   const prep = ACTIONS.filter((a) => a.prep).map((a) => a.id);
   for (const p of parsed.problems) {
     const where = `problems.json[${p.id}]`;
@@ -225,7 +264,11 @@ function checkProblems(parsed: ParsedContent, checkLo: (w: string, l: readonly s
 /** The requirements table has every row once, and exists when a case uses it. */
 function checkWin11Check(parsed: ParsedContent, errors: string[]): void {
   const rows = parsed.win11Check?.rows ?? [];
-  dupes(rows.map((r) => r.id), 'win11-check.json: duplicate row', errors);
+  dupes(
+    rows.map((r) => r.id),
+    'win11-check.json: duplicate row',
+    errors,
+  );
   for (const id of WIN11_CHECK_IDS) if (parsed.win11Check && !rows.some((r) => r.id === id)) errors.push(`win11-check.json: missing row ${id}`);
   const users = parsed.cases.filter((c) => c.minigames.includes('win11-check')).map((c) => c.id);
   if (users.length && !parsed.win11Check) errors.push(`win11-check.json: missing, but used by ${users.join(', ')}`);
@@ -241,12 +284,24 @@ function checkCases(
   errors: string[],
   warnings: string[],
 ): number {
-  dupes(parsed.cases.map((c) => c.id), 'cases: duplicate case', errors);
-  dupes(parsed.cases.map((c) => String(c.order)), 'cases: duplicate order', errors);
+  dupes(
+    parsed.cases.map((c) => c.id),
+    'cases: duplicate case',
+    errors,
+  );
+  dupes(
+    parsed.cases.map((c) => String(c.order)),
+    'cases: duplicate order',
+    errors,
+  );
   const brandIds = new Set(parsed.brands.map((b) => b.id));
   const problemIds = new Set(parsed.problems.map((p) => p.id));
   const customerIds = new Set(parsed.customers.map((c) => c.id));
-  dupes(parsed.customers.map((c) => c.id), 'customers.json: duplicate customer', errors);
+  dupes(
+    parsed.customers.map((c) => c.id),
+    'customers.json: duplicate customer',
+    errors,
+  );
   let checked = 0;
 
   for (const c of [...parsed.cases].sort((a, b) => a.order - b.order)) {
@@ -276,9 +331,11 @@ function checkCases(
     if (c.customer.filesNotNeeded && c.customer.keepData) errors.push(`${where}: customer cannot both keep the files and not need them`);
     if (c.goal === 'desktop' && !c.deviceName) errors.push(`${where}: goal "desktop" needs the deviceName on the ticket`);
     if (c.deviceName && c.goal !== 'desktop') errors.push(`${where}: deviceName is only used when the goal is "desktop"`);
-    if (c.deviceName && nameError(c.deviceName)) errors.push(`${where}: deviceName ${c.deviceName} breaks Windows' naming rule (${nameError(c.deviceName)})`);
+    if (c.deviceName && nameError(c.deviceName))
+      errors.push(`${where}: deviceName ${c.deviceName} breaks Windows' naming rule (${nameError(c.deviceName)})`);
     dupes([...c.problems.fixed, ...c.problems.pool], `${where}: problem listed twice`, errors);
-    if (c.order === 1 && (c.problems.fixed.length > 1 || c.problems.extra[1] > 0)) warnings.push(`${where}: the first customer should be easy (one fixed problem)`);
+    if (c.order === 1 && (c.problems.fixed.length > 1 || c.problems.extra[1] > 0))
+      warnings.push(`${where}: the first customer should be easy (one fixed problem)`);
     if (!refsOk) continue;
 
     const fixed = c.problems.fixed.map((id) => parsed.problems.find((p) => p.id === id)!);
@@ -335,7 +392,11 @@ function checkTest(test: CourseTest | undefined, errors: string[], warnings: str
     return;
   }
   if (test.draft) warnings.push('test.json: ข้อสอบยังเป็นร่าง');
-  dupes(test.items.map((i) => i.id), 'test.json: duplicate question id', errors);
+  dupes(
+    test.items.map((i) => i.id),
+    'test.json: duplicate question id',
+    errors,
+  );
   for (const it of test.items) {
     if (it.answer >= it.choicesTh.length) errors.push(`test.json[${it.id}]: answer ${it.answer} is out of range`);
     dupes(it.choicesTh, `test.json[${it.id}]: duplicate choice`, errors);
@@ -352,11 +413,24 @@ function checkOrder(order: Order | undefined, errors: string[], warnings: string
   }
   if (order.draft) warnings.push('order.json: คำใบ้และการ์ดกับดักยังเป็นร่าง รอข้อความจาก ChatGPT');
   const cards = [...order.rounds.flatMap((r) => r.steps), ...order.traps];
-  dupes(order.rounds.map((r) => r.id), 'order.json: duplicate round', errors);
-  dupes(cards.map((c) => c.id), 'order.json: duplicate card id', errors);
-  dupes(cards.map((c) => c.th), 'order.json: duplicate card text', errors);
+  dupes(
+    order.rounds.map((r) => r.id),
+    'order.json: duplicate round',
+    errors,
+  );
+  dupes(
+    cards.map((c) => c.id),
+    'order.json: duplicate card id',
+    errors,
+  );
+  dupes(
+    cards.map((c) => c.th),
+    'order.json: duplicate card text',
+    errors,
+  );
   const [first, ...rest] = order.rounds;
-  if (!first!.steps.some((s) => s.id === order.boss.expand)) errors.push(`order.json: boss expands "${order.boss.expand}", not a step of the first round`);
+  if (!first!.steps.some((s) => s.id === order.boss.expand))
+    errors.push(`order.json: boss expands "${order.boss.expand}", not a step of the first round`);
   if (!rest.some((r) => r.id === order.boss.into)) errors.push(`order.json: boss opens into "${order.boss.into}", not a later round`);
   if (order.traps.length < 4) warnings.push(`order.json: มีการ์ดกับดักแค่ ${order.traps.length} ใบ (แผนคือ 4–6)`);
 }
@@ -364,7 +438,11 @@ function checkOrder(order: Order | undefined, errors: string[], warnings: string
 function checkCards(parsed: ParsedContent, errors: string[], warnings: string[]): void {
   const cards = parsed.cards;
   if (!cards) return;
-  dupes(cards.cards.map((c) => c.id), 'cards.json: duplicate card', errors);
+  dupes(
+    cards.cards.map((c) => c.id),
+    'cards.json: duplicate card',
+    errors,
+  );
   const setIds = new Set(cards.sets.map((s) => s.id));
   const problemIds = new Set(parsed.problems.map((p) => p.id));
   for (const c of cards.cards) {
@@ -385,7 +463,11 @@ function checkCutscenes(parsed: ParsedContent, errors: string[], warnings: strin
     return;
   }
   if (cs.draft) warnings.push('cutscenes.json: บทคุยกับพี่ช่างยังเป็นร่าง (draft) รอบทจริง');
-  dupes(cs.scenes.map((s) => s.id), 'cutscenes.json: duplicate scene', errors);
+  dupes(
+    cs.scenes.map((s) => s.id),
+    'cutscenes.json: duplicate scene',
+    errors,
+  );
   const caseIds = new Set(parsed.cases.map((c) => c.id));
   if (!cs.scenes.some((s) => s.id === 'intro')) errors.push('cutscenes.json: no "intro" scene (the welcome)');
   for (const s of cs.scenes) {
@@ -395,4 +477,52 @@ function checkCutscenes(parsed: ParsedContent, errors: string[], warnings: strin
       if (!faces.includes(l.face)) errors.push(`cutscenes.json: ${s.id} line ${i + 1}: ${l.who} has no "${l.face}" face`);
     }
   }
+}
+
+/** One cartoon per lesson step, for its objective; questions answerable and asked after a real line, each going
+ *  back to a line before it; and, when the voice was given, a recording for everything said. */
+function checkLessons(lessons: Lessons | undefined, voice: ValidateOptions['voice'], errors: string[], warnings: string[]): void {
+  if (!lessons) {
+    errors.push('lessons.json: missing');
+    return;
+  }
+  if (lessons.draft) warnings.push('lessons.json: บทการ์ตูนบทเรียนยังเป็นร่าง รอบทฉบับแก้จาก ChatGPT');
+  dupes(
+    lessons.lessons.map((l) => l.id),
+    'lessons.json: duplicate lesson',
+    errors,
+  );
+  const steps = STEPS.filter((id) => id.startsWith('lesson-'));
+  for (const id of steps) if (!lessons.lessons.some((l) => l.id === id)) errors.push(`lessons.json: no lesson for step "${id}"`);
+  for (const l of lessons.lessons) {
+    const where = `lessons.json[${l.id}]`;
+    if (!(steps as readonly string[]).includes(l.id)) {
+      errors.push(`${where}: not a lesson step (${steps.join(', ')})`);
+      continue;
+    }
+    const objective = STEP_INFO[l.id as (typeof steps)[number]].objective;
+    if (l.objective !== objective) errors.push(`${where}: objective ${l.objective}, but the step is for objective ${objective}`);
+    dupes(
+      l.questions.map((q) => String(q.after)),
+      `${where}: two questions after line`,
+      errors,
+    );
+    for (const [i, q] of l.questions.entries()) {
+      const at = `${where} question ${i + 1}`;
+      if (q.answer >= q.choicesTh.length) errors.push(`${at}: answer ${q.answer} is out of range`);
+      dupes(q.choicesTh, `${at}: duplicate choice`, errors);
+      if (q.after > l.lines.length) errors.push(`${at}: after line ${q.after}, but there are ${l.lines.length} lines`);
+      if (q.replay > q.after) errors.push(`${at}: goes back to line ${q.replay}, after the question (line ${q.after})`);
+    }
+  }
+  if (!voice) return;
+  const said = lessons.lessons.flatMap((l) => [...l.lines.map((x) => x.say), ...l.questions.flatMap((q) => [q.right.say, q.wrong.say])]);
+  const lines = voice.index?.lines ?? {};
+  const missing = said.filter((t) => !lines[t]);
+  if (missing.length)
+    (lessons.draft ? warnings : errors).push(`lessons.json: ยังไม่มีเสียง ${missing.length} ประโยค (รัน npm run voice) เช่น "${missing[0]}"`);
+  const files = new Set(voice.files);
+  for (const t of said) if (lines[t] && !files.has(lines[t].file)) errors.push(`voice/index.json: "${t}" has no file ${lines[t].file}`);
+  const unused = Object.keys(lines).filter((t) => !said.includes(t)).length;
+  if (unused) warnings.push(`voice/index.json: เสียงที่ไม่ได้ใช้แล้ว ${unused} ประโยค (npm run voice -- --prune)`);
 }

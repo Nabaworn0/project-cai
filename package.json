@@ -12,7 +12,9 @@
     "test": "playwright test",
     "check": "npm run typecheck && npm run validate && npm run test:unit && npm run build && npm run test",
     "test:unit": "tsx --test tools/*.test.ts",
-    "pixelize": "tsx tools/pixelize.ts"
+    "pixelize": "tsx tools/pixelize.ts",
+    "voice": "python tools/voice.py",
+    "teach-frames": "tsx tools/teach-frames.ts"
   },
   "dependencies": {
     "@fontsource/chakra-petch": "^5.3.0",

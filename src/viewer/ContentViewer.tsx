@@ -4,6 +4,8 @@
 
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { ACTIONS } from '../core/actions';
+import { subtitle } from '../core/lesson';
+import { VOICE, voiceFiles } from '../content/voice';
 import { contentFiles } from '../content';
 import { parseAll, validateContent, type Report } from '../content/validate';
 import { CaseLab } from './CaseLab';
@@ -21,6 +23,7 @@ const TABS = [
   ['sims', 'หน้าจอจำลอง'],
   ['quizzes', 'ข้อสอบ'],
   ['order', 'เรียงขั้นตอน'],
+  ['lessons', 'บทเรียน'],
   ['cards', 'การ์ด'],
 ] as const;
 type Tab = (typeof TABS)[number][0];
@@ -39,7 +42,7 @@ export function ContentViewer() {
 
   // The validator rolls hundreds of machines; let the page paint first.
   useEffect(() => {
-    const t = setTimeout(() => setReport(validateContent(files, { seedsPerCase: 200 })), 30);
+    const t = setTimeout(() => setReport(validateContent(files, { seedsPerCase: 200, voice: { index: VOICE, files: voiceFiles() } })), 30);
     return () => clearTimeout(t);
   }, [files]);
 
@@ -94,21 +97,41 @@ export function ContentViewer() {
             {report && (
               <>
                 <ul class="v-stats">
-                  <li><b>{report.stats.cases}</b> เคส</li>
-                  <li><b>{report.stats.problems}</b> ปัญหา</li>
-                  <li><b>{report.stats.brands}</b> ยี่ห้อ BIOS</li>
-                  <li><b>{report.stats.testItems}</b> ข้อสอบ</li>
-                  <li><b>{report.stats.cards}</b> การ์ด</li>
-                  <li><b>{ACTIONS.length}</b> วิธีซ่อม</li>
+                  <li>
+                    <b>{report.stats.cases}</b> เคส
+                  </li>
+                  <li>
+                    <b>{report.stats.problems}</b> ปัญหา
+                  </li>
+                  <li>
+                    <b>{report.stats.brands}</b> ยี่ห้อ BIOS
+                  </li>
+                  <li>
+                    <b>{report.stats.testItems}</b> ข้อสอบ
+                  </li>
+                  <li>
+                    <b>{report.stats.cards}</b> การ์ด
+                  </li>
+                  <li>
+                    <b>{ACTIONS.length}</b> วิธีซ่อม
+                  </li>
                 </ul>
                 {[...parseErrors, ...report.errors].length > 0 && (
                   <>
                     <h2>ข้อผิดพลาด (ต้องแก้)</h2>
-                    <ul class="v-list bad">{[...parseErrors, ...report.errors].map((e) => <li key={e}>{e}</li>)}</ul>
+                    <ul class="v-list bad">
+                      {[...parseErrors, ...report.errors].map((e) => (
+                        <li key={e}>{e}</li>
+                      ))}
+                    </ul>
                   </>
                 )}
                 <h2>คำเตือน ({report.warnings.length})</h2>
-                <ul class="v-list warn">{report.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+                <ul class="v-list warn">
+                  {report.warnings.map((w) => (
+                    <li key={w}>{w}</li>
+                  ))}
+                </ul>
               </>
             )}
             <h2>ลูกค้า ({parsed.customers.length})</h2>
@@ -126,18 +149,35 @@ export function ContentViewer() {
             <h2>ข้อกำหนด Windows 11 ที่เกมใช้ตรวจ</h2>
             <table class="v-req">
               <tbody>
-                <tr><th>RAM ขั้นต่ำ</th><td>{REQUIREMENTS.ramGB} GB</td></tr>
-                <tr><th>ดิสก์ขั้นต่ำ</th><td>{REQUIREMENTS.storageGB} GB</td></tr>
-                <tr><th>โหมดบูต</th><td>UEFI อย่างเดียว</td></tr>
-                <tr><th>Secure Boot / TPM 2.0</th><td>บังคับ</td></tr>
-                <tr><th>CPU</th><td>ต้องอยู่ในรายชื่อที่รองรับ</td></tr>
+                <tr>
+                  <th>RAM ขั้นต่ำ</th>
+                  <td>{REQUIREMENTS.ramGB} GB</td>
+                </tr>
+                <tr>
+                  <th>ดิสก์ขั้นต่ำ</th>
+                  <td>{REQUIREMENTS.storageGB} GB</td>
+                </tr>
+                <tr>
+                  <th>โหมดบูต</th>
+                  <td>UEFI อย่างเดียว</td>
+                </tr>
+                <tr>
+                  <th>Secure Boot / TPM 2.0</th>
+                  <td>บังคับ</td>
+                </tr>
+                <tr>
+                  <th>CPU</th>
+                  <td>ต้องอยู่ในรายชื่อที่รองรับ</td>
+                </tr>
               </tbody>
             </table>
             <p class="v-dim">เกมสอนลง Windows 11 อย่างเดียว (ตัดสินใจ 24 ต.ค. 2026) · Windows 10 มีแค่ในเรื่องเล่า เช่น เครื่องเก่าของลูกค้า</p>
             <h2>วัตถุประสงค์การเรียนรู้ {objectives.draft && <span class="v-badge warn">ร่าง</span>}</h2>
             <ul class="v-list">
               {objectives.items.map((o) => (
-                <li key={o.id}><b>{o.id}</b> {o.th}</li>
+                <li key={o.id}>
+                  <b>{o.id}</b> {o.th}
+                </li>
               ))}
             </ul>
           </section>
@@ -153,7 +193,9 @@ export function ContentViewer() {
 
         {tab === 'problems' && (
           <section class="v-stack">
-            <p class="v-lead">ปัญหาที่ซ่อนในเครื่องลูกค้าได้ แต่ละเคสเลือกจากรายการนี้ (ไฟล์ <code>problems.json</code>)</p>
+            <p class="v-lead">
+              ปัญหาที่ซ่อนในเครื่องลูกค้าได้ แต่ละเคสเลือกจากรายการนี้ (ไฟล์ <code>problems.json</code>)
+            </p>
             {parsed.problems.map((p) => (
               <article key={p.id} class="v-card">
                 <header class="v-card-head">
@@ -167,21 +209,39 @@ export function ContentViewer() {
                   {p.screenText && (
                     <>
                       <dt>ข้อความบนจอ</dt>
-                      <dd><div class="v-screen">{p.screenText}</div></dd>
+                      <dd>
+                        <div class="v-screen">{p.screenText}</div>
+                      </dd>
                     </>
                   )}
                   <dt>สาเหตุ</dt>
                   <dd>{p.explainTh}</dd>
                   <dt>คำใบ้</dt>
-                  <dd><ol>{p.hintsTh.map((h) => <li key={h}>{h}</li>)}</ol></dd>
+                  <dd>
+                    <ol>
+                      {p.hintsTh.map((h) => (
+                        <li key={h}>{h}</li>
+                      ))}
+                    </ol>
+                  </dd>
                   <dt>ทางแก้</dt>
-                  <dd>{p.fixes.map((f) => <span key={f} class="v-chip on">{actionLabel(f)}</span>)}</dd>
+                  <dd>
+                    {p.fixes.map((f) => (
+                      <span key={f} class="v-chip on">
+                        {actionLabel(f)}
+                      </span>
+                    ))}
+                  </dd>
                   <dt>เปลี่ยนเครื่องเป็น</dt>
-                  <dd><code>{JSON.stringify(p.patch)}</code></dd>
+                  <dd>
+                    <code>{JSON.stringify(p.patch)}</code>
+                  </dd>
                   {Object.keys(p.requires).length > 0 && (
                     <>
                       <dt>ใช้ได้เมื่อ</dt>
-                      <dd><code>{JSON.stringify(p.requires)}</code></dd>
+                      <dd>
+                        <code>{JSON.stringify(p.requires)}</code>
+                      </dd>
                     </>
                   )}
                 </dl>
@@ -201,7 +261,10 @@ export function ContentViewer() {
                 </header>
                 <dl class="v-meta">
                   <dt>เข้า BIOS</dt>
-                  <dd>{b.keys.setup.join(' / ')}{b.keys.startupMenu && ` (กด ${b.keys.startupMenu} ก่อน)`}</dd>
+                  <dd>
+                    {b.keys.setup.join(' / ')}
+                    {b.keys.startupMenu && ` (กด ${b.keys.startupMenu} ก่อน)`}
+                  </dd>
                   <dt>Boot Menu</dt>
                   <dd>{b.keys.bootMenu.join(' / ')}</dd>
                   <dt>ข้อแปลก</dt>
@@ -229,7 +292,13 @@ export function ContentViewer() {
                     </ul>
                   </div>
                 ))}
-                {b.notesTh.length > 0 && <ul class="v-list">{b.notesTh.map((n) => <li key={n}>{n}</li>)}</ul>}
+                {b.notesTh.length > 0 && (
+                  <ul class="v-list">
+                    {b.notesTh.map((n) => (
+                      <li key={n}>{n}</li>
+                    ))}
+                  </ul>
+                )}
               </article>
             ))}
           </section>
@@ -307,21 +376,69 @@ export function ContentViewer() {
           </section>
         )}
 
+        {tab === 'lessons' && parsed.lessons && (
+          <section class="v-stack">
+            <p class="v-lead">
+              {parsed.lessons.draft && <span class="v-badge warn">ร่าง</span>} {parsed.lessons.source}
+            </p>
+            {parsed.lessons.lessons.map((l) => (
+              <article key={l.id} class="v-card" data-testid={`lesson-${l.id}`}>
+                <header class="v-card-head">
+                  <h3>
+                    {l.titleTh} (วัตถุประสงค์ {l.objective} · {l.lines.length} ประโยค)
+                  </h3>
+                </header>
+                <ol class="v-choices">
+                  {l.lines.map((x, i) => (
+                    <li key={i}>
+                      <b>{subtitle(x, parsed.lessons!.subtitles)}</b>{' '}
+                      {VOICE?.lines[x.say] ? (
+                        <span class="v-badge">เสียง {(VOICE.lines[x.say]!.ms / 1000).toFixed(1)} วิ</span>
+                      ) : (
+                        <span class="v-badge warn">ยังไม่มีเสียง</span>
+                      )}
+                      <div class="v-dim">
+                        บนจอ: {x.board} · ฉาก {x.set} · พี่ช่าง {x.pose} {x.face} · เด็กฝึกงาน {x.intern}
+                      </div>
+                      <div class="v-dim">ภาพ: {x.cue}</div>
+                      {l.questions
+                        .filter((q) => q.after === i + 1)
+                        .map((q) => (
+                          <div key={q.stemTh} class="v-dim">
+                            คำถาม: {q.stemTh} · เฉลย: {q.choicesTh[q.answer]} · ผิดแล้วย้อนไปประโยค {q.replay}
+                          </div>
+                        ))}
+                    </li>
+                  ))}
+                </ol>
+              </article>
+            ))}
+          </section>
+        )}
+
         {tab === 'cards' && parsed.cards && (
           <section class="v-stack">
-            {parsed.cards.draft && <p class="v-lead"><span class="v-badge warn">ร่าง</span> แผนคือ 30 ใบ 6 ชุด</p>}
+            {parsed.cards.draft && (
+              <p class="v-lead">
+                <span class="v-badge warn">ร่าง</span> แผนคือ 30 ใบ 6 ชุด
+              </p>
+            )}
             {parsed.cards.sets.map((set) => (
               <article key={set.id} class="v-card">
-                <header class="v-card-head"><h3>{set.nameTh}</h3></header>
+                <header class="v-card-head">
+                  <h3>{set.nameTh}</h3>
+                </header>
                 <div class="v-cards">
-                  {parsed.cards!.cards.filter((c) => c.set === set.id).map((c) => (
-                    <div key={c.id} class={`v-gamecard ${c.rarity}`}>
-                      <b>{c.nameTh}</b>
-                      <span class="v-dim">{{ common: 'ธรรมดา', rare: 'หายาก', epic: 'หายากมาก' }[c.rarity]}</span>
-                      <p>{c.textTh}</p>
-                      <span class="v-dim">ได้หลังแก้: {c.linkedProblems.join(', ')}</span>
-                    </div>
-                  ))}
+                  {parsed
+                    .cards!.cards.filter((c) => c.set === set.id)
+                    .map((c) => (
+                      <div key={c.id} class={`v-gamecard ${c.rarity}`}>
+                        <b>{c.nameTh}</b>
+                        <span class="v-dim">{{ common: 'ธรรมดา', rare: 'หายาก', epic: 'หายากมาก' }[c.rarity]}</span>
+                        <p>{c.textTh}</p>
+                        <span class="v-dim">ได้หลังแก้: {c.linkedProblems.join(', ')}</span>
+                      </div>
+                    ))}
                 </div>
               </article>
             ))}

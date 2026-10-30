@@ -283,6 +283,8 @@ Transparent background outside the frame, PNG.
 
 ## 4.3 สายพานงานซ่อม: ฉากด่านบอสของเกมเรียงขั้นตอน · 1 ภาพ · เพิ่ม 29 ต.ค. 2026
 
+**ได้แล้ว 30 ต.ค.:** `src/assets/scenes/order-room.png` ใช้ในหน้าเรียงขั้นตอนและด่านบอส ([pages-plan.md](pages-plan.md) ผลงาน C)
+
 ด่านบอสของ [order-plan.md](order-plan.md) แบบ 2.5D: สายพานวิ่งจากผนังห้องซ่อมด้านหลังเข้ามาหาผู้เล่น การ์ดขั้นตอนเป็น HTML วางทับ (ตัวหนังสือไทยต้องคม) **ในภาพจึงห้ามมีการ์ดหรือของบนสายพาน** · ลายสายพานที่เลื่อนได้ผมทำด้วย CSS ทับผิวสายพานอีกที ผิวจึงควรเป็นสีเรียบ
 ส่งในแชตเดิมที่ทำภาพร้าน แนบ `art-source/workshop-busy.png` เป็นตัวอย่างสไตล์และห้องเดียวกัน
 
@@ -315,3 +317,59 @@ magnifying glass. Transparent background, PNG.
 - พื้นหลังโปร่งใสไหม (ถ้าเป็นพื้นขาวทึบก็ใช้ได้ สคริปต์ลบให้ แต่โปร่งใสจะแม่นกว่า)
 - ภาพสีหน้าของตัวละครเดียวกัน ตัวอยู่ตำแหน่งเดิม ขนาดเท่าเดิมทุกภาพไหม
 - ไม่มีตัวหนังสือหรือโลโก้แอบอยู่ในภาพ
+
+---
+
+## 6. บทเรียนการ์ตูน ([lessons-plan.md](lessons-plan.md)) · เพิ่ม 30 ต.ค. 2026
+
+### 6.1 พี่ช่างตอนสอน (`teach-*`) · 9 ภาพ · ✅ ครบแล้ว 30 ต.ค.
+
+**ได้แล้ว:** 9 ภาพจาก ChatGPT → `npm run pixelize -- "art-source/teach-*.png" --height 84 --out art-source/teach-px --no-preview` → `npm run teach-frames` (`tools/teach-frames.ts`) → `src/assets/sprites/teach-*.png`: 6 ท่าที่ใช้หัวเดียวกันทุกพิกเซล (stand point-left point-right explain thumbs chin) + ชั้นหน้า 3 ชั้น (mouth-small mouth-wide eyes-shut) วางทับท่าไหนก็ได้ · ขนาด 112×84 (ใช้ตารางพิกเซลเดิมของ ChatGPT ที่ 84 แถว ถ้าย่อเหลือ 64 แบบในร้าน หนวดหาย) · ภาพ "Speaking" ไม่มีพื้นโปร่งใสจริง (ลายตารางติดมาในภาพ) ผมลบพื้นให้ก่อนแปลง
+
+ชุดใหม่แยกจากชุด `senior-*` ในร้าน (ท่าชี้ต้องการพื้นที่กว้างกว่า) **ทุกภาพสั่ง "แก้จากภาพ" แนบ `art-source/senior-neutral.png` ทุกครั้ง** ส่งในแชตเดิมที่ทำพี่ช่าง
+หัวของทุกภาพต้องเหมือนกันทุกพิกเซล เพราะผมจะวางปากที่ขยับทับบนหัวทุกท่า (ผมล็อกหัวให้อีกชั้นตอน pixelize)
+
+ภาพแรก `teach-neutral.png` (ผืนผ้าใบกว้างขึ้นให้มีที่ชี้):
+
+```
+Edit the attached sprite. Keep the character pixel-for-pixel identical: same hair, moustache, face, head size,
+apron, screwdriver, outline and pixel scale. Only make the canvas wider: add empty transparent space on both sides
+so the canvas is about twice as wide, with the character exactly in the middle. Same pose, arms at the sides.
+Transparent background, PNG.
+```
+
+ภาพที่ 2–6 ท่าทาง (แนบ `teach-neutral.png` ที่ได้จากภาพแรกทุกครั้ง เปลี่ยนแค่ข้อความในวงเล็บเหลี่ยม):
+
+```
+Edit the attached sprite. Keep the head pixel-for-pixel identical (hair, face, moustache, eyes, mouth, head size and
+position) and keep the canvas size, the body position, the apron and the outline style. Change only the arms and
+hands: [POSE]. The arms stay inside the canvas. Transparent background, PNG.
+```
+
+| ไฟล์ | [POSE] |
+|---|---|
+| `teach-pointleft.png` | his right arm stretched out to the left side of the image, index finger pointing left, the other arm at his side |
+| `teach-pointright.png` | his left arm stretched out to the right side of the image, index finger pointing right, the other arm at his side |
+| `teach-explain.png` | both forearms raised in front of his chest, palms open and facing up, explaining |
+| `teach-thumbs.png` | one hand raised beside his shoulder giving a thumbs up, the other arm at his side |
+| `teach-chin.png` | one hand raised to his chin as if thinking, the other arm across his waist |
+
+ภาพที่ 7–9 ปากและตา (แนบ `teach-neutral.png`):
+
+```
+Edit the attached sprite. Keep everything pixel-for-pixel identical, including the canvas size, pose and arms.
+Change only [FACE PART]. Transparent background, PNG.
+```
+
+| ไฟล์ | [FACE PART] |
+|---|---|
+| `teach-talksmall.png` | the mouth: slightly open while talking, a small dark opening |
+| `teach-talkwide.png` | the mouth: wide open while talking, a dark opening with a hint of teeth |
+| `teach-blink.png` | the eyes: closed, drawn as short horizontal lines |
+
+บันทึกทั้ง 9 ไฟล์ใน `art-source/` แล้วบอก Claude ให้รัน `npm run pixelize -- "art-source/teach-*.png" --height 50` (Claude หาแถวหัวแล้วใส่ `--same-rows` ให้เอง)
+ถ้าท่าไหนแขนดูแปลกหรือตัวขยับ ขอให้ ChatGPT วาดใหม่เฉพาะท่านั้น
+
+### 6.2 ฉากหลังและของในฉาก
+
+ผมจะเขียนหลังได้บทพูดจาก ChatGPT ([lessons-plan.md](lessons-plan.md) งานของ ChatGPT ข้อ 2)

@@ -28,6 +28,15 @@ test.describe('content viewer (?view=content)', () => {
     await tab('เรียงขั้นตอน').click();
     await expect(page.getByRole('heading', { name: 'รอบ 1 ภาพรวมทั้งงาน (8 ขั้น)' })).toBeVisible();
     await expect(page.getByTestId('order-traps')).toContainText('ถอด USB ระหว่างคัดลอกไฟล์');
+    await tab('บทเรียน').click();
+    const os = page.getByTestId('lesson-lesson-os');
+    await expect(os.getByRole('heading')).toHaveText('ระบบปฏิบัติการคืออะไร (วัตถุประสงค์ 1 · 22 ประโยค)');
+    await expect(os.locator('li')).toHaveCount(22);
+    // Subtitles write the English words as on screen; every line has its recording.
+    await expect(page.getByTestId('lesson-lesson-types')).toContainText('ตัวอย่างแรกคือWindows 11');
+    await expect(page.locator('[data-testid^="lesson-"] .v-badge.warn')).toHaveCount(0);
+    await expect(os.locator('li').first()).toContainText(/เสียง \d+\.\d วิ/);
+    await expect(os).toContainText('คำถาม: ระบบปฏิบัติการต่างจากโปรแกรมประยุกต์อย่างไร?');
     await tab('การ์ด').click();
     await expect(page.getByText('ผู้พิทักษ์ GPT')).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
