@@ -100,7 +100,7 @@ export function TeacherScreen() {
   const save = () => {
     const to = deploymentFrom(linkText);
     if (!to) {
-      setSetupMsg('ลิงก์ Web app ไม่ถูกต้อง: ต้องเป็นลิงก์ที่ได้ตอน Deploy ลงท้ายด้วย /exec');
+      setSetupMsg('ลิงก์ Web app ไม่ถูกต้อง โปรดใช้ลิงก์จาก Deploy ที่ลงท้ายด้วย /exec');
       return;
     }
     const s = { to, key: keyText.trim() };
@@ -128,7 +128,7 @@ export function TeacherScreen() {
         setSetupMsg(r.value.length ? '' : 'ยังไม่มีผลส่งเข้ามาใน Sheet');
       } else setSetupMsg(r.why);
     } catch {
-      setSetupMsg('ติดต่อ Sheet ไม่ได้ ตรวจอินเทอร์เน็ตและลิงก์ Web app');
+      setSetupMsg('ติดต่อ Sheet ไม่ได้ โปรดตรวจสอบอินเทอร์เน็ตและลิงก์ Web app');
     }
     setBusy('');
   };
@@ -151,7 +151,7 @@ export function TeacherScreen() {
       if (r.ok) take(r.value.map((f, i) => ({ name: `แถวที่ ${f.row ?? i + 2}`, text: f.text })), `Sheet ห้อง ${picked}`);
       else setSetupMsg(r.why);
     } catch {
-      setSetupMsg('ติดต่อ Sheet ไม่ได้ ตรวจอินเทอร์เน็ตและลิงก์ Web app');
+      setSetupMsg('ติดต่อ Sheet ไม่ได้ โปรดตรวจสอบอินเทอร์เน็ตและลิงก์ Web app');
     }
     setBusy('');
   };
@@ -162,9 +162,9 @@ export function TeacherScreen() {
   const copyCode = async () => {
     try {
       await navigator.clipboard.writeText(appsScript);
-      setCodeCopied('คัดลอกโค้ดแล้ว นำไปวางใน Apps Script ของ Sheet');
+      setCodeCopied('คัดลอกโค้ดแล้ว ให้นำไปวางใน Apps Script ของ Sheet');
     } catch {
-      setCodeCopied('คัดลอกไม่ได้ ให้กดดาวน์โหลดไฟล์โค้ดแทน');
+      setCodeCopied('หากคัดลอกไม่ได้ ให้ดาวน์โหลดไฟล์โค้ดแทน');
     }
   };
   const copyLink = async () => {
@@ -185,7 +185,7 @@ export function TeacherScreen() {
 
       <section class="teacher-box no-print">
         <h2>1. เชื่อมกับ Google Sheet ของครู</h2>
-        <p class="teacher-note">ตั้ง Sheet และ Apps Script ตามคู่มือครูก่อน แล้ววางลิงก์ Web app ที่ได้ตอน Deploy และรหัสครูที่ตั้งไว้</p>
+        <p class="teacher-note">ตั้งค่า Sheet และ Apps Script ตามคู่มือครู จากนั้นกรอกลิงก์ Web app ที่ได้จาก Deploy พร้อมรหัสครู</p>
         <div class="teacher-row">
           <button class="btn ghost" type="button" onClick={() => void copyCode()}>
             คัดลอกโค้ด Apps Script
@@ -204,7 +204,7 @@ export function TeacherScreen() {
           <input value={linkText} onInput={(e) => setLinkText(e.currentTarget.value)} placeholder="https://script.google.com/macros/s/…/exec" />
         </label>
         <label>
-          รหัสครู (ใช้ดึงผล นักเรียนไม่ต้องรู้)
+          รหัสครู (ใช้สำหรับดึงผล นักเรียนไม่ต้องทราบ)
           <input type="password" value={keyText} onInput={(e) => setKeyText(e.currentTarget.value)} autocomplete="off" />
         </label>
         <div class="teacher-row">
@@ -231,7 +231,7 @@ export function TeacherScreen() {
             ชื่อห้อง (เช่น ปวช.1/2 · ใช้เป็นชื่อแท็บใน Sheet)
             <input value={className} onInput={(e) => setClassName(e.currentTarget.value)} maxLength={30} />
           </label>
-          {cls && !link && <p class="teacher-msg">ชื่อห้องใช้ได้เฉพาะตัวอักษร ตัวเลข . / _ - ไม่เกิน 30 ตัว</p>}
+          {cls && !link && <p class="teacher-msg">ชื่อห้องต้องไม่เกิน 30 ตัว และใช้ได้เฉพาะตัวอักษร ตัวเลข . / _ -</p>}
           {link && (
             <div class="teacher-link">
               <div class="teacher-qr" aria-label="QR code ลิงก์เกมของห้อง" role="img" dangerouslySetInnerHTML={{ __html: qr }} />
@@ -243,7 +243,7 @@ export function TeacherScreen() {
                   คัดลอกลิงก์
                 </button>
                 {copied && <p class="teacher-msg">คัดลอกแล้ว</p>}
-                <p class="teacher-note">ให้นักเรียนสแกน QR หรือเปิดลิงก์นี้ ผลจะส่งเข้า Sheet แท็บ "{cls}" เองทุกครั้งที่ทำขั้นไหนเสร็จ</p>
+                <p class="teacher-note">ให้นักเรียนสแกน QR หรือเปิดลิงก์นี้ เมื่อทำแต่ละขั้นเสร็จ ระบบจะส่งผลเข้าแท็บ "{cls}" ใน Sheet อัตโนมัติ</p>
               </div>
             </div>
           )}
@@ -279,7 +279,7 @@ export function TeacherScreen() {
             void loadFiles(e.dataTransfer?.files ?? null);
           }}
         >
-          {connected ? 'หรือ' : ''} ลากไฟล์ผล (.json) ของนักเรียนมาวางตรงนี้ หรือกดเลือกหลายไฟล์
+          {connected ? 'หรือ' : ''} ลากไฟล์ผล (.json) ของนักเรียนมาวางที่นี่ หรือกดเลือกหลายไฟล์
           <input type="file" accept=".json,application/json" multiple onChange={(e) => void loadFiles(e.currentTarget.files)} />
         </label>
       </section>
@@ -322,7 +322,7 @@ function Report({ loaded, skipped, from }: { loaded: Loaded[]; skipped: string[]
         )}
         {edited.length > 0 && (
           <p class="teacher-warn" role="alert">
-            ไฟล์ของ {edited.map((l) => `เลขที่ ${l.data.learner!.no}`).join(', ')} ถูกแก้ไขหลังดาวน์โหลด ควรตรวจสอบ
+            ไฟล์ของ {edited.map((l) => `เลขที่ ${l.data.learner!.no}`).join(', ')} ถูกแก้ไขหลังดาวน์โหลด โปรดตรวจสอบ
           </p>
         )}
         <div class="teacher-row no-print">
@@ -439,7 +439,7 @@ function Report({ loaded, skipped, from }: { loaded: Loaded[]; skipped: string[]
 
           <section class="teacher-box">
             <h2>วิเคราะห์ข้อสอบรายข้อ</h2>
-            <p class="teacher-note">ข้อที่หลังเรียนตอบถูกไม่ถึงครึ่งเป็นสีแดง: ควรสอนซ้ำ</p>
+            <p class="teacher-note">ข้อที่ตอบถูกหลังเรียนไม่ถึง 50% จะแสดงสีแดง ควรสอนซ้ำ</p>
             <div class="teacher-scroll">
               <table class="teacher-table" data-testid="items">
                 <thead>

@@ -129,3 +129,25 @@ test('installable PWA that keeps working offline', async ({ page, context }, inf
   await expect(page.getByRole('status')).toHaveText('โหมดจำลอง');
   await context.setOffline(false);
 });
+
+test('a device that played before gets the newest page when online, not the copy it kept', async ({ page, context }, info) => {
+  test.skip(info.project.name !== 'desktop', 'service worker check runs once');
+  await page.goto('/');
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 15_000 });
+  // A new version goes live: the web now has a different page (the service worker's own request is routed too).
+  await context.route(/localhost:4173\/(\?.*)?$/, async (route) => {
+    const res = await route.fetch();
+    await route.fulfill({ response: res, body: (await res.text()).replace('<head>', '<head><meta name="build" content="newer">') });
+  });
+  await page.goto('/?view=teacher');
+  await expect(page.locator('meta[name="build"]')).toHaveAttribute('content', 'newer');
+  await context.unroute(/localhost:4173\/(\?.*)?$/);
+  // Offline, the page kept on the device is used, whatever the address's query.
+  await context.setOffline(true);
+  await page.goto('/?class=x&to=AKfycbx_abcdefghijklmnopqrstuvwxyz0123456789-XY');
+  await expect(page.locator('meta[name="build"]')).toHaveCount(0);
+  await expect(page.locator('#ui')).not.toBeEmpty();
+  await context.setOffline(false);
+});

@@ -101,7 +101,7 @@ test("reading the sheet: the key in the body; the classes or the files; the shee
     value: [{ text: 'a', row: 2 }, { text: 'b', row: null }, { text: 'c', row: null }],
   });
   assert.deepEqual(sheetClasses({ ok: false, error: 'key' }), { ok: false, why: 'รหัสครูไม่ถูกต้อง' });
-  assert.deepEqual(sheetFiles({ ok: false, error: 'class' }), { ok: false, why: 'ไม่มีห้องนี้ใน Sheet' });
+  assert.deepEqual(sheetFiles({ ok: false, error: 'class' }), { ok: false, why: 'ไม่พบห้องนี้ใน Sheet' });
   assert.equal(sheetFiles({ ok: true }).ok, false);
   assert.ok(!sheetClasses('<html>').ok && sheetClasses('<html>').ok === false);
 });

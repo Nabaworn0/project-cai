@@ -12,6 +12,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
+      // Our own service worker (src/sw.ts): the page from the web first, the kept one offline.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       includeAssets: ['favicon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
         name: 'ร้านซ่อมคอม',
@@ -31,7 +35,7 @@ export default defineConfig({
           { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
+      injectManifest: {
         // Thai + Latin font subsets only; other subsets are never used by the game.
         globPatterns: ['**/*.{js,css,html,svg,png,webp,json}', '**/*-{thai,latin}-*.woff2'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,

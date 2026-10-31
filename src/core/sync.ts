@@ -108,7 +108,7 @@ export type SheetReply<T> = { ok: true; value: T } | { ok: false; why: string };
 
 function sheetError(body: unknown): string {
   const e = (body as { error?: unknown } | null)?.error;
-  return e === 'key' ? 'รหัสครูไม่ถูกต้อง' : e === 'class' ? 'ไม่มีห้องนี้ใน Sheet' : 'Sheet ตอบกลับมาไม่ถูกต้อง (ตรวจลิงก์ Web app และการ Deploy)';
+  return e === 'key' ? 'รหัสครูไม่ถูกต้อง' : e === 'class' ? 'ไม่พบห้องนี้ใน Sheet' : 'Sheet ตอบกลับมาไม่ถูกต้อง (ตรวจลิงก์ Web app และการ Deploy)';
 }
 
 /** {"ok": true, "classes": [...]} → the class names. */

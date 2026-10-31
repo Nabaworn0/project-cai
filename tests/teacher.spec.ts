@@ -143,7 +143,7 @@ test("the sheet's Apps Script is on the page to copy or save; a row broken in th
   await page.goto('/?view=teacher');
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await teacher(page).getByRole('button', { name: 'คัดลอกโค้ด Apps Script' }).click();
-  await expect(teacher(page).locator('.teacher-msg')).toHaveText('คัดลอกโค้ดแล้ว นำไปวางใน Apps Script ของ Sheet');
+  await expect(teacher(page).locator('.teacher-msg')).toHaveText('คัดลอกโค้ดแล้ว ให้นำไปวางใน Apps Script ของ Sheet');
   // Windows' clipboard hands lines back with CRLF; the code is the same.
   expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toBe(code);
   const [download] = await Promise.all([page.waitForEvent('download'), teacher(page).getByRole('link', { name: 'ดาวน์โหลดโค้ด (Code.gs)' }).click()]);
