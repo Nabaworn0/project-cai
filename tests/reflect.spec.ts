@@ -68,6 +68,7 @@ test('what is left is marked before sending; a draft survives leaving; sent once
   await stars(page, reflect.self[0]!.id, 4);
   await expect(page_(page).locator(`#r-${reflect.self[0]!.id} button.lit`)).toHaveCount(4);
   await expect(page_(page).locator(`#r-${reflect.self[0]!.id}`).getByRole('radio', { name: '4 ดาว' })).toHaveAttribute('aria-checked', 'true');
+  await expect(page_(page).locator(`#r-${reflect.self[0]!.id} .reflect-means`)).toHaveText(reflect.starsTh[3]!);
   // Sending too soon: the count of what is left, each one marked, the first brought into view.
   await page_(page).getByRole('button', { name: 'ตรวจและส่ง' }).click();
   const total = reflect.self.length + reflect.write.length + reflect.satisfaction.length;

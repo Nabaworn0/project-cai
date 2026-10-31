@@ -71,7 +71,9 @@ export function ReflectScreen({ form, draft, onDraft, onSend, onBack }: Props) {
           <Senior face="neutral" say={form.introTh} />
 
           <h2 class="reflect-part">ส่วนที่ 1 สะท้อนผลการเรียนรู้</h2>
-          <p class="reflect-how">ตอนนี้ฉันทำสิ่งนี้ได้ดีแค่ไหน (1–5 ดาว)</p>
+          <p class="reflect-how">
+            ตอนนี้ฉันทำสิ่งนี้ได้ดีแค่ไหน 1 ดาว = {form.starsTh[0]} ถึง 5 ดาว = {form.starsTh[4]}
+          </p>
           {form.self.map((s) => (
             <div key={s.id} id={`r-${s.id}`} class={`reflect-item${isLeft(s.id) ? ' left' : ''}`}>
               <p id={`l-${s.id}`}>{s.th}</p>
@@ -90,6 +92,7 @@ export function ReflectScreen({ form, draft, onDraft, onSend, onBack }: Props) {
                   </button>
                 ))}
               </div>
+              {a.self[s.id] && <small class="reflect-means">{form.starsTh[a.self[s.id]! - 1]}</small>}
             </div>
           ))}
           {form.write.map((w) => (

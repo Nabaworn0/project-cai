@@ -324,6 +324,8 @@ export const ReflectSchema = z
     /** Said once it is sent. */
     thanksTh: th.max(100),
     self: z.array(z.object({ id, objective: z.number().int().min(1).max(4), th: th.max(100) }).strict()).min(1),
+    /** What 1 to 5 stars mean, from one star up. */
+    starsTh: z.array(th.max(40)).length(5),
     write: z.array(z.object({ id, th: th.max(80), hintTh: th.max(80) }).strict()).min(1),
     groups: z.array(z.object({ id, th: th.max(60) }).strict()).min(1),
     satisfaction: z.array(z.object({ id, group: id, th: th.max(100) }).strict()).min(1),

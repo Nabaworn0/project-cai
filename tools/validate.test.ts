@@ -434,7 +434,7 @@ test('the reflection form: ids apart, one self-check per objective, every item i
   const R = (files: ContentFile[]) => get(files, 'reflect.json');
   let files = real();
   R(files).satisfaction[1].id = R(files).satisfaction[0].id;
-  hasError(files, 'reflect.json: duplicate id "sat-clear"');
+  hasError(files, `reflect.json: duplicate id "${R(real()).satisfaction[0].id}"`);
   files = real();
   R(files).write[0].id = R(files).self[0].id;
   hasError(files, 'reflect.json: duplicate id "self-os"');
@@ -444,7 +444,7 @@ test('the reflection form: ids apart, one self-check per objective, every item i
   hasError(files, 'reflect.json: objective 2 has 0 self-checks');
   files = real();
   R(files).satisfaction[0].group = 'nowhere';
-  hasError(files, 'reflect.json[sat-clear]: unknown group nowhere');
+  hasError(files, `reflect.json[${R(real()).satisfaction[0].id}]: unknown group nowhere`);
   files = real();
   for (const s of R(files).satisfaction) if (s.group === 'design') s.group = 'content';
   hasError(files, 'reflect.json: group design has no items');
