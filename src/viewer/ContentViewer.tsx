@@ -69,7 +69,7 @@ export function ContentViewer() {
     <div class="viewer">
       <header class="v-top">
         <div class="v-title">
-          <h1>เนื้อหาเกม ร้านซ่อมคอม</h1>
+          <h1>เนื้อหาเกม WINSTALL</h1>
           <a href={location.pathname}>← กลับไปที่เกม</a>
         </div>
         <nav class="v-tabs" aria-label="หมวดเนื้อหา">

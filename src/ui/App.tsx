@@ -15,6 +15,7 @@ import type { ShopLayout } from '../game/scenes/ShopScene';
 import { CaseFlow, PLAYABLE } from './case/CaseFlow';
 import { SUMMARY_REVEAL_MS } from './case/SummaryCard';
 import { MenuScreen } from './menu/MenuScreen';
+import { StartScreen } from './start/StartScreen';
 import { LessonScreen } from './lesson/LessonScreen';
 import { ReflectScreen } from './reflect/ReflectScreen';
 import { useSync } from './sync';
@@ -61,6 +62,22 @@ const urlOf = (r: Route) => `${location.pathname}${location.search}${routeHash(r
 const nextCase = (p: Progress) => pathView(p, pathOptions).cases.find((c) => c.status === 'open')?.id;
 /** Leaving before the job starts or after it ends loses nothing; in the middle, ask first. */
 const CALM_STAGES = ['', 'arriving', 'talk', 'intro', 'summary'];
+/** The boot screen is shown once per device. */
+const BOOT_KEY = 'shop.boot.v1';
+const readFlag = (key: string) => {
+  try {
+    return localStorage.getItem(key) === '1';
+  } catch {
+    return false;
+  }
+};
+const writeFlag = (key: string) => {
+  try {
+    localStorage.setItem(key, '1');
+  } catch {
+    // Not kept: the boot screen shows again next visit.
+  }
+};
 const fade = prefersLessMotion();
 const shutterMs = fade ? SHUTTER_MS.fade : SHUTTER_MS.roll;
 
@@ -110,6 +127,10 @@ export function App() {
   const [askLeave, setAskLeave] = useState(false);
   const [replayIntro, setReplayIntro] = useState(false);
   const [muted, setMutedState] = useState(isMuted);
+  /** The start page (docs/start-page-plan.md): before the name form, and again from the menu ("เกี่ยวกับเกม"). */
+  const [started, setStarted] = useState(false);
+  const [about, setAbout] = useState(false);
+  const [bootSeen, setBootSeen] = useState(() => readFlag(BOOT_KEY));
 
   // The shop's scene runs only while the shop is on screen.
   useEffect(() => {
@@ -237,14 +258,38 @@ export function App() {
         </header>
       )}
 
-      {view === 'menu' ? (
+      {view === 'menu' && (about || (!progress.learner && !started)) ? (
+        <StartScreen
+          text={content.start}
+          boot={!about && !bootSeen}
+          onBooted={() => {
+            setBootSeen(true);
+            writeFlag(BOOT_KEY);
+          }}
+          className={sync.cls?.name ?? null}
+          onLeaveClass={sync.leave}
+          muted={muted}
+          onMuted={setMuted}
+          again={about}
+          onStart={() => {
+            setStarted(true);
+            setAbout(false);
+          }}
+        />
+      ) : view === 'menu' ? (
         <MenuScreen
           content={content}
           progress={progress}
           options={pathOptions}
           onLearner={(learner) => update((p) => ({ ...p, learner }))}
-          onReset={() => update(() => EMPTY)}
+          onReset={() => {
+            update(() => EMPTY);
+            setStarted(false);
+          }}
           onEnter={enter}
+          onAbout={() => setAbout(true)}
+          aboutLabel={content.start.aboutLink}
+          roomMismatch={content.start.roomMismatch}
           coins={<CoinChip coins={progress.coins} />}
           className={sync.cls?.name}
         />

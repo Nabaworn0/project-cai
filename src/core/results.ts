@@ -399,7 +399,7 @@ export function resultsText(p: Progress, c: ResultsContent): string {
   const l = p.learner;
   const gain = s.pre && s.post ? s.post.got - s.pre.got : null;
   return [
-    'สรุปผลการเรียน · เกมร้านซ่อมคอม (รายวิชา 21910-2001)',
+    'สรุปผลการเรียน · เกม WINSTALL (รายวิชา 21910-2001)',
     l ? `${l.name} · ${l.room} · เลขที่ ${l.no}` : 'ยังไม่ได้กรอกชื่อ',
     `ทำครบ ${s.steps.got}/${s.steps.max} ขั้น`,
     `แบบทดสอบ: ก่อนเรียน ${fmt(s.pre)} → หลังเรียน ${fmt(s.post)}${gain === null ? '' : ` (${gain >= 0 ? '+' : ''}${gain})`}`,

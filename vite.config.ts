@@ -18,9 +18,9 @@ export default defineConfig({
       filename: 'sw.ts',
       includeAssets: ['favicon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'ร้านซ่อมคอม',
-        short_name: 'ร้านซ่อมคอม',
-        description: 'เกมฝึกติดตั้งระบบปฏิบัติการ Windows (โหมดจำลอง)',
+        name: 'WINSTALL · ภารกิจเด็กฝึกงาน ลง Windows 11',
+        short_name: 'WINSTALL',
+        description: 'เกมฝึกติดตั้ง Windows 11: เด็กฝึกงานที่ร้านซ่อมคอมของพี่ช่าง (โหมดจำลอง)',
         lang: 'th',
         start_url: '.',
         scope: '.',

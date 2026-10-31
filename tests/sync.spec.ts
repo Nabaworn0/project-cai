@@ -3,7 +3,7 @@
 // change (not again when nothing changed), a failure is shown and sent again; without a class link nothing is sent.
 
 import { expect, test, type Page, type Route } from '@playwright/test';
-import { LEARNED, LEARNER } from './helpers';
+import { LEARNED, LEARNER, pastStart } from './helpers';
 
 const TO = 'AKfycbx_abcdefghijklmnopqrstuvwxyz0123456789-XY';
 const CLASS = 'ปวช.1/2';
@@ -27,6 +27,7 @@ test('from the class link: the learner is told, the name is sent, then every cha
   test.skip(info.project.name !== 'desktop', 'sending is the same at every size');
   const s = await sheet(page);
   await page.goto(link);
+  await pastStart(page);
   await expect(menu(page).getByTestId('class-notice')).toContainText(`ผลการเรียนพร้อมชื่อนี้จะส่งให้ครูของห้อง ${CLASS}`);
   await menu(page).getByLabel('ชื่อ-สกุล').fill(LEARNER.name);
   await menu(page).getByLabel('ชั้น').fill(LEARNER.room);

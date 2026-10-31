@@ -2,7 +2,7 @@
 // saved progress, "ผู้เรียนคนใหม่", and the links that skip it (?case=) or open everything (?unlock=all).
 
 import { expect, test, type Page } from '@playwright/test';
-import { expectStage, LEARNED, LEARNER, passMenu, reopenGame, skipOrder, skipTalk, takePreTest } from './helpers';
+import { expectStage, LEARNED, LEARNER, passMenu, pastStart, reopenGame, skipOrder, skipTalk, takePreTest } from './helpers';
 
 /** Set SHOTS=<folder> to keep a picture of the menu per screen size, for checking the layout by eye. */
 const shot = async (page: Page, name: string, project: string) => {
@@ -38,7 +38,7 @@ test('a first visit asks for the name, checks it, then shows the path with case 
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   await page.goto('/');
-  await expect(menu(page)).toBeVisible();
+  await pastStart(page);
   // No customer walks in while the menu is up.
   await expect(page.locator('.case-panel')).toHaveCount(0);
   await fitsScreen(page);
@@ -133,9 +133,13 @@ test('"ผู้เรียนคนใหม่" asks first, then clears the n
 
   await menu(page).getByRole('button', { name: 'ผู้เรียนคนใหม่' }).click();
   await menu(page).getByRole('button', { name: 'ล้างและเริ่มใหม่' }).click();
+  // The next learner meets the start page too.
+  await expect(page.getByTestId('boot').or(page.getByTestId('start'))).toBeVisible();
+  await pastStart(page);
   await expect(menu(page).getByLabel('ชื่อ-สกุล')).toBeVisible();
   await expect(page.getByTestId('coins')).toHaveAttribute('aria-label', 'เหรียญ 0');
   await page.reload();
+  await pastStart(page);
   await expect(menu(page).getByLabel('ชื่อ-สกุล')).toBeVisible();
   expect(JSON.parse((await page.evaluate(() => localStorage.getItem('shop.progress.v2')))!).cases).toEqual({});
 });
@@ -143,6 +147,7 @@ test('"ผู้เรียนคนใหม่" asks first, then clears the n
 test('coins saved by the old version are carried over', async ({ page }) => {
   await seed(page, 'shop.progress.v1', { coins: 25 });
   await page.goto('/');
+  await pastStart(page);
   await expect(page.getByTestId('coins')).toHaveAttribute('aria-label', 'เหรียญ 25');
   await expect(menu(page).getByLabel('ชื่อ-สกุล')).toBeVisible();
 });

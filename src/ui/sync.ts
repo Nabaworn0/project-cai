@@ -36,6 +36,19 @@ function loadClass(): ClassLink | null {
   return fromLink ?? parseClass(read(CLASS_KEY));
 }
 
+/** Forgets the class: nothing is sent from now on, and the address no longer names it (a reload would keep it). */
+function forgetClass(): void {
+  try {
+    localStorage.removeItem(CLASS_KEY);
+  } catch {
+    // Nothing kept to forget.
+  }
+  const u = new URL(location.href);
+  u.searchParams.delete('class');
+  u.searchParams.delete('to');
+  history.replaceState(history.state, '', u);
+}
+
 export interface Sync {
   /** The class results go to, or null (nothing is sent). */
   cls: ClassLink | null;
@@ -44,10 +57,15 @@ export interface Sync {
   /** Something new is waiting to be sent. */
   pending: boolean;
   sendNow: () => void;
+  /** "Not my class": a learner who opened another class's link stops sending to it. */
+  leave: () => void;
 }
 
 export function useSync(progress: Progress): Sync {
-  const [cls] = useState(loadClass);
+  const [cls, setCls] = useState(loadClass);
+  // The online listener and timers read the class now, not the one they were made with.
+  const clsRef = useRef(cls);
+  clsRef.current = cls;
   const [state, setState] = useState<SyncState>(() => parseSync(read(SYNC_KEY)));
   const [sending, setSending] = useState(false);
   // Counts sends, so a failure after a failure still schedules the next try.
@@ -64,6 +82,7 @@ export function useSync(progress: Progress): Sync {
   };
   const send = async () => {
     const p = latest.current;
+    const cls = clsRef.current;
     if (!cls || busy.current || !due(p, cls, stateRef.current)) return;
     busy.current = true;
     setSending(true);
@@ -100,5 +119,10 @@ export function useSync(progress: Progress): Sync {
     return () => removeEventListener('online', online);
   }, []);
 
-  return { cls, state, sending, pending, sendNow: () => void send() };
+  const leave = () => {
+    forgetClass();
+    clsRef.current = null;
+    setCls(null);
+  };
+  return { cls, state, sending, pending, sendNow: () => void send(), leave };
 }

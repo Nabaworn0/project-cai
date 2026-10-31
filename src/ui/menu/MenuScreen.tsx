@@ -20,12 +20,17 @@ interface Props {
   coins: ComponentChildren;
   /** The class the results are sent to (opened from the class's link), if any. */
   className?: string | null;
+  /** Opens the start page again ("เกี่ยวกับเกม"). */
+  onAbout?: () => void;
+  aboutLabel?: string;
+  /** Said under the name form when the class typed is not the link's ({typed}, {class}). */
+  roomMismatch?: string;
 }
 
 const STATUS_TH = { soon: 'เร็วๆ นี้', locked: 'ยังไม่เปิด', open: 'ยังไม่ทำ', done: 'ทำแล้ว' } as const;
 const STATUS_ICON = { soon: '…', locked: '🔒', open: '▶', done: '✓' } as const;
 
-export function MenuScreen({ content, progress, options, onLearner, onReset, onEnter, coins, className = null }: Props) {
+export function MenuScreen({ content, progress, options, onLearner, onReset, onEnter, coins, className = null, onAbout, aboutLabel, roomMismatch }: Props) {
   const view = pathView(progress, options);
   const caseName = (id: string) => {
     const t = content.cases.find((c) => c.id === id);
@@ -55,7 +60,7 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
       scrollKey={progress.learner ? 'path' : 'form'}
     >
       {!progress.learner ? (
-        <LearnerForm onSave={onLearner} className={className} />
+        <LearnerForm onSave={onLearner} className={className} roomMismatch={roomMismatch} />
       ) : (
         <>
           {nextOk && (
@@ -133,6 +138,13 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
             </div>
           )}
           <ResetButton name={progress.learner.name} onReset={onReset} />
+          {onAbout && (
+            <div class="menu-foot">
+              <button class="btn ghost small" type="button" onClick={onAbout}>
+                {aboutLabel}
+              </button>
+            </div>
+          )}
         </>
       )}
     </LearnPage>
@@ -175,7 +187,7 @@ export function LearnPage(props: {
       <div class="menu pixel-box">
         <header class="menu-head">
           <div class="menu-head-text">
-            <p class="menu-shop">ร้านซ่อมคอม</p>
+            <p class="menu-shop">WINSTALL · ร้านซ่อมคอมพี่ช่าง</p>
             <h1 id="menu-title">{props.title}</h1>
             {props.who}
           </div>
@@ -189,7 +201,7 @@ export function LearnPage(props: {
   );
 }
 
-function LearnerForm({ onSave, className }: { onSave: (l: Learner) => void; className: string | null }) {
+function LearnerForm({ onSave, className, roomMismatch }: { onSave: (l: Learner) => void; className: string | null; roomMismatch?: string }) {
   const [l, setL] = useState<Learner>({ name: '', room: '', no: '' });
   const [error, setError] = useState<string | null>(null);
   const field = (k: keyof Learner) => (e: Event) => setL({ ...l, [k]: (e.target as HTMLInputElement).value });
@@ -222,6 +234,11 @@ function LearnerForm({ onSave, className }: { onSave: (l: Learner) => void; clas
           <input value={l.no} onInput={field('no')} inputMode="numeric" maxLength={2} />
         </label>
       </div>
+      {className && roomMismatch && l.room.trim() && !sameRoom(l.room, className) && (
+        <p class="form-note" data-testid="room-mismatch">
+          {roomMismatch.replace('{typed}', l.room.trim()).replace('{class}', className)}
+        </p>
+      )}
       {error && (
         <p class="form-error" role="alert">
           {error}
@@ -235,6 +252,12 @@ function LearnerForm({ onSave, className }: { onSave: (l: Learner) => void; clas
     </form>
   );
 }
+
+/** The class a learner typed and the link's, alike once spaces and dots are ignored (ปวช. 1/2 = ปวช.1/2). */
+export const sameRoom = (a: string, b: string) => {
+  const k = (s: string) => s.replace(/[\s.]/g, '').toLowerCase();
+  return k(a) === k(b);
+};
 
 function ResetButton({ name, onReset }: { name: string; onReset: () => void }) {
   const [asking, setAsking] = useState(false);

@@ -21,6 +21,7 @@ import {
   ProblemsSchema,
   CourseTestSchema,
   ReflectSchema,
+  StartSchema,
   OrderSchema,
   LessonsSchema,
   type Brand,
@@ -34,6 +35,7 @@ import {
   type Problem,
   type CourseTest,
   type Reflect,
+  type Start,
   type Order,
   type Lessons,
 } from './schema';
@@ -69,6 +71,7 @@ export interface ParsedContent {
   order?: Order;
   lessons?: Lessons;
   reflect?: Reflect;
+  start?: Start;
 }
 
 export interface ValidateOptions {
@@ -102,6 +105,7 @@ export function validateContent(files: readonly ContentFile[], opts: ValidateOpt
   const generated = checkCases(parsed, seeds, checkLo, errors, warnings);
   checkTest(parsed.test, errors, warnings);
   checkReflect(parsed.reflect, errors, warnings);
+  if (!parsed.start) errors.push('start.json: missing');
   checkOrder(parsed.order, errors, warnings);
   checkCards(parsed, errors, warnings);
   checkWin11Check(parsed, errors);
@@ -146,9 +150,10 @@ export function parseAll(files: readonly ContentFile[], errors: string[]): Parse
     else if (f.path === 'order.json') out.order = parse(OrderSchema, f);
     else if (f.path === 'lessons.json') out.lessons = parse(LessonsSchema, f);
     else if (f.path === 'reflect.json') out.reflect = parse(ReflectSchema, f);
+    else if (f.path === 'start.json') out.start = parse(StartSchema, f);
     else
       errors.push(
-        `${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, test, order, lessons, reflect, brands/, cases/)`,
+        `${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, test, order, lessons, reflect, start, brands/, cases/)`,
       );
   }
   return out;

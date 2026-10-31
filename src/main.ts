@@ -25,7 +25,7 @@ async function bootGame(): Promise<void> {
 /** ?view=content: the content viewer for people making the game (src/viewer). */
 async function bootViewer(): Promise<void> {
   document.documentElement.classList.add('viewer-page');
-  document.title = 'เนื้อหาเกม · ร้านซ่อมคอม';
+  document.title = 'เนื้อหาเกม · WINSTALL';
   const { ContentViewer } = await import('./viewer/ContentViewer');
   render(h(ContentViewer, {}), document.getElementById('ui')!);
 }
@@ -44,7 +44,7 @@ async function bootStudio(lesson: string): Promise<void> {
 /** ?view=teacher: the teacher's page, a class's results brought together (src/teacher). */
 async function bootTeacher(): Promise<void> {
   document.documentElement.classList.add('teacher-page');
-  document.title = 'หน้าครู · ร้านซ่อมคอม';
+  document.title = 'หน้าครู · WINSTALL';
   const { TeacherScreen } = await import('./teacher/TeacherScreen');
   render(h(TeacherScreen, {}), document.getElementById('ui')!);
   document.getElementById('splash')?.remove();

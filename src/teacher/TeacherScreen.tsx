@@ -179,7 +179,7 @@ export function TeacherScreen() {
   return (
     <main class="teacher" data-testid="teacher">
       <header class="teacher-head">
-        <p>เกมร้านซ่อมคอม · รายวิชา 21910-2001</p>
+        <p>เกม WINSTALL · รายวิชา 21910-2001</p>
         <h1>หน้าครู: รวมผลการเรียน</h1>
       </header>
 

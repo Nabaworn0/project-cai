@@ -47,12 +47,24 @@ export async function takePreTest(page: Page) {
   await expect(page.getByTestId('menu')).toBeVisible();
 }
 
+/** A new learner's way in: the boot screen (first time on this device), then the start page's button, to the
+ *  name form. Does nothing when the menu is already there. */
+export async function pastStart(page: Page) {
+  const boot = page.getByTestId('boot');
+  const start = page.getByTestId('start');
+  const menu = page.getByTestId('menu');
+  // The first load (fonts, then the page) can take a while when every test runs at once.
+  await expect(boot.or(start).or(menu)).toBeVisible({ timeout: 15_000 });
+  if (await boot.isVisible()) await page.keyboard.press('Enter');
+  if (await start.isVisible()) await start.getByRole('button', { name: 'เริ่มฝึกงาน!' }).click();
+  await expect(menu).toBeVisible();
+}
+
 /** The menu the game opens on: give the learner's name the first time, take the pre-test and skip the lessons and
  *  the ordering game if they are still to do, then "ทำต่อ". */
 export async function passMenu(page: Page) {
   const menu = page.getByTestId('menu');
-  // The first load (fonts, then the page) can take a while when every test runs at once.
-  await expect(menu).toBeVisible({ timeout: 15_000 });
+  await pastStart(page);
   if (await menu.getByLabel('ชื่อ-สกุล').isVisible()) {
     await menu.getByLabel('ชื่อ-สกุล').fill(LEARNER.name);
     await menu.getByLabel('ชั้น').fill(LEARNER.room);

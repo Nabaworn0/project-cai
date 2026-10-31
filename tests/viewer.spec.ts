@@ -6,7 +6,7 @@ test.describe('content viewer (?view=content)', () => {
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
     await page.goto('/?view=content');
-    await expect(page.getByRole('heading', { name: 'เนื้อหาเกม ร้านซ่อมคอม' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'เนื้อหาเกม WINSTALL' })).toBeVisible();
     await expect(page.getByTestId('validator-status')).toContainText('ตัวตรวจผ่าน', { timeout: 15_000 });
     await expect(page.locator('#game canvas')).toHaveCount(0); // Phaser never started
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

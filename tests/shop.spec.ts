@@ -116,7 +116,7 @@ test('installable PWA that keeps working offline', async ({ page, context }, inf
     const href = document.querySelector<HTMLLinkElement>('link[rel="manifest"]')!.href;
     return (await fetch(href)).json();
   });
-  expect(manifest.name).toBe('ร้านซ่อมคอม');
+  expect(manifest.short_name).toBe('WINSTALL');
   expect(manifest.icons.some((i: { sizes: string }) => i.sizes === '512x512')).toBe(true);
 
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null || document.body.dataset.offlineReady === 'true', null, { timeout: 15_000 });

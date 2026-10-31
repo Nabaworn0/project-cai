@@ -3,7 +3,7 @@
 // Back in the middle of a case asks first, as "☰ เมนู" does.
 
 import { expect, test, type Page } from '@playwright/test';
-import { ALL_TALKS, expectStage, LEARNED, LEARNER, openShop, PRE_DONE } from './helpers';
+import { ALL_TALKS, expectStage, LEARNED, LEARNER, openShop, pastStart, PRE_DONE } from './helpers';
 
 const menu = (page: Page) => page.getByTestId('menu');
 const at = (page: Page, route: string) => expect(page).toHaveURL(new RegExp(`#/${route}$`));
@@ -52,7 +52,8 @@ test('an address that cannot open yet lands on the learning page, and says so', 
   test.skip(info.project.name !== 'desktop', 'addresses do not depend on the screen size');
   // No name yet: only the learning page, with the name form.
   await page.goto('/#/pre');
-  await expect(menu(page).getByLabel('ชื่อ-สกุล')).toBeVisible({ timeout: 15_000 });
+  await pastStart(page);
+  await expect(menu(page).getByLabel('ชื่อ-สกุล')).toBeVisible();
   await at(page, 'learn');
 
   await seed(page, { learner: LEARNER, pre: PRE_DONE });

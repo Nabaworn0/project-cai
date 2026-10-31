@@ -334,6 +334,36 @@ export const ReflectSchema = z
   .strict();
 export type Reflect = z.infer<typeof ReflectSchema>;
 
+/** The start page before the name form (docs/start-page-plan.md): ChatGPT's wording, each text kept to the length
+ *  the page has room for. {class} and {typed} are filled in by the page. */
+const withSlot = (max: number, ...slots: string[]) =>
+  th.max(max).refine((s) => slots.every((k) => s.includes(`{${k}}`)), { message: `needs ${slots.map((k) => `{${k}}`).join(' and ')}` });
+export const StartSchema = z
+  .object({
+    source: z.string().optional(),
+    tagline: th.max(40),
+    greeting: th.max(90),
+    goalsTitle: th.max(25),
+    /** The four objectives in the learners' words, in order. */
+    goals: z.array(th.max(45)).length(4),
+    stepsTitle: th.max(25),
+    /** The seven steps of the path (the results page is not one), in order. */
+    steps: z.array(th.max(22)).length(7),
+    time: th.max(50),
+    howTo: z.array(th.max(40)).length(3),
+    classBadge: withSlot(40, 'class'),
+    notMyClass: th.max(18),
+    notMyClassDone: th.max(70),
+    roomMismatch: withSlot(80, 'typed', 'class'),
+    start: th.max(12),
+    aboutLink: th.max(15),
+    teacherLink: th.max(15),
+    soundOn: th.max(12),
+    soundOff: th.max(12),
+  })
+  .strict();
+export type Start = z.infer<typeof StartSchema>;
+
 /** The step-ordering game (docs/order-plan.md): rounds of steps to put in order (the colour-hint part), the
  *  boss belt's full sequence (one overview step opened up into another round), and traps that should never be
  *  done. Each step has a hint (said when it is the first one still wrong) and a reason (said in the answer). */

@@ -121,6 +121,7 @@
 }
 .learner-row { display: grid; grid-template-columns: 1fr 6em; gap: 10px; }
 .form-error { margin: 0 0 6px; padding: 6px 10px; background: #ffe3e3; box-shadow: inset 4px 0 0 var(--coral); font-size: 14px; }
+.form-note { margin: 0 0 6px; padding: 6px 10px; background: #fff4c8; box-shadow: inset 4px 0 0 var(--yellow); font-size: 14px; }
 
 .menu-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
 .reset-ask { margin-top: 12px; padding: 8px 10px; background: #fff; box-shadow: inset 4px 0 0 var(--coral), inset 0 0 0 2px var(--navy); }
