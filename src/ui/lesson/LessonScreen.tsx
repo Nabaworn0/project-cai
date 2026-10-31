@@ -71,7 +71,6 @@ export function LessonScreen({ lesson, subtitles, saved, onSave, onBack }: Props
           onTimeUpdate={onTime}
           onEnded={() => setWatched(true)}
         />
-        <p class="lesson-ai">ภาพสร้างด้วย AI (ChatGPT) · เสียงพากย์สร้างด้วย AI (Microsoft Edge TTS) · มีซับไทยในคลิป</p>
 
         {!watched ? (
           <p class="lesson-hint" role="status">

@@ -34,14 +34,13 @@ async function open(page: Page, progress: Record<string, unknown> = {}) {
 /** The video played to its end (the browser under test may not decode it, so the end is announced by hand). */
 const watchToEnd = (page: Page) => video(page).evaluate((v) => v.dispatchEvent(new Event('ended')));
 
-test('the lesson is its video: served from the game, with the AI note; the questions wait until it has been watched', async ({ page, request }, info) => {
+test('the lesson is its video: served from the game (its end card names the AI used); the questions wait until it has been watched', async ({ page, request }, info) => {
   await open(page);
   await expect(page).toHaveURL(/#\/lesson-os$/);
   await expect(video(page)).toHaveAttribute('src', /\/videos\/lesson-os\.mp4$/);
   await expect(video(page)).toHaveAttribute('controls', '');
   const res = await request.get((await video(page).getAttribute('src'))!);
   expect([res.status(), res.headers()['content-type']]).toEqual([200, 'video/mp4']);
-  await expect(lesson(page)).toContainText('ภาพสร้างด้วย AI (ChatGPT) · เสียงพากย์สร้างด้วย AI (Microsoft Edge TTS)');
   await expect(lesson(page).getByTestId('lesson-q')).toHaveCount(0);
   await expect(lesson(page).locator('.lesson-hint')).toContainText('ดูคลิปให้จบ');
   // The whole video fits on the screen at every size, with no sideways scroll.
