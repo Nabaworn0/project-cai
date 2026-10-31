@@ -140,9 +140,9 @@ test('the pre-test: one question at a time, back to change, a check before sendi
   await expect(step(page, 'pre')).toContainText('6/10');
   // Taken once: the card cannot be opened again.
   await expect(step(page, 'pre').locator('.path-row')).toBeDisabled();
-  // Next comes the ordering game (tests/order.spec.ts), then the shop.
+  // Next come the lessons (tests/lesson.spec.ts) and the ordering game (tests/order.spec.ts), then the shop.
   await expect(step(page, 'order')).toHaveAttribute('data-status', 'open');
-  await expect(menu(page).getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' })).toBeVisible();
+  await expect(menu(page).getByRole('button', { name: 'ทำต่อ: บทเรียน: ระบบปฏิบัติการคืออะไร' })).toBeVisible();
   await fits(page);
   expect(errors).toEqual([]);
 });

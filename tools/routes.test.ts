@@ -6,14 +6,15 @@ import { EMPTY, markDone, pathView, recordCase, recordQuiz, STEPS, type PathOpti
 import { allowedRoute, parseRoute, ROUTES, routeHash } from '../src/core/routes';
 
 const CASES = ['c1', 'c2'];
-const BUILT: PathOptions = { built: new Set(['pre', 'order', 'cases', 'post']), caseIds: CASES };
+const BUILT: PathOptions = { built: new Set(['pre', 'lesson-os', 'lesson-types', 'order', 'cases', 'post']), caseIds: CASES };
 const quiz: QuizResult = { score: 5, total: 10, answers: {}, at: 1, seconds: 60 };
 const named: Progress = { ...EMPTY, learner: { name: 'สมชาย ใจดี', room: 'ปวช.1/2', no: '7' } };
 const allowed = (p: Progress, o: PathOptions = BUILT) => ROUTES.filter((r) => allowedRoute(r, !!p.learner, pathView(p, o)) === r);
 
 test('addresses: each page by its name, anything else is the learning page', () => {
   for (const r of ROUTES) assert.equal(parseRoute(routeHash(r)), r);
-  for (const h of ['', '#', '#/', '#/nope', '#/shop/x', '#shop', '#/SHOP', '#/learn?x']) assert.equal(parseRoute(h), 'learn', h);
+  for (const h of ['', '#', '#/', '#/nope', '#/shop/x', '#shop', '#/SHOP', '#/learn?x', '#/lesson_os', '#/lesson-'])
+    assert.equal(parseRoute(h), 'learn', h);
 });
 
 test('before a name is given only the learning page opens, even with everything unlocked', () => {
@@ -21,15 +22,18 @@ test('before a name is given only the learning page opens, even with everything 
   assert.deepEqual(allowed(EMPTY, { ...BUILT, unlockAll: true }), ['learn']);
 });
 
-test('a page opens when its card could be tapped: the pre-test first, then the ordering, then the shop, then the post-test', () => {
+test('a page opens when its card could be tapped: the pre-test first, then the lessons and the ordering, then the shop, then the post-test', () => {
   assert.deepEqual(allowed(named), ['learn', 'pre']);
   let p = recordQuiz(named, 'pre', quiz);
-  assert.deepEqual(allowed(p), ['learn', 'order'], 'the pre-test is taken once');
-  p = markDone(p, 'order');
-  assert.deepEqual(allowed(p), ['learn', 'order', 'shop']);
+  const learning = ['lesson-os', 'lesson-types', 'order'];
+  assert.deepEqual(allowed(p), ['learn', ...learning], 'the pre-test is taken once');
+  p = markDone(markDone(p, 'order'), 'lesson-os');
+  assert.deepEqual(allowed(p), ['learn', ...learning], 'the shop waits for both lessons');
+  p = markDone(p, 'lesson-types');
+  assert.deepEqual(allowed(p), ['learn', ...learning, 'shop']);
   p = CASES.reduce((acc, c) => recordCase(acc, c, 2), p);
-  assert.deepEqual(allowed(p), ['learn', 'post', 'order', 'shop']);
-  assert.deepEqual(allowed(recordQuiz(p, 'post', quiz)), ['learn', 'order', 'shop']);
+  assert.deepEqual(allowed(p), ['learn', 'post', ...learning, 'shop']);
+  assert.deepEqual(allowed(recordQuiz(p, 'post', quiz)), ['learn', ...learning, 'shop']);
 });
 
 test('?unlock=all opens every page; a step not built yet stays shut', () => {

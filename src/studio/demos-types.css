@@ -1,0 +1,154 @@
+/* Clip 2's demonstrations (demos-types.tsx) on the 620 x 350 screen: devices on a calm wall, their screens laid in. */
+.t-room { background: linear-gradient(#e9e2d4 0 78%, #d4c6ac 78%); color: #1b2a4a; }
+.t-row { display: flex; align-items: flex-end; justify-content: space-evenly; padding: 50px 14px 34px; }
+.t-fill { position: absolute; inset: 0; }
+.t-slot { display: grid; justify-items: center; gap: 8px; visibility: hidden; }
+.t-slot.on { visibility: visible; }
+.t-label { padding: 2px 10px; font-size: 15px; font-weight: 700; color: #fff4e0; background: #1b2a4a; white-space: nowrap; }
+.t-label.big { font-size: 20px; padding: 4px 16px; }
+.t-one { position: absolute; inset: 0; display: grid; justify-items: center; align-content: center; gap: 10px; }
+
+/* A real-size screen shrunk into a device. */
+.t-mini { position: relative; overflow: hidden; }
+.t-mini-in { position: absolute; left: 0; top: 0; width: 620px; transform-origin: 0 0; }
+.t-screen { position: absolute; inset: 0; overflow: hidden; }
+.t-screen .w11-desktop { position: absolute; inset: 0; font-size: 15px; }
+.t-black { background: #000; }
+
+/* Devices drawn in CSS around the screens; the phone, tablet, tower and rack are ChatGPT's. */
+.t-lid { padding: 7px; background: #1b2a4a; border-radius: 6px 6px 0 0; box-shadow: inset 0 0 0 2px #2c3e66; }
+.t-laptop .t-lid { border-radius: 8px 8px 2px 2px; }
+.t-base { height: 10px; margin: 0 -14px; background: linear-gradient(#9aa5b8, #5f6b80); border-radius: 0 0 8px 8px; box-shadow: 0 2px 0 #1b2a4a; }
+.t-monitor { display: grid; justify-items: center; }
+.t-monitor .t-lid { border-radius: 6px; }
+.t-stand { width: 30%; height: 18px; background: linear-gradient(90deg, #2c3e66, #4a5f8f); clip-path: polygon(35% 0, 65% 0, 100% 100%, 0 100%); }
+.t-desktop-pc { display: flex; align-items: flex-end; gap: 10px; }
+.t-tower img, .t-tower .d-tower { height: 150px; }
+.t-tower .d-tower { width: 86px; }
+.t-tower-sm img { height: 84px; }
+.t-tower-md img { height: 118px; }
+.t-rack { image-rendering: pixelated; }
+.t-phone, .t-tablet { position: relative; }
+.t-phone img, .t-tablet img { display: block; width: 100%; image-rendering: pixelated; }
+.t-glass { position: absolute; overflow: hidden; }
+.t-phone .t-glass { left: 9.5%; right: 9.5%; top: 6.5%; bottom: 6.5%; border-radius: 4px; }
+.t-tablet .t-glass { left: 7%; right: 7.8%; top: 10.8%; bottom: 21%; border-radius: 3px; }
+
+/* The look of the other systems. */
+.t-mac { background: linear-gradient(135deg, #3a2a6b, #c0567a 55%, #f0a35e); }
+.t-mac-bar { display: flex; gap: 18px; padding: 4px 14px; font-size: 13px; color: #1b1b1b; background: rgba(255, 255, 255, 0.7); }
+.t-mac-bar .t-right { margin-left: auto; }
+.t-mac-dock {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 10px; padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.35); border-radius: 16px;
+}
+.t-mac-dock i { width: 40px; height: 40px; border-radius: 10px; }
+.t-linux { background: radial-gradient(circle at 70% 60%, #e95420, #77216f 70%, #2c001e); }
+.t-linux-bar { display: flex; justify-content: space-between; padding: 4px 12px; font-size: 13px; color: #fff; background: #1d1d1d; }
+.t-linux-dock { position: absolute; left: 0; top: 26px; bottom: 0; display: grid; align-content: start; gap: 10px; width: 62px; padding: 12px 10px; background: rgba(0, 0, 0, 0.55); }
+.t-linux-dock i { width: 42px; height: 42px; border-radius: 10px; }
+.t-linux-dock .t-grid { margin-top: auto; background: repeating-linear-gradient(90deg, #fff 0 6px, transparent 6px 14px); opacity: 0.6; }
+.t-winserver { background: #12355f; }
+.t-sm { left: 16px; top: 14px; width: 588px; height: 320px; }
+.t-sm .d-win-bar { background: #2c3e66; color: #fff; }
+.t-sm .d-ctl i { color: #fff; }
+.t-sm-body { display: flex; flex: 1; font-family: 'Noto Sans Thai', var(--f-win); }
+.t-sm-side { display: grid; align-content: start; gap: 2px; width: 130px; padding: 8px 0; color: #fff; background: #1b2a4a; font-size: 14px; }
+.t-sm-side span { padding: 6px 14px; }
+.t-sm-side .on { background: #2b579a; }
+.t-sm-main { flex: 1; display: grid; align-content: start; gap: 12px; padding: 14px; font-size: 18px; }
+.t-sm-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.t-sm-tiles div { display: grid; gap: 4px; padding: 10px 12px; color: #fff; background: #2b579a; box-shadow: inset 4px 0 #7bd65a; font-size: 15px; }
+.t-sm-tiles small { font-size: 13px; color: #c8f0d4; }
+.t-term { position: absolute; inset: 0; margin: 0; padding: 18px; font-family: Consolas, 'Noto Sans Thai', monospace; font-size: 19px; line-height: 1.6; color: #d8dee8; background: #0c0c0c; white-space: pre-wrap; }
+.t-term .cmd { color: #8ff0e4; }
+.t-term .ok { color: #7bd65a; }
+
+/* Phone screens. */
+.t-phone-ui { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 6%; padding: 4% 7%; font-size: 7px; color: #fff; }
+.t-android { background: linear-gradient(#1f8f86, #0f4a9e); }
+.t-ios { background: linear-gradient(160deg, #5aa8e6, #7a4fa3); }
+.t-status { display: flex; justify-content: space-between; font-weight: 700; }
+.t-search { height: 7%; background: rgba(255, 255, 255, 0.85); border-radius: 20px; }
+.t-apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10% 14%; }
+.t-apps i, .t-dock i { aspect-ratio: 1; }
+.t-android .t-apps i { border-radius: 50%; }
+.t-ios .t-apps i, .t-ios .t-dock i { border-radius: 26%; }
+.t-dock { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14%; margin-top: auto; padding: 6%; background: rgba(255, 255, 255, 0.3); border-radius: 12px; }
+.t-nav { display: flex; justify-content: space-around; margin-top: auto; font-size: 9px; }
+.t-home { width: 40%; height: 3px; margin: 0 auto; background: #fff; border-radius: 3px; }
+.t-tablet .t-phone-ui { gap: 4%; padding: 3% 5%; }
+.t-tablet .t-apps { grid-template-columns: repeat(6, 1fr); gap: 8% 7%; }
+.t-tablet .t-search { height: 9%; width: 60%; align-self: center; }
+
+/* The three kinds. */
+.t-three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 18px 14px; }
+.t-kind { display: grid; grid-template-rows: auto 1fr auto; justify-items: center; gap: 8px; min-width: 0; padding: 10px 6px; background: #fff4e0; box-shadow: 0 0 0 3px #5f6b80; visibility: hidden; }
+.t-kind.on { visibility: visible; }
+.t-kind.now { box-shadow: 0 0 0 4px #ffd23f, 0 0 20px #ffd23f; }
+.t-kind > b { padding: 3px 10px; font-size: 16px; color: #fff; white-space: nowrap; }
+.t-pc > b, .t-bin.t-pc span, .t-verdict.t-pc { background: #2b65c8; }
+.t-mob > b, .t-bin.t-mob span { background: #1f8f86; }
+.t-srv > b, .t-bin.t-srv span, .t-verdict.t-srv { background: #7a4fa3; }
+.t-kind-art { display: flex; align-items: flex-end; justify-content: center; gap: 8px; }
+.t-ex { font-size: 12.5px; font-weight: 700; text-align: center; visibility: hidden; }
+.t-ex.on { visibility: visible; }
+
+/* The office network. */
+.t-net-server { position: absolute; left: 90px; top: 50px; display: grid; justify-items: center; gap: 6px; z-index: 2; }
+.t-net-office { position: absolute; left: 450px; top: 30px; display: grid; gap: 26px; z-index: 2; }
+.t-net-pc { height: 51px; }
+.t-net-pc { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; visibility: hidden; }
+.t-net-pc.on { visibility: visible; }
+.t-net-pc img { width: 64px; }
+.t-net-lines i { position: absolute; height: 4px; background: #5f6b80; transform-origin: 0 50%; }
+.t-packet {
+  position: absolute; z-index: 3; display: flex; align-items: center; gap: 4px; transform: translate(-50%, -50%); padding: 3px 8px;
+  font-size: 14px; font-weight: 700; background: #ffd23f; box-shadow: 0 0 0 2px #1b2a4a; white-space: nowrap;
+}
+.t-console { display: grid; justify-items: center; gap: 10px; }
+.t-console .t-mini { box-shadow: 0 0 0 8px #1b2a4a; }
+
+/* Linux both ways. */
+.t-both { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: end; padding: 54px 10px 30px; }
+.t-mid { position: relative; align-self: center; display: grid; justify-items: center; }
+.t-linux-name { padding: 6px 14px; font-size: 22px; font-weight: 700; color: #fff; background: #e95420; box-shadow: 0 0 0 3px #77216f; }
+.t-arrow { position: absolute; top: 50%; width: 60px; height: 4px; background: #1b2a4a; visibility: hidden; }
+.t-arrow.on { visibility: visible; }
+.t-arrow.left { right: 100%; }
+.t-arrow.right { left: 100%; }
+.t-rack-term { display: flex; align-items: flex-end; gap: 8px; }
+.t-rack-term .t-mini { box-shadow: 0 0 0 5px #1b2a4a; }
+.t-fill.t-boxed { inset: 56px 18px 18px; padding: 10px 0 12px; border: 4px dashed #1f8f86; background: rgba(31, 143, 134, 0.08); }
+
+/* Licences. */
+.t-code { width: 420px; overflow: hidden; color: #d8dee8; background: #1e1e2e; border-radius: 8px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35); font-family: Consolas, monospace; font-size: 15px; }
+.t-licence .t-code { width: 250px; font-size: 11px; }
+.t-code-bar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-family: 'Noto Sans Thai', sans-serif; font-size: 13px; background: #2c3e66; }
+.t-licence .t-code-bar { font-size: 11px; }
+.t-code ol { margin: 0; padding: 10px 10px 12px 40px; line-height: 1.7; }
+.t-code li::marker { color: #5f6b80; }
+.t-code i { font-style: normal; color: #b07cd6; }
+.t-code .t-edit { background: rgba(255, 210, 63, 0.18); color: #ffd23f; white-space: pre; }
+.t-caret { display: inline-block; width: 2px; height: 1em; vertical-align: -2px; background: #ffd23f; }
+.t-code-locked { display: grid; justify-items: center; gap: 8px; padding: 22px 10px; font-family: 'Noto Sans Thai', sans-serif; font-size: 13px; color: #9aa5b8; }
+.t-code-locked img { width: 44px; image-rendering: pixelated; }
+.t-h { padding: 3px 10px; font-size: 15px; color: #fff; }
+.t-h.open, .t-bin.open span { background: #2e8b57; }
+.t-h.shut, .t-bin.shut span { background: #8a5a33; }
+
+/* Two ways of sorting. */
+.t-ways { display: grid; grid-template-columns: 1.45fr auto 1fr; align-items: center; gap: 10px; padding: 16px; }
+.t-way { display: grid; gap: 10px; }
+.t-way > b { font-size: 16px; text-align: center; }
+.t-bins { display: flex; gap: 8px; }
+.t-bin { display: grid; align-content: start; justify-items: center; gap: 4px; flex: 1; min-height: 180px; padding-bottom: 8px; background: #fff4e0; box-shadow: 0 0 0 3px #5f6b80; }
+.t-bin span { width: 100%; padding: 4px 2px; font-size: 13px; font-weight: 700; text-align: center; color: #fff; }
+.t-bin small { padding: 2px 5px; font-size: 11.5px; white-space: nowrap; font-weight: 700; background: #ffd23f; box-shadow: 0 0 0 2px #1b2a4a; }
+.t-neq { font-size: 48px; font-weight: 700; }
+
+/* Look-alikes. */
+.t-alike { display: flex; justify-content: space-evenly; align-items: flex-end; padding: 50px 10px 24px; }
+.t-alike-pc { display: grid; justify-items: center; gap: 8px; }
+.t-alike-set { display: flex; align-items: flex-end; gap: 10px; }
+.t-verdict { padding: 3px 12px; font-size: 15px; color: #fff; box-shadow: 0 0 0 3px #ffd23f; }

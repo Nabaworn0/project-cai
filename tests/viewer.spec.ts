@@ -33,7 +33,7 @@ test.describe('content viewer (?view=content)', () => {
     await expect(os.getByRole('heading')).toHaveText('ระบบปฏิบัติการคืออะไร (วัตถุประสงค์ 1 · 22 ประโยค)');
     await expect(os.locator('li')).toHaveCount(22);
     // Subtitles write the English words as on screen; every line has its recording.
-    await expect(page.getByTestId('lesson-lesson-types')).toContainText('ตัวอย่างแรกคือWindows 11');
+    await expect(page.getByTestId('lesson-lesson-types')).toContainText('ตัวอย่างแรกคือ Windows 11');
     await expect(page.locator('[data-testid^="lesson-"] .v-badge.warn')).toHaveCount(0);
     await expect(os.locator('li').first()).toContainText(/เสียง \d+\.\d วิ/);
     await expect(os).toContainText('คำถาม: ระบบปฏิบัติการต่างจากโปรแกรมประยุกต์อย่างไร?');

@@ -1,27 +1,23 @@
-// npm run test:unit — the lesson cartoons' clock (src/core/lesson.ts) and their saved progress (src/core/path.ts).
+// npm run test:unit — the lesson cartoons' rules (src/core/lesson.ts) and their saved progress (src/core/path.ts).
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Lesson } from '../src/content/schema';
 import {
-  answer,
+  allSolved,
+  answerQuestion,
   BLINK_MS,
+  BOARD_FITS,
   blinking,
-  finished,
+  boardText,
   firstAnswers,
   MOUTH_MS,
   mouthAt,
+  noAnswers,
   readMs,
-  saying,
-  scenes,
-  seek,
-  startClip,
-  step,
+  solved,
   subtitle,
-  tryAgain,
   utterance,
-  watchAgain,
-  type ClipState,
   type VoiceIndex,
 } from '../src/core/lesson';
 import { EMPTY, parseProgress, recordLesson } from '../src/core/path';
@@ -50,12 +46,16 @@ const VOICE: VoiceIndex = {
     ]),
   ),
 };
-const run = (s: ClipState, ms: number, speed = 1) => step(LESSON, s, ms, VOICE, speed);
 
 test("subtitles: the spelt-out English words as on screen, longer ones first; a line's own text wins", () => {
   const words = { วินโดวส์: 'Windows', 'วินโดวส์ สิบเอ็ด': 'Windows 11', โอเอส: 'OS', ไอโอเอส: 'iOS' };
-  assert.equal(subtitle({ say: 'ตัวอย่างคือวินโดวส์ สิบเอ็ด และวินโดวส์' }, words), 'ตัวอย่างคือWindows 11 และWindows');
-  assert.equal(subtitle({ say: 'แอนดรอยด์ และไอโอเอส ต่างจากโอเอสอื่น' }, words), 'แอนดรอยด์ และiOS ต่างจากOSอื่น');
+  assert.equal(subtitle({ say: 'ตัวอย่างคือวินโดวส์ สิบเอ็ด และวินโดวส์' }, words), 'ตัวอย่างคือ Windows 11 และ Windows');
+  assert.equal(
+    subtitle({ say: 'แอนดรอยด์ และไอโอเอส ต่างจากโอเอสอื่น' }, words),
+    'แอนดรอยด์ และ iOS ต่างจาก OS อื่น',
+    'a space only where it touches Thai',
+  );
+  assert.equal(subtitle({ say: 'โอเอส (โอเอส)' }, words), 'OS (OS)');
   assert.equal(subtitle({ say: 'วินโดวส์', th: 'เขียนเอง' }, words), 'เขียนเอง');
   assert.equal(subtitle({ say: 'ไม่มีคำ (a+b)' }, {}), 'ไม่มีคำ (a+b)');
   assert.equal(subtitle({ say: 'a.b axb' }, { 'a.b': 'X' }), 'X axb', 'a dot in a word is a dot, not any letter');
@@ -75,81 +75,41 @@ test("a recorded line takes its recording's time; without one, its reading time,
   assert.equal(utterance('สอง', null).file, null);
 });
 
-test('lines one after another, at the speed picked; the clip starts where it was left', () => {
-  let s = startClip(LESSON);
-  assert.deepEqual([s.phase, s.at, s.t], ['line', 0, 0]);
-  s = run(s, 600);
-  assert.deepEqual([s.phase, s.at, s.t], ['line', 0, 600]);
-  s = run(s, 399);
-  assert.deepEqual([s.phase, s.at, s.t], ['line', 0, 999], 'still saying it 1 ms before its end');
-  s = run(s, 1);
-  assert.deepEqual([s.phase, s.at, s.t], ['line', 1, 0], 'the next line once the first is said');
-  s = run(s, 800, 1.25);
-  assert.equal(s.t, 1000, '0.8 s at 1.25x is 1 s of the line');
-  assert.equal(startClip(LESSON, 2).at, 2);
-  assert.equal(startClip(LESSON, 99).at, 3, 'a saved place past the end is the last line');
-  assert.equal(startClip(LESSON, -5).at, 0);
-  assert.deepEqual(startClip(LESSON).answers, [[], []]);
+test('the review questions: every answer kept in order, the first for the teacher; none taken once answered right', () => {
+  let a = noAnswers(LESSON);
+  assert.deepEqual(a, [[], []]);
+  assert.deepEqual(firstAnswers(a), [-1, -1]);
+  a = answerQuestion(LESSON, a, 0, 2);
+  assert.equal(solved(LESSON, a, 0), false, 'a wrong answer');
+  a = answerQuestion(LESSON, a, 0, 1);
+  assert.equal(solved(LESSON, a, 0), true, 'right at the second try');
+  assert.equal(answerQuestion(LESSON, a, 0, 0), a, 'answered right: no more answers');
+  assert.equal(allSolved(LESSON, a), false, 'the second still open');
+  a = answerQuestion(LESSON, a, 1, 0);
+  assert.deepEqual(a, [[2, 1], [0]]);
+  assert.deepEqual(firstAnswers(a), [2, 0], 'the first answer is what the teacher sees');
+  assert.equal(allSolved(LESSON, a), true);
 });
 
-test('a question after its line: nothing moves until it is answered; wrong says why, then watch again or try again', () => {
-  let s = run(run(startClip(LESSON), 1000), 2000);
-  assert.deepEqual([s.phase, s.q, s.at], ['ask', 0, 1]);
-  assert.equal(saying(LESSON, s, VOICE), null);
-  assert.deepEqual(run(s, 5000), s, 'waiting for the learner');
-  s = answer(LESSON, s, 2);
-  assert.deepEqual([s.phase, s.right], ['feedback', false]);
-  assert.equal(saying(LESSON, s, VOICE)!.say, 'ผิด 1');
-  s = run(s, 500);
-  assert.equal(s.phase, 'retry');
-  assert.deepEqual(run(s, 5000), s, 'waiting for the learner');
-  // Watch again: back to the line the question is about, then asked again after line 2.
-  const again = watchAgain(LESSON, s);
-  assert.deepEqual([again.phase, again.at, again.t], ['line', 0, 0]);
-  assert.equal(run(run(again, 1000), 2000).phase, 'ask', 'still unsolved, so asked again');
-  // Try again: right this time; why it is right, then on to line 3.
-  s = tryAgain(s);
-  assert.equal(s.phase, 'ask');
-  s = answer(LESSON, s, 1);
-  assert.deepEqual([s.phase, s.right], ['feedback', true]);
-  assert.equal(saying(LESSON, s, VOICE)!.say, 'ถูก 1');
-  s = run(s, 500);
-  assert.deepEqual([s.phase, s.at, s.q], ['line', 2, null]);
-  assert.deepEqual(s.answers, [[2, 1], []]);
-  assert.deepEqual(firstAnswers(s), [2, -1], 'the first answer is what the teacher sees');
-});
-
-test('answering, trying again and watching again only work when they should', () => {
-  const s = startClip(LESSON);
-  assert.equal(answer(LESSON, s, 0), s, 'no question being asked');
-  assert.equal(tryAgain(s), s);
-  assert.equal(watchAgain(LESSON, s), s);
-});
-
-test('finished at the end with every question answered right; skipping past a question does not count it', () => {
-  let s = run(run(startClip(LESSON), 1000), 2000);
-  s = run(answer(LESSON, s, 1), 500);
-  s = run(run(s, 1000), 1000);
-  assert.deepEqual([s.phase, s.q], ['ask', 1]);
-  s = run(answer(LESSON, s, 0), 500);
-  assert.equal(s.phase, 'end');
-  assert.equal(finished(LESSON, s), true);
-  assert.deepEqual(firstAnswers(s), [1, 0]);
-
-  // Jump to the last line: question 1 never asked.
-  let skip = seek(LESSON, startClip(LESSON), 3);
-  skip = run(skip, 1000);
-  skip = run(answer(LESSON, skip, 0), 500);
-  assert.equal(skip.phase, 'end');
-  assert.equal(finished(LESSON, skip), false);
-  // A question answered right is not asked again when its line is watched again.
-  const back = run(seek(LESSON, s, 1), 2000);
-  assert.deepEqual([back.phase, back.at], ['line', 2]);
-  assert.deepEqual(seek(LESSON, s, 99).at, 3);
-});
-
-test('scenes start where the set changes', () => {
-  assert.deepEqual(scenes(LESSON), [0, 2]);
+test('the board: a list too long to show at once shows one item at a time through the line; a short flow whole', () => {
+  const item = (n: string) => `${n} (a fairly long English name)`;
+  const list = [item('A'), item('B'), item('C'), item('D')].join(' → ');
+  assert.ok(list.length > BOARD_FITS);
+  assert.deepEqual(
+    [0, 999, 1000, 2999, 3000, 3999, 4000, 9999].map((t) => boardText(list, t, 4000)),
+    ['A', 'A', 'B', 'C', 'D', 'D', 'D', 'D'].map(item),
+  );
+  const flow = 'โปรแกรม → OS → Driver → เครื่องพิมพ์';
+  assert.equal(boardText(flow, 3000, 4000), flow, 'a short flow is read whole');
+  const exactly = `${'x'.repeat(BOARD_FITS - 8)} → b → c`;
+  assert.equal(exactly.length, BOARD_FITS);
+  assert.equal(boardText(exactly, 3000, 4000), exactly, 'as long as fits: whole');
+  assert.equal(boardText(`${exactly}x`, 3000, 4000), 'cx', 'one letter more: one at a time');
+  assert.equal(
+    boardText('Power On → OS Starts and a long while more to make it longer than sixty letters', 3000, 4000).includes('→'),
+    true,
+    'two parts are one idea',
+  );
 });
 
 test('the mouth: shut between words, small and wide in turn during one', () => {

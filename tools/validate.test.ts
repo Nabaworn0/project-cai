@@ -137,6 +137,12 @@ test('the lessons: one per lesson step and its objective; questions answerable a
   L(files).lessons[0].questions[1].after = 21;
   hasError(files, 'lessons.json[lesson-os]: two questions after line "21"');
   files = real();
+  delete L(files).lessons[0].lines[3].demo;
+  assert.ok(run(files).warnings.some((w) => w.includes('lessons.json[lesson-os]: ยังไม่มีการสาธิตบนจอในคลิป 1 ประโยค')));
+  files = real();
+  L(files).lessons[0].lines[0].demo = 'magic';
+  hasError(files, 'lessons.json: lessons.0.lines.0.demo');
+  files = real();
   L(files).lessons[0].lines[0].pose = 'dance';
   hasError(files, 'lessons.json: lessons.0.lines.0.pose');
   hasError(

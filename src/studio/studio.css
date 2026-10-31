@@ -1,0 +1,51 @@
+/* The lesson video studio (Studio.tsx): exactly 1280 x 720, the size of the video. Art pixels are drawn 5 screen
+   pixels big (the senior's 112 x 84 frame is 560 x 420). The classroom corner (art-prompts 6.2) is placed so its
+   wall TV's dark screen is 697 x 350 from (292, 70): the demo screen sits in its middle. The intern stands on its
+   left, the senior on its right. */
+html.studio-page, html.studio-page body { margin: 0; width: 1280px; height: 720px; overflow: hidden; background: #000; }
+.studio {
+  position: relative; width: 1280px; height: 720px; overflow: hidden;
+  background: url('../assets/scenes/lesson-room.jpg') -104px -41px / 1489px 838px no-repeat #1b2a4a;
+  image-rendering: pixelated; font-family: 'Noto Sans Thai', sans-serif;
+}
+.studio img { image-rendering: pixelated; }
+
+/* The computer screen in the middle of the scene: what the line is about. */
+.studio-screen {
+  position: absolute; left: 330px; top: 70px; width: 620px; height: 350px; display: grid; place-items: center; padding: 28px; overflow: hidden;
+  background: #1b2a4a; color: #fff4e0;
+}
+.studio-screen:has(.d-fill) { padding: 0; }
+/* The line's words above the screen. */
+.studio-caption {
+  position: absolute; left: 50%; top: 14px; transform: translateX(-50%); max-width: 1000px; margin: 0; padding: 6px 18px;
+  font-family: 'Chakra Petch', 'Noto Sans Thai', sans-serif; font-weight: 700; font-size: 26px; color: #1b2a4a; white-space: nowrap;
+  background: #ffd23f; box-shadow: 0 0 0 4px #1b2a4a;
+}
+.studio-board { margin: 0; text-align: center; font-family: 'Chakra Petch', 'Noto Sans Thai', sans-serif; font-weight: 700; font-size: 40px; line-height: 1.25; }
+.studio-quiz { width: 100%; }
+.studio-q { margin: 0 0 14px; font-weight: 700; font-size: 28px; }
+.studio-quiz ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.studio-quiz li { padding: 8px 14px; font-size: 22px; line-height: 1.35; background: #2c3e66; box-shadow: inset 0 0 0 3px #5f6b80; }
+.studio-quiz li.right { background: #2e8b57; box-shadow: inset 0 0 0 3px #c8f0d4; }
+.studio-count { margin: 14px 0 0; text-align: right; font-size: 22px; color: #ffd23f; }
+.studio-count b { display: inline-grid; place-items: center; width: 44px; height: 44px; margin-left: 8px; background: #ffd23f; color: #1b2a4a; font-size: 28px; }
+
+/* The intern is 32 x 50 drawn a quarter bigger (as in the game), the senior on the right. */
+.studio-intern { position: absolute; left: 60px; bottom: 0; width: 200px; }
+.studio-senior { position: absolute; left: 780px; bottom: 0; width: 560px; height: 420px; }
+.studio-senior img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.studio-senior.bob { transform: translateY(-5px); }
+
+.studio-sub {
+  position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); width: max-content; max-width: 1040px; margin: 0; padding: 8px 20px;
+  text-align: center; font-size: 30px; line-height: 1.4; color: #fff; background: rgba(0, 0, 0, 0.72);
+}
+
+.studio-card {
+  position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; gap: 12px; text-align: center;
+  background: rgba(27, 42, 74, 0.88); color: #fff4e0;
+}
+.studio-card h1 { margin: 0; font-family: 'Chakra Petch', 'Noto Sans Thai', sans-serif; font-size: 64px; color: #ffd23f; }
+.studio-card p { margin: 0; font-size: 26px; }
+.studio-shop { color: #2ec4b6; }

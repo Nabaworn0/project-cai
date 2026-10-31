@@ -1,0 +1,29 @@
+/* A lesson (LessonScreen.tsx): the video as wide as the board allows, short enough on a phone on its side to leave
+   room to scroll on to the questions; the review questions under it. */
+.lesson { display: grid; gap: 10px; }
+.lesson-video {
+  display: block; width: min(100%, calc((100dvh - 200px) * 16 / 9)); min-width: min(100%, 300px); margin: 0 auto; aspect-ratio: 16 / 9;
+  background: var(--navy); box-shadow: 0 0 0 3px var(--navy);
+}
+.menu-scroll .lesson-ai { margin: 0; text-align: center; font-size: 13px; color: #5f6b80; }
+.menu-scroll .lesson-hint { margin: 0; padding: 8px 12px; text-align: center; font-weight: 700; background: #fff4e0; box-shadow: 0 0 0 2px var(--navy); }
+
+.lesson-q { display: grid; gap: 6px; padding: 10px; background: #fff4e0; box-shadow: 0 0 0 2px var(--navy); }
+.lesson-q[data-solved='true'] { box-shadow: 0 0 0 3px #2e8b57; }
+.menu-scroll .lesson-stem { margin: 0; font-family: var(--f-head); font-weight: 700; font-size: 16px; }
+.lesson-choices { display: grid; gap: 6px; }
+.lesson-choice {
+  min-height: 44px; padding: 8px 10px; text-align: left; font: inherit; font-size: 15px; line-height: 1.35; color: var(--ink);
+  background: #fff; border: 0; box-shadow: inset 0 0 0 2px var(--navy); cursor: pointer;
+}
+.lesson-choice:disabled { cursor: default; }
+.lesson-choice.right { background: #c8f0d4; box-shadow: inset 0 0 0 3px #2e8b57; }
+.lesson-choice.wrong { background: #ffe3e3; box-shadow: inset 0 0 0 3px var(--coral); }
+.menu-scroll .lesson-why { margin: 0; padding: 8px 10px; font-size: 15px; line-height: 1.5; background: #fff; }
+.lesson-why.right { box-shadow: inset 4px 0 0 #2e8b57; }
+.lesson-why.wrong { box-shadow: inset 4px 0 0 var(--coral); }
+.lesson-retry { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; }
+.lesson-retry .chip { cursor: pointer; background: #fff; color: var(--ink); min-height: 40px; }
+
+.lesson-end { display: grid; justify-items: center; gap: 8px; }
+.lesson-done { margin: 0; padding: 6px 12px; font-family: var(--f-head); font-weight: 700; font-size: 18px; color: var(--yellow); background: var(--navy); }

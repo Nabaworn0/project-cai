@@ -382,6 +382,35 @@ export type Cutscenes = z.infer<typeof CutscenesSchema>;
  *  6.1) and the sets the camera shows. */
 export const LESSON_POSES = ['stand', 'point-left', 'point-right', 'explain', 'thumbs', 'chin'] as const;
 export const LESSON_SETS = ['desk', 'screen', 'printer', 'board', 'servers'] as const;
+/** What the screen in the lesson video shows during a line (src/studio/demos.tsx). */
+export const LESSON_DEMOS = [
+  'welcome',
+  'os-core',
+  'layers',
+  'boot',
+  'app',
+  'os-vs-app',
+  'cpu',
+  'memory',
+  'driver',
+  'files',
+  'login',
+  'print',
+  'no-boot',
+  'functions',
+  // Clip 2: the kinds of operating system.
+  'types-intro',
+  'three-types',
+  'pc',
+  'pc-os',
+  'mobile',
+  'server',
+  'server-os',
+  'linux-both',
+  'license',
+  'two-ways',
+  'look-alike',
+] as const;
 /** Something the senior says: `say` is read by the voice (English words spelt as Thai say them), `th` is shown
  *  under it when the lesson's subtitles cannot make it from `say`. */
 const spoken = { say: th.max(160), th: th.max(160).optional() };
@@ -404,13 +433,15 @@ export const LessonsSchema = z
                   .object({
                     ...spoken,
                     /** The words written on screen with the line (ChatGPT's "ข้อความบนจอ"). */
-                    board: z.string().max(120),
+                    board: z.string().max(200),
                     /** What happens on screen, as the script says it (for whoever stages it). */
                     cue: z.string(),
                     set: z.enum(LESSON_SETS),
                     pose: z.enum(LESSON_POSES),
                     face: z.enum(CUTSCENE_FACES.senior),
                     intern: z.enum(CUTSCENE_FACES.intern),
+                    /** The demonstration on the video's screen; lines in a row with the same one share it. */
+                    demo: z.enum(LESSON_DEMOS).optional(),
                   })
                   .strict(),
               )

@@ -502,6 +502,8 @@ function checkLessons(lessons: Lessons | undefined, voice: ValidateOptions['voic
     }
     const objective = STEP_INFO[l.id as (typeof steps)[number]].objective;
     if (l.objective !== objective) errors.push(`${where}: objective ${l.objective}, but the step is for objective ${objective}`);
+    const bare = l.lines.filter((x) => !x.demo).length;
+    if (bare) warnings.push(`${where}: ยังไม่มีการสาธิตบนจอในคลิป ${bare} ประโยค`);
     dupes(
       l.questions.map((q) => String(q.after)),
       `${where}: two questions after line`,

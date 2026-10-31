@@ -15,10 +15,11 @@ import type { ShopLayout } from '../game/scenes/ShopScene';
 import { CaseFlow, PLAYABLE } from './case/CaseFlow';
 import { SUMMARY_REVEAL_MS } from './case/SummaryCard';
 import { MenuScreen } from './menu/MenuScreen';
+import { LessonScreen } from './lesson/LessonScreen';
 import { OrderScreen } from './order/OrderScreen';
 import { QuizScreen } from './quiz/QuizScreen';
 import { loadProgress, saveProgress, type Progress } from './progress';
-import { EMPTY, markSeen, pathView, recordCase, recordOrder, recordQuiz, type PathOptions, type StepId } from '../core/path';
+import { EMPTY, markSeen, pathView, recordCase, recordLesson, recordOrder, recordQuiz, type PathOptions, type StepId } from '../core/path';
 import { allowedRoute, parseRoute, routeHash, type Route } from '../core/routes';
 import { prefersLessMotion } from './motion';
 import { Shutter, SHUTTER_MS, type ShutterPhase } from './Shutter';
@@ -29,7 +30,7 @@ const content = loadContent();
 const params = new URLSearchParams(location.search);
 
 /** Steps whose screens exist (docs/learning-path-plan.md); the rest show as "เร็วๆ นี้". */
-const BUILT: ReadonlySet<StepId> = new Set<StepId>(['pre', 'order', 'cases', 'post']);
+const BUILT: ReadonlySet<StepId> = new Set<StepId>(['pre', 'lesson-os', 'lesson-types', 'order', 'cases', 'post']);
 const pathOptions: PathOptions = { built: BUILT, caseIds: PLAYABLE, unlockAll: params.get('unlock') === 'all' };
 
 /** The shop scene, started once on the first visit. */
@@ -38,8 +39,16 @@ const startShop = () => (game ??= import('../game').then(({ startGame }) => star
 /** Long enough for a customer to walk out before the scene is paused. */
 const PAUSE_AFTER_MS = 3000;
 
-type View = 'menu' | 'test' | 'order' | 'shop';
-const VIEW: Record<Route, View> = { learn: 'menu', pre: 'test', post: 'test', order: 'order', shop: 'shop' };
+type View = 'menu' | 'test' | 'lesson' | 'order' | 'shop';
+const VIEW: Record<Route, View> = {
+  learn: 'menu',
+  pre: 'test',
+  post: 'test',
+  'lesson-os': 'lesson',
+  'lesson-types': 'lesson',
+  order: 'order',
+  shop: 'shop',
+};
 /** ?case= (teachers, tests) goes straight to that customer, outside the pages. */
 const caseLink = params.has('case');
 /** The same page with another address (the query, such as ?seed=, stays). */
@@ -173,7 +182,7 @@ export function App() {
     if (step === 'cases') {
       pending.current = { caseId, replayIntro: opts.replayIntro };
       go('shop');
-    } else if (step === 'pre' || step === 'post' || step === 'order') go(step);
+    } else if (step === 'pre' || step === 'post' || step === 'order' || step === 'lesson-os' || step === 'lesson-types') go(step);
   };
   const toMenu = () => {
     pending.current = { leaving: true };
@@ -242,6 +251,15 @@ export function App() {
           seed={params.get('seed')}
           onDraft={(d) => update((p) => ({ ...p, testDraft: d }))}
           onFinish={(r) => update((p) => recordQuiz(p, test, r))}
+          onBack={toMenu}
+        />
+      ) : view === 'lesson' ? (
+        <LessonScreen
+          key={route}
+          lesson={content.lessons.lessons.find((l) => l.id === route)!}
+          subtitles={content.lessons.subtitles}
+          saved={progress.lessons[route]}
+          onSave={(r) => update((p) => recordLesson(p, route as StepId, r))}
           onBack={toMenu}
         />
       ) : view === 'order' ? (

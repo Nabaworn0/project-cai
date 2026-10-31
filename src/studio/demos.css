@@ -1,0 +1,319 @@
+/* The demonstrations on the video's screen (demos.tsx), 620 x 350: Windows 11 programs drawn to look like the real
+   ones. Things that appear have the class "on"; nothing is a CSS animation, since the studio draws one moment at a time. */
+.d-fill { position: absolute; inset: 0; overflow: hidden; font-family: 'Noto Sans Thai', sans-serif; color: #fff4e0; }
+.d-fill .w11-desktop { position: absolute; inset: 0; font-size: 15px; }
+.d-dark { background: #1b2a4a; }
+.d-fill img { image-rendering: pixelated; }
+.d-ico { width: 16px; height: 16px; flex: none; vertical-align: -3px; }
+
+/* What we are looking at, and a dashed ring round the part that is meant. */
+.d-tag {
+  position: absolute; z-index: 15; padding: 4px 14px; font-weight: 700; font-size: 17px; color: #1b2a4a; white-space: nowrap;
+  background: #ffd23f; box-shadow: 0 0 0 3px #1b2a4a;
+}
+.d-ring { position: absolute; z-index: 14; border: 4px dashed #ffd23f; border-radius: 6px; }
+
+/* The Windows 11 logo's four squares, drawn, as in the case screens. */
+.d-winlogo { display: inline-grid; grid-template-columns: 7px 7px; gap: 1px; vertical-align: -2px; margin-right: 6px; }
+.d-winlogo i { width: 7px; height: 7px; background: #2f86ef; }
+.d-winlogo.big { grid-template-columns: 34px 34px; gap: 4px; margin: 0; }
+.d-winlogo.big i { width: 34px; height: 34px; background: #4b98f2; }
+.d-winlogo.small { grid-template-columns: 6px 6px; }
+.d-winlogo.small i { width: 6px; height: 6px; }
+
+/* A window: light title bar, rounded corners, a soft shadow. */
+.d-win {
+  position: absolute; z-index: 5; display: flex; flex-direction: column; overflow: hidden; color: #1b1b1b; background: #fff;
+  border-radius: 8px; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.25); font-family: var(--f-win); font-size: 13px;
+}
+.d-win-bar { display: flex; align-items: center; gap: 7px; flex: none; height: 28px; padding-left: 10px; background: #f3f3f3; font-size: 12px; }
+.d-win-title { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.d-ctl { display: flex; }
+.d-ctl i { width: 34px; font-style: normal; font-size: 11px; line-height: 28px; text-align: center; color: #333; }
+.d-win-body { position: relative; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.d-full { left: 14px; top: 10px; width: 592px; height: 280px; }
+.d-cascade0 { left: 16px; top: 12px; width: 330px; height: 220px; }
+.d-win.dim { opacity: 0.35; }
+
+/* Word: the blue title bar, the ribbon and the page. */
+.d-word .d-win-bar { background: #2b579a; color: #fff; }
+.d-word .d-ctl i { color: #fff; }
+.d-ribbon { flex: none; padding: 0 8px 4px; background: #f3f3f3; border-bottom: 1px solid #d6d6d6; }
+.d-tabs { display: flex; align-items: center; gap: 14px; height: 24px; font-size: 12px; white-space: nowrap; }
+.d-tabs .on { color: #2b579a; font-weight: 600; box-shadow: inset 0 -2px #2b579a; }
+.d-file-tab { padding: 1px 8px; color: #fff; background: #2b579a; }
+.d-tools { display: flex; align-items: center; gap: 6px; height: 26px; font-size: 12px; white-space: nowrap; }
+.d-tools b, .d-tools i, .d-tools u { width: 18px; text-align: center; }
+.d-field { padding: 1px 6px; background: #fff; border: 1px solid #c8c8c8; }
+.d-align { display: grid; gap: 2px; margin-left: 6px; }
+.d-align i { width: 14px; height: 2px; background: #555; }
+.d-desk { display: flex; justify-content: center; flex: 1; min-height: 0; padding-top: 10px; overflow: hidden; background: #e6e6e6; }
+.d-page { width: 78%; padding: 14px 24px; background: #fff; box-shadow: 0 0 0 1px #d0d0d0, 0 2px 6px rgba(0, 0, 0, 0.15); }
+.d-typed { margin: 0; font-family: 'Noto Sans Thai', sans-serif; font-size: 14px; line-height: 1.55; color: #111; white-space: pre-wrap; }
+.d-typed::first-line { font-weight: 700; font-size: 16px; }
+.d-caret { display: inline-block; width: 1px; height: 1.1em; margin-left: 1px; vertical-align: text-bottom; background: #000; }
+.d-caret.off { visibility: hidden; }
+
+/* Word's File pages (Save As, Print). */
+.d-back { display: flex; flex: 1; min-height: 0; }
+.d-back-menu { display: grid; align-content: start; gap: 2px; width: 120px; padding: 8px 0; color: #fff; background: #2b579a; font-size: 13px; }
+.d-back-menu span { padding: 5px 14px; }
+.d-back-menu .on { background: #1e3f73; box-shadow: inset 4px 0 #ffd23f; }
+.d-back-main { display: flex; flex-direction: column; gap: 10px; flex: 1; padding: 12px 18px; font-family: 'Noto Sans Thai', var(--f-win); }
+.d-back-main h4 { margin: 0; font-size: 20px; font-weight: 400; }
+.d-place { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #e5effa; border: 1px solid #9cc0e8; }
+.d-name { display: flex; gap: 8px; }
+.d-input { flex: 1; padding: 3px 8px; background: #fff; border: 1px solid #2b579a; }
+.d-type { padding: 3px 8px; color: #555; border: 1px solid #c8c8c8; }
+.d-btn { align-self: flex-start; padding: 4px 22px; color: #fff; background: #2b579a; border-radius: 4px; }
+.d-btn.pressed { background: #163463; transform: translateY(1px); }
+.d-print-page { flex-direction: row; gap: 18px; }
+.d-print-page > div:first-child { display: grid; align-content: start; gap: 8px; width: 190px; }
+.d-bigbtn { display: grid; justify-items: center; gap: 4px; width: 76px; padding: 8px; font-size: 13px; background: #fafafa; border: 1px solid #c8c8c8; }
+.d-bigbtn .d-ico { width: 30px; height: 30px; }
+.d-bigbtn.pressed { background: #cde0f7; border-color: #2b579a; }
+.d-label { margin: 0; font-size: 12px; color: #444; }
+.d-select { display: flex; align-items: center; gap: 8px; padding: 4px 8px; font-size: 12.5px; border: 1px solid #c8c8c8; }
+.d-select small { display: block; color: #1f8f86; }
+.d-preview { flex: 1; padding: 12px 14px; background: #fff; box-shadow: 0 0 0 1px #d0d0d0, 0 2px 8px rgba(0, 0, 0, 0.2); }
+.d-preview .d-typed { font-size: 10px; }
+.d-preview .d-typed::first-line { font-size: 11px; }
+
+/* The pointer and the finger. */
+.d-cursor { position: absolute; z-index: 30; width: 16px; height: 24px; }
+.d-cursor svg { width: 100%; height: 100%; }
+.d-cursor.down::before {
+  content: ''; position: absolute; left: -10px; top: -10px; width: 20px; height: 20px; border-radius: 50%; border: 3px solid #ffd23f;
+}
+.d-hand { position: absolute; z-index: 30; width: 52px; }
+
+/* A Windows notification above the clock. */
+.d-toast {
+  position: absolute; right: 10px; bottom: 56px; z-index: 20; display: flex; gap: 10px; width: 240px; padding: 10px 12px;
+  color: #1b1b1b; background: #f9f9f9; border-radius: 8px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); font-size: 12px; line-height: 1.4;
+}
+.d-toast .d-ico { width: 22px; height: 22px; }
+.d-toast b { display: block; font-size: 13px; }
+
+/* Other programs: the browser and the music player. */
+.d-browser { left: 190px; top: 46px; width: 300px; height: 190px; }
+.d-url { margin: 4px 8px; padding: 2px 10px; font-size: 11px; color: #444; background: #f0f0f0; border-radius: 10px; }
+.d-site { display: grid; gap: 6px; padding: 6px 12px; }
+.d-site i { height: 10px; background: #d8dee8; }
+.d-site .d-site-head { height: 26px; background: #1f8f86; }
+.d-site .d-site-pic { height: 50px; background: #8fd3ff; }
+.d-music { left: 340px; top: 120px; width: 250px; height: 110px; }
+.d-song { display: flex; gap: 10px; padding: 12px; font-size: 12px; }
+.d-cover { width: 50px; height: 50px; background: #ff7a3d; flex: none; }
+.d-song > span { display: grid; gap: 10px; flex: 1; }
+.d-progress { display: block; height: 4px; background: #ddd; }
+.d-progress i { display: block; height: 100%; background: #ff7a3d; }
+
+/* The programs' colours, the same in Task Manager's tables, the CPU turns and the memory. */
+.c-word { background: #2b65c8; }
+.c-web { background: #2ec4b6; }
+.c-music { background: #ff7a3d; }
+.c-sys { background: #9aa5b8; }
+
+/* Task Manager. */
+.d-tm { left: 18px; top: 10px; width: 584px; height: 284px; }
+.d-tm .d-win-body { flex-direction: row; }
+.d-tm-side { display: grid; align-content: start; gap: 4px; width: 42px; padding: 6px 4px; background: #f3f3f3; }
+.d-tm-side i { display: grid; place-items: center; height: 30px; border-radius: 4px; }
+.d-tm-side i.on { background: #e1e1e1; box-shadow: inset 3px 0 #1f8f86; }
+.d-tm-side svg { width: 16px; height: 16px; fill: none; stroke: #333; stroke-width: 1.5; }
+.d-tm-main { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; padding: 8px 14px; font-family: 'Noto Sans Thai', var(--f-win); }
+.d-tm-main h4 { margin: 0; font-size: 15px; font-weight: 600; }
+.d-tm-main h4 small { margin-left: 8px; font-weight: 400; color: #555; }
+.d-tm-cols { display: grid; grid-template-columns: 1fr 190px; gap: 14px; }
+.d-proc { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.d-proc th { padding: 3px 6px; font-weight: 400; color: #555; text-align: left; border-bottom: 1px solid #ddd; }
+.d-proc td { padding: 4px 6px; }
+.d-proc td .d-ico, .d-proc td .d-winlogo { margin-right: 6px; }
+.d-proc th:last-child, .d-proc td:last-child { width: 60px; text-align: right; }
+.d-proc tr.hot td { background: #fff1c2; }
+.d-proc tr.hot td:last-child { background: #ffd23f; font-weight: 700; }
+.d-proc tr.gone td { color: #999; text-decoration: line-through; }
+.d-graph { position: relative; height: 118px; background: #f1faf9; border: 1px solid #1f8f86; }
+.d-graph span { position: absolute; left: 6px; top: 2px; font-size: 11px; color: #1f8f86; }
+.d-graph svg { width: 100%; height: 100%; }
+.d-graph polyline { fill: none; stroke: #1f8f86; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.d-slices { display: flex; gap: 3px; height: 22px; }
+.d-slices i { width: 22px; }
+.d-cells { display: flex; gap: 4px; margin: 6px 0; }
+.d-cells i { width: 44px; height: 46px; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.25); }
+.d-cells i.free { background: #e8e8e8; }
+.d-sw { display: inline-block; width: 12px; height: 12px; margin-right: 8px; vertical-align: -1px; }
+
+/* Device Manager, the cable with the driver on it, and the printer. */
+.d-devmgr { left: 14px; top: 10px; width: 300px; height: 240px; }
+.d-tree { margin: 0; padding: 10px 12px; list-style: none; font-family: 'Noto Sans Thai', var(--f-win); font-size: 13px; line-height: 1.75; }
+.d-tree .d-sub { padding-left: 18px; }
+.d-tree .d-sub2 { padding-left: 38px; }
+.d-tree .d-sub2 .d-ico { margin-right: 4px; }
+.d-tree .warn { color: #a05a00; }
+.d-tree .warn b { color: #d9a12b; }
+.d-dialog {
+  position: absolute; left: 20px; right: 20px; bottom: 16px; display: grid; gap: 8px; padding: 10px 12px; font-size: 13px;
+  background: #fff; border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.d-bar { display: block; height: 8px; background: #e0e0e0; }
+.d-bar i { display: block; height: 100%; background: #1f8f86; }
+.d-cable { position: absolute; left: 314px; top: 196px; width: 150px; height: 6px; background: #2b2b2b; }
+.d-driver {
+  position: absolute; left: 50%; top: -15px; transform: translateX(-50%); z-index: 2; padding: 4px 10px; font-size: 14px; font-weight: 700;
+  color: #fff; background: #2c3e66; box-shadow: 0 0 0 3px #5f6b80;
+}
+.d-driver.busy { box-shadow: 0 0 0 3px #ffd23f, 0 0 18px #ffd23f; }
+.d-job { top: -46px; }
+.d-job.raw { background: #8fd3ff; }
+.d-devprinter { position: absolute; left: 470px; top: 140px; }
+
+.d-printer { position: relative; width: 130px; }
+.d-printer-art { display: block; width: 100%; }
+.d-printer-top { height: 18px; margin: 0 14px; background: #d8dee8; box-shadow: inset 0 0 0 3px #1b2a4a; }
+.d-printer-body { position: relative; height: 56px; background: #9aa5b8; box-shadow: inset 0 0 0 3px #1b2a4a; }
+.d-printer-body i { position: absolute; right: 12px; top: 12px; width: 10px; height: 10px; background: #5f6b80; }
+.d-printer.busy .d-printer-body i { background: #7bd65a; box-shadow: 0 0 8px #7bd65a; }
+.d-paper { margin: 0 20px; overflow: hidden; background: #fff; box-shadow: inset 0 0 0 1px #9aa5b8; }
+.d-paper p { margin: 0; padding: 6px 8px; font-size: 6px; line-height: 1.5; color: #111; white-space: pre-wrap; }
+.d-printroom { position: absolute; inset: 0; display: grid; place-items: center; background: #e9e2d4; }
+.d-printer.d-big { width: 340px; }
+.d-big .d-printer-top { height: 36px; margin: 0 30px; }
+.d-big .d-printer-body { height: 110px; }
+.d-big .d-printer-body i { right: 24px; top: 24px; width: 18px; height: 18px; }
+.d-big .d-paper { margin: 0 46px; }
+.d-big .d-paper p { font-size: 10px; padding: 10px 12px; }
+
+/* Print: the job on its way, Word → Windows → driver → printer. */
+.d-chain { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(27, 42, 74, 0.8); }
+.d-chain .d-toast { top: 14px; bottom: auto; width: 300px; }
+.d-path { position: relative; display: flex; justify-content: space-between; width: 540px; }
+.d-path::before { content: ''; position: absolute; left: 60px; right: 60px; top: 30px; height: 4px; background: #9aa5b8; }
+.d-stop { position: relative; z-index: 1; display: grid; justify-items: center; gap: 6px; width: 120px; font-size: 16px; text-align: center; opacity: 0.45; }
+.d-stop.on { opacity: 1; }
+.d-stop b { display: grid; place-items: center; width: 70px; height: 60px; background: #fff; border-radius: 8px; box-shadow: 0 0 0 3px #5f6b80; }
+.d-stop b .d-ico { width: 34px; height: 34px; }
+.d-stop b .d-winlogo { grid-template-columns: 15px 15px; gap: 2px; margin: 0; }
+.d-stop b .d-winlogo i { width: 15px; height: 15px; }
+.d-stop.here b { box-shadow: 0 0 0 3px #ffd23f, 0 0 20px #ffd23f; }
+/* Travels along the line between the first and the last stop's middles (60px in from each end). */
+.d-track { position: absolute; left: 60px; right: 60px; top: -36px; height: 0; }
+.d-packet {
+  position: absolute; z-index: 3; transform: translateX(-50%); padding: 4px 10px; font-size: 15px; font-weight: 700; color: #1b2a4a;
+  white-space: nowrap; background: #ffd23f; box-shadow: 0 0 0 2px #1b2a4a;
+}
+
+/* The four layers, each with what it really is. */
+.d-layers { display: grid; align-content: center; gap: 8px; padding: 0 16px 0 128px; }
+.d-layer { display: flex; align-items: center; gap: 14px; height: 70px; padding: 0 16px; color: #1b2a4a; visibility: hidden; }
+.d-layer.on { visibility: visible; }
+.d-layer-name { width: 170px; flex: none; font-size: 17px; font-weight: 700; line-height: 1.25; }
+.d-layer-art { display: flex; align-items: center; gap: 8px; }
+.d-user { background: #f6c69c; }
+.d-apps { background: #fff4e0; }
+.d-os-row { color: #fff; background: #2c5d98; box-shadow: 0 0 0 4px #8fd3ff; }
+.d-hw-row { background: #9aa5b8; }
+.d-layer-intern { height: 62px; align-self: end; }
+.d-chipname { display: flex; align-items: center; gap: 4px; padding: 3px 7px; font-size: 12px; white-space: nowrap; background: #fff; color: #1b1b1b; border-radius: 4px; }
+.d-os-row .d-chipname { font-size: 15px; font-weight: 700; }
+.d-hw-row img { width: 30px; height: 30px; }
+.d-hw-printer { width: 32px; height: 32px; }
+.d-layer-packet { left: 64px; }
+
+/* Starting the PC. */
+.d-boot { background: #000; }
+.d-power { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; gap: 30px; padding-bottom: 60px; background: #e9e2d4; }
+.d-power p { position: absolute; left: 0; right: 0; bottom: 14px; margin: 0; font-size: 20px; text-align: center; color: #1b2a4a; font-weight: 700; }
+.d-power-monitor { width: 240px; }
+.d-tower { position: relative; width: 120px; height: 210px; background: #2c3e66; border-radius: 6px; box-shadow: inset 0 0 0 4px #1b2a4a, inset -14px 0 0 #1b2a4a; }
+.d-tower-btn { position: absolute; left: 38px; top: 20px; width: 30px; height: 30px; border-radius: 50%; box-shadow: inset 0 0 0 4px #5f6b80; }
+.d-tower.on .d-tower-btn { box-shadow: inset 0 0 0 4px #2ec4b6, 0 0 16px #2ec4b6; }
+.d-tower-led { position: absolute; left: 48px; top: 62px; width: 10px; height: 6px; background: #5f6b80; }
+.d-tower.on .d-tower-led { background: #7bd65a; }
+.d-vents { position: absolute; left: 20px; right: 34px; bottom: 24px; height: 70px; background: repeating-linear-gradient(#1b2a4a 0 4px, transparent 4px 10px); }
+.d-tower-art { height: 210px; }
+.d-post { margin: 0; padding: 24px; font-family: Consolas, 'Noto Sans Thai', monospace; font-size: 22px; line-height: 1.6; color: #d8dee8; white-space: pre; }
+.d-loading { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 18px; }
+.d-spin { display: flex; gap: 8px; }
+.d-spin i { width: 10px; height: 10px; background: #5f6b80; }
+.d-spin i.on { background: #fff; }
+.d-loading p { margin: 0; font-size: 18px; }
+
+/* Word next to Windows, and the line from it through Windows to the parts. */
+.d-bridge {
+  position: absolute; left: 20px; right: 20px; bottom: 62px; z-index: 16; display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  color: #1b2a4a; background: #fff4e0; box-shadow: 0 0 0 3px #1b2a4a; font-weight: 700; font-size: 15px;
+}
+.d-bridge > span:not(.d-bridge-line) { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.d-bridge-line { flex: 1; height: 6px; background: repeating-linear-gradient(90deg, #ffd23f 0 10px, #1b2a4a 10px 16px); }
+.d-bridge-hw img { width: 34px; height: 34px; }
+.d-bridge-hw .d-ico { width: 30px; height: 30px; }
+
+/* Saving and opening the file. */
+.d-explorer { left: 60px; top: 24px; width: 500px; height: 250px; }
+.d-explorer .d-win-body { flex-direction: row; }
+.d-ex-side { display: grid; align-content: start; gap: 4px; width: 120px; padding: 8px; font-size: 12.5px; background: #f7f7f7; }
+.d-ex-side span { display: flex; align-items: center; gap: 6px; padding: 3px 6px; }
+.d-ex-side .on { background: #dde8f6; border-radius: 4px; }
+.d-ex-main { flex: 1; padding: 8px 12px; font-family: 'Noto Sans Thai', var(--f-win); }
+.d-ex-path { margin-bottom: 8px; padding: 3px 8px; font-size: 12px; background: #f3f3f3; border-radius: 4px; }
+.d-ex-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; font-size: 13.5px; }
+.d-ex-row span { flex: 1; }
+.d-ex-row small { color: #777; }
+.d-ex-row .d-ico { width: 22px; height: 22px; }
+.d-ex-row.new span { font-weight: 700; }
+.d-ex-row.picked { background: #cde0f7; box-shadow: inset 0 0 0 1px #2b579a; }
+
+/* Signing in. */
+.d-lockscreen {
+  position: absolute; inset: 0; z-index: 8; display: grid; align-content: center; justify-items: center; gap: 10px;
+  color: #fff; background: rgba(10, 30, 70, 0.45); backdrop-filter: blur(6px); font-family: 'Noto Sans Thai', var(--f-win); font-size: 17px;
+}
+.d-clock { font-size: 72px; font-weight: 600; line-height: 1; font-family: var(--f-win); }
+.d-avatar { display: block; width: 96px; height: 96px; overflow: hidden; border-radius: 50%; background: #c8d8ee; }
+.d-avatar img { display: block; width: 96px; margin-top: 6px; }
+.d-uname { font-size: 22px; }
+.d-pin { width: 220px; padding: 6px 12px; color: #1b1b1b; background: #fff; border-radius: 4px; border-bottom: 2px solid #2b579a; letter-spacing: 4px; }
+.d-welcome-msg { display: grid; justify-items: center; gap: 12px; }
+.d-deskicon {
+  position: absolute; z-index: 4; display: grid; justify-items: center; gap: 4px; width: 84px; padding: 4px; font-family: var(--f-win); font-size: 12.5px;
+  text-align: center; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.d-deskicon > .d-ico { width: 40px; height: 40px; }
+.d-deskicon .d-badge-lock { position: absolute; left: 50px; top: 26px; width: 20px; height: 20px; }
+.d-deskicon.picked { background: rgba(140, 180, 240, 0.45); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6); }
+.d-denied { left: 170px; top: 80px; width: 300px; height: 130px; }
+.d-denied p { display: flex; align-items: center; gap: 10px; margin: 16px 16px 12px; font-family: 'Noto Sans Thai', var(--f-win); font-size: 14px; }
+.d-denied p .d-ico { width: 28px; height: 28px; }
+.d-denied .d-btn { align-self: flex-end; margin-right: 16px; }
+
+.d-nob { margin: 0; padding: 24px; background: #000; color: #d8dee8; font-family: Consolas, monospace; font-size: 20px; line-height: 1.5; white-space: pre-wrap; }
+
+/* The five jobs side by side, the one being said lit up. */
+.d-functions { display: grid; grid-template-columns: repeat(5, 1fr); align-content: center; gap: 12px; padding: 0 16px; }
+.d-fn {
+  position: relative; display: grid; grid-template-rows: 60px auto auto 1fr; justify-items: center; gap: 4px; height: 210px; padding: 22px 4px 12px; text-align: center; color: #1b2a4a;
+  background: #fff4e0; box-shadow: 0 0 0 3px #5f6b80; visibility: hidden;
+}
+.d-fn.on { visibility: visible; }
+.d-fn.now { box-shadow: 0 0 0 4px #ffd23f, 0 0 22px #ffd23f; transform: translateY(-8px); }
+.d-fn-num { position: absolute; left: -6px; top: -10px; width: 28px; height: 28px; line-height: 28px; color: #1b2a4a; background: #ffd23f; box-shadow: 0 0 0 2px #1b2a4a; }
+.d-fn img, .d-fn-ico { width: 56px; height: 56px; }
+.d-fn-th { font-size: 16px; font-weight: 700; white-space: nowrap; }
+.d-fn small { font-size: 12px; color: #4a5f8f; }
+.d-fn-ex { font-size: 13px; color: #2c3e66; }
+
+.d-welcome .d-badge {
+  position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); padding: 12px 26px; background: #1b2a4a; color: #ffd23f;
+  font-family: 'Chakra Petch', sans-serif; font-weight: 700; font-size: 40px; box-shadow: 0 0 0 5px #8a5a33; visibility: hidden;
+}
+.d-welcome .d-badge.on { visibility: visible; }
+
+/* ChatGPT's pictures (art-prompts 6.2), sized for the screen. */
+.d-hw-row .d-dev-keyboard { width: 52px; height: auto; }
+.d-hw-row .d-dev-mouse { width: 16px; height: auto; }
+.d-hw-row .d-printer { width: 50px; height: auto; }
+.d-printer-art + .d-paper { margin: -6px 26% 0; }
+.d-big .d-printer-art + .d-paper { margin: -10px 25% 0; }
+.d-devprinter { left: 456px; width: 150px; top: 150px; }

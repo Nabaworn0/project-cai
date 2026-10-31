@@ -12,6 +12,8 @@ const ids = (steps: typeof overview) => steps!.map((s) => s.id);
 const textOf = (id: string) => [...orderData.rounds.flatMap((r) => r.steps), ...orderData.traps].find((s) => s.id === id)!.th;
 const SEQ = bossSequence(orderData.rounds, orderData.boss);
 const TRAPS = orderData.traps.map((t) => t.id);
+/** Both lessons watched, so the ordering game is what "ทำต่อ" opens next (the lessons: tests/lesson.spec.ts). */
+const LESSONS = ['lesson-os', 'lesson-types'];
 const boss = (page: Page) => page.getByTestId('boss');
 const box = (page: Page) => page.getByTestId('order');
 const menu = (page: Page) => page.getByTestId('menu');
@@ -157,7 +159,7 @@ test('two rounds: tap into slots, colour marks, a hint after two misses, the ans
 }, info) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await seed(page, { learner: LEARNER, pre: PRE_DONE });
+  await seed(page, { learner: LEARNER, pre: PRE_DONE, done: LESSONS });
   await page.goto('/?seed=t1');
   await expect(step(page, 'cases')).toHaveAttribute('data-status', 'locked');
   await menu(page).getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' }).click();
@@ -266,7 +268,7 @@ test('two rounds: tap into slots, colour marks, a hint after two misses, the ans
 
 test('quick taps in a row all land', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'the screen itself is checked at every size above');
-  await seed(page, { learner: LEARNER, pre: PRE_DONE });
+  await seed(page, { learner: LEARNER, pre: PRE_DONE, done: LESSONS });
   await page.goto('/?seed=t2');
   await menu(page).getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' }).click();
   await box(page).getByRole('button', { name: 'เริ่มรอบ 1' }).click();
@@ -305,7 +307,7 @@ test('played again from its card: the best stars stay, the first play is kept as
 });
 
 test('the boss belt in 2.5D: cards come from the back and grow; a trap costs a heart; 14 steps finish it', async ({ page }, info) => {
-  await seed(page, { learner: LEARNER, pre: PRE_DONE });
+  await seed(page, { learner: LEARNER, pre: PRE_DONE, done: LESSONS });
   await page.goto('/?seed=b1');
   await toBoss(page);
   await expect(boss(page).getByTestId('senior-says')).toContainText('แตะขั้นที่ต้องทำต่อไปก่อนมันหลุดขอบ');
@@ -370,7 +372,7 @@ test('the boss belt in 2.5D: cards come from the back and grow; a trap costs a h
 
 test('the senior explains each mistake: a trap, a step too early; three hearts gone and the belt starts over', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'the belt itself is checked at every size above');
-  await seed(page, { learner: LEARNER, pre: PRE_DONE });
+  await seed(page, { learner: LEARNER, pre: PRE_DONE, done: LESSONS });
   await page.goto('/?seed=b2');
   await toBoss(page);
   await startBelt(page);
@@ -402,7 +404,7 @@ test('the senior explains each mistake: a trap, a step too early; three hearts g
 });
 
 test('a dropped step: the senior says it fell and will come round again; cards on both sides stay in the stage', async ({ page }) => {
-  await seed(page, { learner: LEARNER, pre: PRE_DONE });
+  await seed(page, { learner: LEARNER, pre: PRE_DONE, done: LESSONS });
   await page.goto('/?seed=b3');
   await toBoss(page);
   await startBelt(page);
@@ -418,7 +420,7 @@ test('a dropped step: the senior says it fell and will come round again; cards o
 
 test('slow mode: the belt runs slower; it is on from the start when the device asks for less motion', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'the belt itself is checked at every size above');
-  await seed(page, { learner: LEARNER, pre: PRE_DONE });
+  await seed(page, { learner: LEARNER, pre: PRE_DONE, done: LESSONS });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/?seed=b4');
   await toBoss(page);

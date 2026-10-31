@@ -14,11 +14,15 @@ export async function reopenGame(page: Page) {
   await page.reload();
 }
 
-/** The learning before the shop, done (the pre-test and the ordering game), for seeding progress. */
-export const LEARNED = { pre: PRE_DONE, done: ['order'], order: { stars: 2, plays: 1, first: { tries: [3, 4], solved: [true, true], lost: 1 } } };
+/** The learning before the shop, done (the pre-test, both lessons and the ordering game), for seeding progress. */
+export const LEARNED = {
+  pre: PRE_DONE,
+  done: ['lesson-os', 'lesson-types', 'order'],
+  order: { stars: 2, plays: 1, first: { tries: [3, 4], solved: [true, true], lost: 1 } },
+};
 
-/** The ordering game marked done on this device and the page reloaded: tests about the shop do not play it
- *  (tests/order.spec.ts does). */
+/** The lessons and the ordering game marked done on this device and the page reloaded: tests about the shop do not
+ *  play them (tests/lesson.spec.ts and tests/order.spec.ts do). */
 export async function skipOrder(page: Page) {
   await page.evaluate((learned) => {
     const p = JSON.parse(localStorage.getItem('shop.progress.v2') ?? '{}');
@@ -43,8 +47,8 @@ export async function takePreTest(page: Page) {
   await expect(page.getByTestId('menu')).toBeVisible();
 }
 
-/** The menu the game opens on: give the learner's name the first time, take the pre-test and skip the ordering
- *  game if they are still to do, then "ทำต่อ". */
+/** The menu the game opens on: give the learner's name the first time, take the pre-test and skip the lessons and
+ *  the ordering game if they are still to do, then "ทำต่อ". */
 export async function passMenu(page: Page) {
   const menu = page.getByTestId('menu');
   // The first load (fonts, then the page) can take a while when every test runs at once.
@@ -56,7 +60,7 @@ export async function passMenu(page: Page) {
     await menu.getByRole('button', { name: 'เริ่มเรียน' }).click();
   }
   if (await menu.getByRole('button', { name: 'ทำต่อ: แบบทดสอบก่อนเรียน' }).isVisible()) await takePreTest(page);
-  if (await menu.getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' }).isVisible()) await skipOrder(page);
+  if (await menu.getByRole('button', { name: /^ทำต่อ: (บทเรียน|เรียงขั้นตอน)/ }).isVisible()) await skipOrder(page);
   await menu.getByRole('button', { name: /^ทำต่อ/ }).click();
   await expect(menu).toHaveCount(0);
   // The shutter between pages is fully up again (src/ui/Shutter.tsx).

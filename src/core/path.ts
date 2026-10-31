@@ -55,7 +55,7 @@ export interface OrderRecord {
   first: OrderResult;
 }
 
-/** Where a lesson cartoon was left, and the first answer to each of its questions (-1: not answered yet). */
+/** A lesson: 1 once its video was watched (else 0), and the first answer to each of its questions (-1: not answered yet). */
 export interface LessonRecord {
   at: number;
   first: number[];
@@ -191,8 +191,9 @@ export function recordOrder(p: Progress, r: OrderResult): Progress {
   return { ...markDone(p, 'order'), order };
 }
 
-/** Saves where a lesson was left and its answers; a first answer once given stays. `done` when it was watched
- *  to the end with every question answered right: the step is done and it starts from the top next time. */
+/** Saves a lesson's state and its answers; a first answer once given stays. `at` is 1 once its video has been
+ *  watched (its questions then open straight away). `done` when every question is answered right: the step is done
+ *  and it starts from the top next time. */
 export function recordLesson(p: Progress, id: StepId, r: { at: number; first: number[]; done: boolean }): Progress {
   const old = p.lessons[id]?.first ?? [];
   const first = r.first.map((a, i) => (old[i] !== undefined && old[i] >= 0 ? old[i] : a));

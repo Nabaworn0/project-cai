@@ -44,9 +44,12 @@
   .learn-page { justify-content: flex-end; padding-top: calc(16px + var(--safe-t)); }
   .learn-page .menu { width: min(460px, 56%); }
   .learn-page.tall .menu { width: min(620px, 72%); }
+  .learn-page.wide { justify-content: center; }
 }
 /* The test needs the room: the board rises over the sign (its own header names the shop). */
 .learn-page.tall { padding-top: calc(16px + var(--safe-t)); }
+/* The lesson cartoons want the room. */
+.learn-page.wide .menu { width: min(860px, 100%); }
 /* The notice board: a wood frame with a dark edge, and a coral pin at the top. */
 .learn-page .menu {
   position: relative;

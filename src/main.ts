@@ -12,10 +12,9 @@ async function bootGame(): Promise<void> {
   const { App } = await import('./ui/App');
 
   // Canvas text is drawn once, so the Thai fonts must be loaded before Phaser renders it (and the page reads better).
-  await Promise.all([
-    document.fonts.load('700 32px "Chakra Petch"', 'ร้านซ่อมคอม'),
-    document.fonts.load('400 16px "Noto Sans Thai"', 'ก'),
-  ]).catch(() => undefined);
+  await Promise.all([document.fonts.load('700 32px "Chakra Petch"', 'ร้านซ่อมคอม'), document.fonts.load('400 16px "Noto Sans Thai"', 'ก')]).catch(
+    () => undefined,
+  );
 
   render(h(App, {}), document.getElementById('ui')!);
   const splash = document.getElementById('splash');
@@ -31,5 +30,18 @@ async function bootViewer(): Promise<void> {
   render(h(ContentViewer, {}), document.getElementById('ui')!);
 }
 
-void (new URLSearchParams(location.search).get('view') === 'content' ? bootViewer() : bootGame());
+/** ?view=studio&lesson=…: one frame of a lesson video at a time, filmed by tools/video.ts (src/studio). */
+async function bootStudio(lesson: string): Promise<void> {
+  document.documentElement.classList.add('studio-page');
+  const { Studio } = await import('./studio/Studio');
+  await Promise.all([document.fonts.load('700 40px "Chakra Petch"', 'OS'), document.fonts.load('400 30px "Noto Sans Thai"', 'ก')]).catch(
+    () => undefined,
+  );
+  render(h(Studio, { lessonId: lesson }), document.getElementById('ui')!);
+  document.getElementById('splash')?.remove();
+}
+
+const params = new URLSearchParams(location.search);
+const view = params.get('view');
+void (view === 'content' ? bootViewer() : view === 'studio' ? bootStudio(params.get('lesson') ?? '') : bootGame());
 registerPwa();

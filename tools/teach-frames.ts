@@ -3,7 +3,7 @@
 // ChatGPT drew nine edits of one sprite; pixelized together (art-source/teach-px, see below) the head still comes
 // out a little different in each (a hair streak, a darker moustache, a pixel to the side). Here every pose gets the
 // neutral frame's head, so only the arms change, and the three face frames become layers drawn over any pose:
-// the mouth half open, wide open, and the eyes shut. All frames keep one canvas, so layers fit every pose.
+// the mouth half open, wide open, the eyes shut, and the smiling and thinking faces. All frames keep one canvas, so layers fit every pose.
 //
 //   npm run pixelize -- "art-source/teach-*.png" --height 84 --out art-source/teach-px --no-preview
 //   npm run teach-frames
@@ -24,7 +24,15 @@ const CHIN_HEAD_TO = 33;
 
 /** The frames the game uses, from ChatGPT's files: poses (whole sprites) and face layers. */
 const POSES = { stand: 'neutral', 'point-left': 'pointleft', 'point-right': 'pointright', explain: 'explain', thumbs: 'thumbs', chin: 'chin' };
-const LAYERS = { 'mouth-small': ['talksmall', MOUTH], 'mouth-wide': ['talkwide', MOUTH], 'eyes-shut': ['blink', { ...EYES, half: 99 }] } as const;
+const FACE = { from: EYES.from, to: MOUTH.to, half: 99 };
+const LAYERS = {
+  'mouth-small': ['talksmall', MOUTH],
+  'mouth-wide': ['talkwide', MOUTH],
+  'eyes-shut': ['blink', { ...EYES, half: 99 }],
+  // Smiling and thinking: eyes and mouth together (docs/art-prompts.md 6.1b).
+  'face-happy': ['happy', FACE],
+  'face-thinking': ['thinking', FACE],
+} as const;
 
 interface Frame {
   data: Buffer;
@@ -35,14 +43,17 @@ const read = async (name: string): Promise<Frame> => {
   const { data, info } = await sharp(`${IN}/teach-${name}.png`).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   return { data, w: info.width, h: info.height };
 };
-const write = (f: Frame, name: string) => sharp(f.data, { raw: { width: f.w, height: f.h, channels: 4 } }).png().toFile(`${OUT}/teach-${name}.png`);
+const write = (f: Frame, name: string) =>
+  sharp(f.data, { raw: { width: f.w, height: f.h, channels: 4 } })
+    .png()
+    .toFile(`${OUT}/teach-${name}.png`);
 const opaque = (f: Frame, x: number, y: number) => x >= 0 && x < f.w && y >= 0 && y < f.h && f.data[(y * f.w + x) * 4 + 3]! > 0;
 
 /** The columns the neutral head covers on row y, `margin` pixels wider each side. */
 function headSpan(base: Frame, y: number, margin = 0): [number, number] | null {
   let a = -1;
   let b = -1;
-  for (let x = 0; x < base.w; x++) if (opaque(base, x, y)) (a = a < 0 ? x : a), (b = x);
+  for (let x = 0; x < base.w; x++) if (opaque(base, x, y)) ((a = a < 0 ? x : a), (b = x));
   return a < 0 ? null : [a - margin, b + margin];
 }
 

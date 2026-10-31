@@ -59,12 +59,12 @@ test('a first visit asks for the name, checks it, then shows the path with case 
   // The pre-test comes first; the shop and the post-test are shut until then.
   await expect(menu(page).getByRole('button', { name: 'ทำต่อ: แบบทดสอบก่อนเรียน' })).toBeVisible();
   await expect(step(page, 'pre')).toHaveAttribute('data-status', 'open');
-  for (const id of ['order', 'cases', 'post']) {
+  for (const id of ['lesson-os', 'lesson-types', 'order', 'cases', 'post']) {
     await expect(step(page, id)).toHaveAttribute('data-status', 'locked');
     await expect(step(page, id).locator('.path-row')).toBeDisabled();
   }
   // Steps not built yet say so and cannot be tapped.
-  for (const id of ['lesson-os', 'lesson-types', 'reflect', 'results']) {
+  for (const id of ['reflect', 'results']) {
     await expect(step(page, id)).toHaveAttribute('data-status', 'soon');
     await expect(step(page, id).locator('.path-row')).toBeDisabled();
   }
@@ -80,12 +80,13 @@ test('a first visit asks for the name, checks it, then shows the path with case 
   await menu(page).getByRole('button', { name: 'ผู้เรียนคนใหม่' }).scrollIntoViewIfNeeded();
   await expect(menu(page).getByRole('button', { name: 'ผู้เรียนคนใหม่' })).toBeInViewport();
 
-  // After the pre-test the ordering game opens, the shop still shut (tests/quiz.spec.ts and order.spec.ts cover them).
+  // After the pre-test the lessons and the ordering game open, the shop still shut (tests/quiz.spec.ts,
+  // lesson.spec.ts and order.spec.ts cover them).
   await takePreTest(page);
   await expect(step(page, 'pre')).toHaveAttribute('data-status', 'done');
-  await expect(step(page, 'order')).toHaveAttribute('data-status', 'open');
+  for (const id of ['lesson-os', 'lesson-types', 'order']) await expect(step(page, id)).toHaveAttribute('data-status', 'open');
   await expect(step(page, 'cases')).toHaveAttribute('data-status', 'locked');
-  await expect(menu(page).getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' })).toBeVisible();
+  await expect(menu(page).getByRole('button', { name: 'ทำต่อ: บทเรียน: ระบบปฏิบัติการคืออะไร' })).toBeVisible();
   // Then the cases open one by one.
   await skipOrder(page);
   await expect(step(page, 'cases')).toHaveAttribute('data-status', 'open');

@@ -1,7 +1,7 @@
-// The lesson cartoons' clock (docs/lessons-plan.md task B): the senior says the lines one by one, stops at a
-// question until it is answered right, says why after each answer, and the clip ends after the last line.
-// Pure: the player passes the time that went by; the voice's timings come from src/assets/voice/index.json
-// (tools/voice.py). Without a recording a line takes its reading time, and his mouth still moves.
+// The lesson cartoons' rules (docs/lessons-plan.md): what the senior says and when his mouth is open (the voice's
+// timings come from src/assets/voice/index.json, tools/voice.py; without a recording a line takes its reading time),
+// the words on the board and under the picture, and the review questions answered after the video.
+// Pure: the video studio (src/studio) draws from it, the lesson page (src/ui/lesson) keeps the answers.
 
 import type { Lesson } from '../content/schema';
 
@@ -26,9 +26,6 @@ export interface Utterance {
   file: string | null;
 }
 
-/** Playback speeds the learner can pick. */
-export const SPEEDS = [1, 1.25] as const;
-
 /** How long a line takes to read with no recording: a pause plus a little per letter. */
 export function readMs(text: string): number {
   return 1200 + 70 * [...text].length;
@@ -49,108 +46,50 @@ export function utterance(say: string, voice: VoiceIndex | null): Utterance {
 }
 
 /** The subtitle of a line: its own `th`, or `say` with the spelt-out English words written as on screen.
- *  Longer words first, so "วินโดวส์ สิบเอ็ด" becomes "Windows 11", not "Windows สิบเอ็ด". */
+ *  Longer words first, so "วินโดวส์ สิบเอ็ด" becomes "Windows 11", not "Windows สิบเอ็ด"; spaced from the Thai around it. */
 export function subtitle(line: { say: string; th?: string }, words: Record<string, string>): string {
   if (line.th) return line.th;
   const keys = Object.keys(words).sort((a, b) => b.length - a.length);
   if (!keys.length) return line.say;
   const re = new RegExp(keys.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
-  return line.say.replace(re, (k) => words[k]!);
+  // Thai runs words together, English does not: a word swapped in gets a space where it touches Thai letters.
+  const thai = (c: string | undefined) => !!c && /[฀-๿]/.test(c);
+  return line.say.replace(re, (k, at: number, all: string) => `${thai(all[at - 1]) ? ' ' : ''}${words[k]!}${thai(all[at + k.length]) ? ' ' : ''}`);
 }
 
-/** Where a clip is. `line`: saying line `at` · `ask`: waiting for an answer to question `q` · `feedback`: saying
- *  why the answer was right or wrong · `retry`: after a wrong answer, waiting for "watch again" or "try again" ·
- *  `end`: after the last line. `t` is the time into what is being said. */
-export type Phase = 'line' | 'ask' | 'feedback' | 'retry' | 'end';
-export interface ClipState {
-  phase: Phase;
-  at: number;
-  t: number;
-  /** The question being asked or answered. */
-  q: number | null;
-  /** Whether the last answer was right (for `feedback`). */
-  right: boolean;
-  /** Every answer given, per question, in order: the first is what the teacher sees. */
-  answers: number[][];
+/** Longer than this, a list on the board is shown one item at a time. */
+export const BOARD_FITS = 60;
+
+/** The board's words `t` ms into a line `ms` long: a list too long to show at once ("A → B → C", three or more
+ *  items, longer than BOARD_FITS) shows one item at a time, each for an even share of the line; a short flow such
+ *  as "OS → Driver → Printer" and anything else as it is. */
+export function boardText(board: string, t: number, ms: number): string {
+  const parts = board.split(' → ');
+  if (parts.length < 3 || board.length <= BOARD_FITS) return board;
+  return parts[Math.min(parts.length - 1, Math.floor((t / ms) * parts.length))]!;
 }
 
-export function startClip(lesson: Lesson, at = 0): ClipState {
-  return {
-    phase: 'line',
-    at: Math.min(Math.max(0, at), lesson.lines.length - 1),
-    t: 0,
-    q: null,
-    right: false,
-    answers: lesson.questions.map(() => []),
-  };
+/** The review questions after a lesson video: every answer given to each, in order (the first is what the
+ *  teacher sees). A wrong answer can be tried again as often as needed. */
+export type Answers = number[][];
+
+export const noAnswers = (lesson: Lesson): Answers => lesson.questions.map(() => []);
+
+/** The learner picks `choice` for question `q`; once it is answered right it takes no more answers. */
+export function answerQuestion(lesson: Lesson, answers: Answers, q: number, choice: number): Answers {
+  if (solved(lesson, answers, q)) return answers;
+  return answers.map((a, i) => (i === q ? [...a, choice] : a));
 }
 
-const solved = (lesson: Lesson, s: ClipState, q: number) => s.answers[q]!.includes(lesson.questions[q]!.answer);
+/** Question `q` has been answered right (at any try). */
+export const solved = (lesson: Lesson, answers: Answers, q: number) => answers[q]!.includes(lesson.questions[q]!.answer);
 
-/** What is being said now, if anything. */
-export function saying(lesson: Lesson, s: ClipState, voice: VoiceIndex | null): Utterance | null {
-  if (s.phase === 'line') return utterance(lesson.lines[s.at]!.say, voice);
-  if (s.phase === 'feedback') {
-    const q = lesson.questions[s.q!]!;
-    return utterance((s.right ? q.right : q.wrong).say, voice);
-  }
-  return null;
-}
-
-/** After line `at` has been said: its unsolved question, the next line, or the end. */
-function afterLine(lesson: Lesson, s: ClipState): ClipState {
-  const q = lesson.questions.findIndex((x, i) => x.after === s.at + 1 && !solved(lesson, s, i));
-  if (q >= 0) return { ...s, phase: 'ask', q, t: 0 };
-  if (s.at + 1 < lesson.lines.length) return { ...s, phase: 'line', at: s.at + 1, t: 0, q: null };
-  return { ...s, phase: 'end', t: 0, q: null };
-}
-
-/** Moves the clip on by `dt` ms of play at `speed`. Waiting for the learner, nothing moves. */
-export function step(lesson: Lesson, s: ClipState, dt: number, voice: VoiceIndex | null, speed = 1): ClipState {
-  const u = saying(lesson, s, voice);
-  if (!u) return s;
-  const t = s.t + dt * speed;
-  if (t < u.ms) return { ...s, t };
-  if (s.phase === 'line') return afterLine(lesson, s);
-  // Feedback said: on to the next line when right, else the learner chooses.
-  return s.right ? afterLine(lesson, { ...s, at: lesson.questions[s.q!]!.after - 1 }) : { ...s, phase: 'retry', t: 0 };
-}
-
-/** The learner's answer to the question being asked. */
-export function answer(lesson: Lesson, s: ClipState, choice: number): ClipState {
-  if (s.phase !== 'ask' || s.q === null) return s;
-  const answers = s.answers.map((a, i) => (i === s.q ? [...a, choice] : a));
-  return { ...s, phase: 'feedback', t: 0, right: choice === lesson.questions[s.q]!.answer, answers };
-}
-
-/** After a wrong answer: ask again. */
-export function tryAgain(s: ClipState): ClipState {
-  return s.phase === 'retry' ? { ...s, phase: 'ask', t: 0 } : s;
-}
-
-/** Jumps to line `at` (the scene bar, back/next, "watch that part again"). Answers are kept. */
-export function seek(lesson: Lesson, s: ClipState, at: number): ClipState {
-  return { ...s, phase: 'line', at: Math.min(Math.max(0, at), lesson.lines.length - 1), t: 0, q: null };
-}
-
-/** After a wrong answer: back to the part the question is about. */
-export function watchAgain(lesson: Lesson, s: ClipState): ClipState {
-  return s.phase === 'retry' && s.q !== null ? seek(lesson, s, lesson.questions[s.q]!.replay - 1) : s;
-}
-
-/** Done once the end is reached with every question answered right (skipping ahead does not count them). */
-export function finished(lesson: Lesson, s: ClipState): boolean {
-  return s.phase === 'end' && lesson.questions.every((_, i) => solved(lesson, s, i));
-}
+/** Every question answered right: the lesson is done. */
+export const allSolved = (lesson: Lesson, answers: Answers) => lesson.questions.every((_, i) => solved(lesson, answers, i));
 
 /** The first answer to each question, for the teacher's page (-1 when not answered). */
-export function firstAnswers(s: ClipState): number[] {
-  return s.answers.map((a) => a[0] ?? -1);
-}
-
-/** Scenes for the progress bar: runs of lines on the same set, by their first line. */
-export function scenes(lesson: Lesson): number[] {
-  return lesson.lines.flatMap((l, i) => (i === 0 || lesson.lines[i - 1]!.set !== l.set ? [i] : []));
+export function firstAnswers(answers: Answers): number[] {
+  return answers.map((a) => a[0] ?? -1);
 }
 
 export type Mouth = 'closed' | 'small' | 'wide';

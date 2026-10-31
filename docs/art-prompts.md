@@ -370,6 +370,124 @@ Change only [FACE PART]. Transparent background, PNG.
 บันทึกทั้ง 9 ไฟล์ใน `art-source/` แล้วบอก Claude ให้รัน `npm run pixelize -- "art-source/teach-*.png" --height 50` (Claude หาแถวหัวแล้วใส่ `--same-rows` ให้เอง)
 ถ้าท่าไหนแขนดูแปลกหรือตัวขยับ ขอให้ ChatGPT วาดใหม่เฉพาะท่านั้น
 
-### 6.2 ฉากหลังและของในฉาก
+### 6.1b พี่ช่างยิ้มและคิด (`teach-happy`, `teach-thinking`) · 2 ภาพ · เพิ่ม 30 ต.ค.
 
-ผมจะเขียนหลังได้บทพูดจาก ChatGPT ([lessons-plan.md](lessons-plan.md) งานของ ChatGPT ข้อ 2)
+บทระบุสีหน้าพี่ช่างทุกประโยค (ปกติ ยิ้ม คิด) แต่ชุด 6.1 มีแค่หน้าปกติ · ส่งในแชตเดิม **แนบ `art-source/teach-neutral.png` ทุกครั้ง** · ผมตัดเฉพาะตาและปากไปวางทับ (แบบเดียวกับปากที่ขยับ)
+
+```
+Edit the attached sprite. Keep everything pixel-for-pixel identical, including the canvas size, pose, arms, hair,
+glasses and moustache. Change only the eyes and the mouth: [FACE]. Transparent background, PNG.
+```
+
+| ไฟล์ | [FACE] |
+|---|---|
+| `teach-happy.png` | a big friendly smile with the mouth slightly open, eyes squinting happily behind the glasses |
+| `teach-thinking.png` | eyes looking up and to the side, one eyebrow raised, mouth closed and pushed to one side |
+
+บันทึกใน `art-source/` แล้วบอก Claude
+
+### 6.2 ฉากหลังและอุปกรณ์จริงบนจอสาธิต · 11 ภาพ · เพิ่ม 31 ต.ค. 2026 · ✅ ครบแล้ว 31 ต.ค. (`src/assets/props/`, `src/assets/scenes/lesson-room.jpg`)
+
+ผู้ใช้อยากให้จอสาธิตดูออกว่าเป็นของจริง ([lessons-plan.md](lessons-plan.md) ส่วนต่อ 3) · **หน้าจอโปรแกรม (Word, Task Manager, File Explorer ฯลฯ) Claude เขียนด้วยโค้ด** เพราะต้องขยับและตัวหนังสือไทยต้องคม · ChatGPT วาดเฉพาะ**ของจริงที่จับต้องได้**และไอคอน
+ส่งในแชตเดิมที่ตั้งสไตล์ไว้ (ข้อ 1) **แนบ `art-source/monitor.png` ทุกภาพ** ให้ขนาดพิกเซลและเส้นขอบเข้าชุดกับของเดิม · ของที่มีแล้วใช้ต่อ: จอ (`monitor`), โน้ตบุ๊ก (`laptop`), ไอคอน CPU / RAM / SSD
+
+**ภาพที่ 1 ฉากหลังห้องสอน** (`lesson-room.png`) แทนห้องสายพาน · จอใหญ่บนผนังคือที่ผมใส่การสาธิต พี่ช่างยืนขวา เด็กฝึกงานยืนซ้าย จึงต้องเว้นสองข้างให้โล่ง
+
+```
+Background scene in the same style: the inside of the same small computer repair shop, used as a classroom corner.
+16:9 landscape, about 256 x 144 art pixels. A big flat-screen TV is mounted on the back wall: its screen is a plain
+dark navy rectangle (#1b2a4a) with NOTHING on it, centred left-to-right, covering the middle half of the width
+(from about 26% to 74% of the image width) and from about 10% to 58% of the image height, with a thin dark bezel.
+Below the TV a long wooden workbench; on the far left and far right only low, calm things (a plant, a shelf of
+small parts boxes, a lamp) because two characters will stand there in front. Warm indoor light, wooden floor.
+No people. No text, no letters, no numbers, no logos. PNG.
+```
+
+**ภาพที่ 2–3 เคสคอม ปิด / เปิด** (`tower-off.png`, `tower-on.png`) ใช้ตอนกดเปิดเครื่องและตอนบูตไม่ขึ้น
+
+```
+Prop sprite: a desktop PC tower case, front view turned slightly to the left, dark grey and navy, a big round power
+button near the top of the front panel, a small drive light, front air vents. Same pixel size and outline as the
+attached monitor; the tower is about as tall as the monitor including its stand (about 16 x 28 art pixels).
+The power button and lights are OFF (dark grey). No text, no logo. Transparent background, PNG.
+```
+
+ภาพที่ 3 (แนบภาพที่ 2 กลับไป):
+
+```
+Edit the attached sprite. Keep everything pixel-for-pixel identical, including the canvas size. Only turn the power
+on: the power button ring glows teal (#2ec4b6) and the small drive light is green (#7bd65a). Transparent background, PNG.
+```
+
+**ภาพที่ 4 เครื่องพิมพ์** (`printer.png`) · ผมวาดกระดาษที่ค่อยๆ ออกมาและไฟกระพริบเอง ภาพจึงต้องมีถาดรับกระดาษว่าง
+
+```
+Prop sprite: an office inkjet printer, front view seen slightly from above: a paper tray sticking up at the back,
+a wide EMPTY output tray at the front (no paper in it), a small control panel with two round buttons and one small
+light on the right. Light grey body (#d8dee8, #9aa5b8) with navy outline. About 36 x 24 art pixels, a bit wider
+than the attached monitor. No paper, no text, no logo. Transparent background, PNG.
+```
+
+**ภาพที่ 5 มือชี้** (`hand.png`) ใช้กดปุ่มเปิดเครื่องและคลิกในโปรแกรม
+
+```
+Prop sprite: a cartoon right hand with the index finger pointing up and slightly left, the other fingers curled,
+a short white T-shirt sleeve at the wrist, skin #f6c69c with #d9976a shading. About 12 x 16 art pixels, same
+outline as the attached monitor. Transparent background, PNG.
+```
+
+**ภาพที่ 6 แผ่นอุปกรณ์รอบเครื่อง** (`devices-sheet.png`) ผมตัดแยกชิ้นเอง
+
+```
+Icon sheet: 6 separate icons, each about 24 x 24 art pixels, in a 3 x 2 grid with wide empty gaps between them,
+same style and outline as the attached monitor, no text: a keyboard seen from above at a slight angle, a computer
+mouse, a 3.5-inch hard disk drive, a pair of small desk speakers, a webcam on a clip, a USB flash drive.
+Transparent background, PNG.
+```
+
+**ภาพที่ 7 ไอคอน 5 หน้าที่ของ OS** (`functions-sheet.png`) ใช้ตอนขึ้นหัวข้อแต่ละหน้าที่และตอนสรุป
+
+```
+Icon sheet: 5 separate icons, each about 24 x 24 art pixels, in one row with wide empty gaps between them, same style,
+no text, no letters, no numbers:
+1) a CPU chip with three small coloured arrows circling around it (sharing the processor),
+2) a RAM stick with its chips glowing in yellow, teal and coral blocks (memory shared between programs),
+3) a small printer connected by a cable to a plug (devices),
+4) an open yellow folder with two white documents sticking out (files),
+5) a person's head and shoulders with a small yellow padlock in front (users and security).
+Transparent background, PNG.
+```
+
+**ภาพที่ 8 ไอคอนโปรแกรมบนเดสก์ท็อป** (`app-icons-sheet.png`) · หน้าตาคล้ายของจริงแต่**ไม่ใช่โลโก้จริง**
+
+```
+Icon sheet: 8 separate desktop icons, each about 16 x 16 art pixels, in a 4 x 2 grid with wide empty gaps between them,
+same style, NO letters (no "W" or any other letter), no real brand logos:
+a blue word-processor document (a white page with grey text lines on a blue square),
+a web browser (a blue and teal globe), a music player (an orange square with a white music note),
+a yellow file folder, a picture/photo icon (mountain and sun), a recycle bin, a padlock closed, a padlock open.
+Transparent background, PNG.
+```
+
+**ภาพที่ 9–11 สำหรับคลิป 2** (`phone.png`, `tablet.png`, `server-rack.png`) · จอว่างไว้ ผมใส่หน้าจอ OS แต่ละแบบเอง
+
+```
+Prop sprite: a modern smartphone standing upright, front view, thin black bezel, the screen a flat plain dark navy
+(#1b2a4a) with NOTHING on it, a tiny camera dot at the top. About 12 x 22 art pixels, same outline as the attached
+monitor. No text, no logo. Transparent background, PNG.
+```
+
+```
+Prop sprite: a tablet standing in landscape orientation on a small stand, front view, thin black bezel, the screen
+a flat plain dark navy (#1b2a4a) with NOTHING on it. About 28 x 20 art pixels, same outline as the attached monitor.
+No text, no logo. Transparent background, PNG.
+```
+
+```
+Prop sprite: a tall server rack cabinet with a glass door, front view, containing five stacked flat server units,
+each with a row of tiny lights in green (#7bd65a), teal and yellow, and cables at the side. Dark navy and grey metal.
+About 26 x 44 art pixels, taller than the attached monitor. No text, no logo. Transparent background, PNG.
+```
+
+บันทึกทั้ง 11 ไฟล์ในโฟลเดอร์รูปเดิมหรือ `art-source/` ด้วยชื่อตามวงเล็บ แล้วบอก Claude · ระหว่างรอ ผมใช้ภาพชั่วคราวไปก่อน
+ถ้าภาพไหนมีตัวหนังสือหรือโลโก้ติดมา ให้สั่ง "remove all text and logos, keep everything else identical"
