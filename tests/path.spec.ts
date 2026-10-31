@@ -31,7 +31,7 @@ test('case 1 from the menu: its stars and coins are saved, and the menu then off
   await expect(page.locator('.case-panel')).toContainText('น้องบีม');
 });
 
-test('a replay from its card starts that case, and a worse run keeps the best stars', async ({ page }, info) => {
+test('a replay from its card starts that case, and a worse run keeps the best stars and the first play stars', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'the menu itself is checked at every size in menu.spec.ts');
   await openShop(page);
   await playCase1(page);
@@ -70,7 +70,7 @@ test('a replay from its card starts that case, and a worse run keeps the best st
   await page.locator('.case-panel').getByRole('button', { name: 'กลับเมนู' }).click();
   await expect(caseRow(page, 'c01-boot-order').getByLabel('ได้ 3 ดาว')).toBeVisible();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('shop.progress.v2')!).cases['c01-boot-order']);
-  expect(saved).toEqual({ stars: 3, plays: 2 });
+  expect(saved).toEqual({ stars: 3, plays: 2, first: 3 });
 });
 
 test('"☰ เมนู": straight back before the job starts; in the middle it asks, and leaving starts the case over', async ({ page }, info) => {

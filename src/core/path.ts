@@ -46,6 +46,8 @@ export interface CaseRecord {
   /** Best stars over all plays. */
   stars: number;
   plays: number;
+  /** Stars of the first play, for the teacher's page (null: played before this was kept, 1 Nov 2026). */
+  first: number | null;
 }
 
 export interface OrderRecord {
@@ -179,10 +181,11 @@ function nextStep(steps: PathView['steps'], cases: PathView['cases']): PathView[
   return { step: 'results' };
 }
 
-/** A case finished: count the play and keep the best stars. */
+/** A case finished: count the play, keep the best stars, and the first play's stars once. */
 export function recordCase(p: Progress, caseId: string, stars: number): Progress {
   const rec = p.cases[caseId];
-  return { ...p, cases: { ...p.cases, [caseId]: { stars: Math.max(stars, rec?.stars ?? 0), plays: (rec?.plays ?? 0) + 1 } } };
+  const first = rec ? rec.first : stars;
+  return { ...p, cases: { ...p.cases, [caseId]: { stars: Math.max(stars, rec?.stars ?? 0), plays: (rec?.plays ?? 0) + 1, first } } };
 }
 
 /** A lesson, the ordering game or the reflection finished. */
@@ -339,7 +342,8 @@ export function parseProgress(raw: string | null, oldRaw: string | null = null):
       if (!isObj(r)) continue;
       const stars = count(r.stars);
       const plays = count(r.plays);
-      if (stars !== null && stars <= 3 && plays !== null) cases[id] = { stars, plays };
+      const first = count(r.first);
+      if (stars !== null && stars <= 3 && plays !== null) cases[id] = { stars, plays, first: first !== null && first <= 3 ? first : null };
     }
   const saved = v.done;
   const done = Array.isArray(saved) ? STEPS.filter((s) => saved.includes(s)) : [];

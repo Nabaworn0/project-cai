@@ -88,6 +88,11 @@ test('cases open one after another and keep the best stars', () => {
   let p = learned();
   p = recordCase(p, 'c1', 3);
   p = recordCase(p, 'c1', 1);
+  assert.deepEqual(p.cases.c1, { stars: 3, plays: 2, first: 3 }, 'the first play is kept apart from the best');
+  assert.equal(recordCase(recordCase(learned(), 'c2', 1), 'c2', 3).cases.c2!.first, 1);
+  assert.deepEqual(parseProgress(JSON.stringify(p)).cases.c1, p.cases.c1, 'read back');
+  assert.equal(parseProgress(JSON.stringify({ cases: { c1: { stars: 2, plays: 1 } } })).cases.c1!.first, null, 'kept before the first play was');
+  assert.equal(parseProgress(JSON.stringify({ cases: { c1: { stars: 2, plays: 1, first: 4 } } })).cases.c1!.first, null);
   const v = pathView(p, ALL);
   assert.deepEqual(v.cases, [
     { id: 'c1', status: 'done', stars: 3 },
@@ -207,7 +212,7 @@ test('bad fields are dropped one by one, keeping the rest', () => {
       seen: ['intro', 'intro', '', 7, 'x'.repeat(41), 'c1'],
     }),
   );
-  assert.deepEqual(p, { ...EMPTY, done: ['order'], cases: { c4: { stars: 2, plays: 3 } }, seen: ['intro', 'c1'] });
+  assert.deepEqual(p, { ...EMPTY, done: ['order'], cases: { c4: { stars: 2, plays: 3, first: null } }, seen: ['intro', 'c1'] });
 });
 
 test('an unfinished test is kept, read back, and cleared by its result', () => {

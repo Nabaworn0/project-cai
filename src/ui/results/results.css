@@ -1,0 +1,40 @@
+/* The learner's results (ResultsScreen.tsx) on the learning page's notice board; the scores borrow the test's
+   (quiz.css). Each objective is a card of four figures, two by two on a phone. */
+.results { display: grid; gap: 10px; container-type: inline-size; }
+.results-top { display: grid; gap: 4px; }
+.menu-scroll .results-steps { margin: 0; text-align: center; font-size: 15px; }
+.results-steps b { font-family: var(--f-head); font-size: 20px; }
+.results-h { margin: 8px 0 0; padding: 4px 10px; font-family: var(--f-head); font-size: 17px; color: #fff; background: var(--navy); }
+
+.results-obj { display: grid; gap: 6px; padding: 8px 10px; background: #fff; box-shadow: inset 0 0 0 2px var(--navy); }
+.results-obj h3 { margin: 0; font-family: var(--f-head); font-size: 15px; }
+.results-cells { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.results-cell { display: grid; align-content: start; justify-items: center; gap: 2px; padding: 6px 4px; text-align: center; background: #fff4e0; box-shadow: inset 0 0 0 2px #d8c9a8; }
+.results-cell small { font-size: 12px; color: #5f6b80; }
+.results-cell b { font-family: var(--f-head); font-size: 20px; line-height: 1.2; color: var(--ink); }
+.results-cell span { font-size: 11.5px; line-height: 1.3; color: #5f6b80; }
+.results-cell.empty b { color: #9aa5b8; }
+.results-cell b[aria-label$='ดาว'] { font-size: 15px; color: #d9a12b; letter-spacing: -1px; }
+@container (max-width: 520px) {
+  .results-cells { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.results-todo { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.results-todo li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; font-size: 15px; background: #fff; box-shadow: inset 4px 0 0 var(--coral), inset 0 0 0 2px var(--navy); }
+.results-todo .chip { flex: none; cursor: pointer; background: var(--yellow); color: var(--ink); min-height: 40px; }
+
+.menu-scroll .results-how { margin: 0; font-size: 14px; color: #5f6b80; }
+.menu .results-send { flex-wrap: wrap; }
+.results-send .btn:disabled { opacity: 0.45; cursor: default; }
+.menu-scroll .results-copied { margin: 0; font-weight: 700; }
+.results-copied.ok { color: #2f7a3c; }
+.results-copied.fail { color: #c23b3b; }
+
+/* Sending to the teacher's sheet. */
+.results-sync { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; background: #fff; box-shadow: inset 4px 0 0 #9aa5b8, inset 0 0 0 2px var(--navy); }
+.menu-scroll .results-sync p { margin: 0; flex: 1 1 14em; font-size: 15px; font-weight: 700; }
+.results-sync.sent { box-shadow: inset 4px 0 0 #2e8b57, inset 0 0 0 2px var(--navy); }
+.results-sync.sent p { color: #2f7a3c; }
+.results-sync.failed { box-shadow: inset 4px 0 0 var(--coral), inset 0 0 0 2px var(--navy); }
+.results-sync.failed p { color: #c23b3b; }
+.results-sync .chip { cursor: pointer; background: var(--yellow); color: var(--ink); min-height: 40px; }

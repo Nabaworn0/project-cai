@@ -17,6 +17,8 @@ import { SUMMARY_REVEAL_MS } from './case/SummaryCard';
 import { MenuScreen } from './menu/MenuScreen';
 import { LessonScreen } from './lesson/LessonScreen';
 import { ReflectScreen } from './reflect/ReflectScreen';
+import { useSync } from './sync';
+import { ResultsScreen } from './results/ResultsScreen';
 import { OrderScreen } from './order/OrderScreen';
 import { QuizScreen } from './quiz/QuizScreen';
 import { loadProgress, saveProgress, type Progress } from './progress';
@@ -31,7 +33,7 @@ const content = loadContent();
 const params = new URLSearchParams(location.search);
 
 /** Steps whose screens exist (docs/learning-path-plan.md); the rest show as "เร็วๆ นี้". */
-const BUILT: ReadonlySet<StepId> = new Set<StepId>(['pre', 'lesson-os', 'lesson-types', 'order', 'cases', 'post', 'reflect']);
+const BUILT: ReadonlySet<StepId> = new Set<StepId>(['pre', 'lesson-os', 'lesson-types', 'order', 'cases', 'post', 'reflect', 'results']);
 const pathOptions: PathOptions = { built: BUILT, caseIds: PLAYABLE, unlockAll: params.get('unlock') === 'all' };
 
 /** The shop scene, started once on the first visit. */
@@ -40,7 +42,7 @@ const startShop = () => (game ??= import('../game').then(({ startGame }) => star
 /** Long enough for a customer to walk out before the scene is paused. */
 const PAUSE_AFTER_MS = 3000;
 
-type View = 'menu' | 'test' | 'lesson' | 'order' | 'shop' | 'reflect';
+type View = 'menu' | 'test' | 'lesson' | 'order' | 'shop' | 'reflect' | 'results';
 const VIEW: Record<Route, View> = {
   learn: 'menu',
   pre: 'test',
@@ -50,6 +52,7 @@ const VIEW: Record<Route, View> = {
   order: 'order',
   shop: 'shop',
   reflect: 'reflect',
+  results: 'results',
 };
 /** ?case= (teachers, tests) goes straight to that customer, outside the pages. */
 const caseLink = params.has('case');
@@ -65,6 +68,7 @@ export function App() {
   const [ready, setReady] = useState(false);
   const [sign, setSign] = useState<ShopLayout['sign'] | null>(null);
   const [progress, setProgress] = useState(loadProgress);
+  const sync = useSync(progress);
   // The page the address asks for, if it may open now; else the learning page.
   const [route, setRoute] = useState<Route>(() => allowedRoute(parseRoute(location.hash), !!progress.learner, pathView(progress, pathOptions)));
   const view: View = caseLink ? 'shop' : VIEW[route];
@@ -184,7 +188,7 @@ export function App() {
     if (step === 'cases') {
       pending.current = { caseId, replayIntro: opts.replayIntro };
       go('shop');
-    } else if (step === 'pre' || step === 'post' || step === 'order' || step === 'lesson-os' || step === 'lesson-types' || step === 'reflect') go(step);
+    } else if (step === 'pre' || step === 'post' || step === 'order' || step === 'lesson-os' || step === 'lesson-types' || step === 'reflect' || step === 'results') go(step);
   };
   const toMenu = () => {
     pending.current = { leaving: true };
@@ -242,6 +246,7 @@ export function App() {
           onReset={() => update(() => EMPTY)}
           onEnter={enter}
           coins={<CoinChip coins={progress.coins} />}
+          className={sync.cls?.name}
         />
       ) : view === 'test' ? (
         <QuizScreen
@@ -263,6 +268,15 @@ export function App() {
           saved={progress.lessons[route]}
           onSave={(r) => update((p) => recordLesson(p, route as StepId, r))}
           onBack={toMenu}
+        />
+      ) : view === 'results' ? (
+        <ResultsScreen
+          progress={progress}
+          content={{ test: content.test.items, lessons: content.lessons.lessons, reflect: content.reflect, caseIds: PLAYABLE }}
+          canEnter={(id) => !!pathView(progress, pathOptions).steps.find((s) => s.id === id)?.canEnter}
+          onEnter={(id) => enter(id)}
+          onBack={toMenu}
+          sync={sync}
         />
       ) : view === 'reflect' ? (
         <ReflectScreen

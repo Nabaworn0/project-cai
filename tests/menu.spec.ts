@@ -59,15 +59,13 @@ test('a first visit asks for the name, checks it, then shows the path with case 
   // The pre-test comes first; the shop and the post-test are shut until then.
   await expect(menu(page).getByRole('button', { name: 'ทำต่อ: แบบทดสอบก่อนเรียน' })).toBeVisible();
   await expect(step(page, 'pre')).toHaveAttribute('data-status', 'open');
-  for (const id of ['lesson-os', 'lesson-types', 'order', 'cases', 'post']) {
+  for (const id of ['lesson-os', 'lesson-types', 'order', 'cases', 'post', 'reflect']) {
     await expect(step(page, id)).toHaveAttribute('data-status', 'locked');
     await expect(step(page, id).locator('.path-row')).toBeDisabled();
   }
-  // Steps not built yet say so and cannot be tapped.
-  for (const id of ['results']) {
-    await expect(step(page, id)).toHaveAttribute('data-status', 'soon');
-    await expect(step(page, id).locator('.path-row')).toBeDisabled();
-  }
+  // The results can be looked at from the start.
+  await expect(step(page, 'results')).toHaveAttribute('data-status', 'open');
+  await expect(step(page, 'results').locator('.path-row')).toBeEnabled();
   await expect(step(page, 'lesson-os')).toContainText('วัตถุประสงค์ข้อ 1');
   for (const id of ['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip', 'c05-lab-upgrade']) {
     await expect(caseRow(page, id)).toHaveAttribute('data-status', 'locked');

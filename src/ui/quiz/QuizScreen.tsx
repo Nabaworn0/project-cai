@@ -7,18 +7,12 @@
 import { useRef, useState } from 'preact/hooks';
 import { STEP_INFO, type QuizResult } from '../../core/path';
 import { finish, grade, pick, resumable, shown, startTest, unanswered, type TestDraft, type TestItem, type TestKind } from '../../core/quiz';
+import { OBJECTIVE_TH } from '../../core/results';
 import { LearnPage } from '../menu/MenuScreen';
 import './quiz.css';
 
 const LETTERS = ['ก', 'ข', 'ค', 'ง', 'จ'];
 
-/** The course objectives the test measures (objective 4 is measured by the cases' stars). */
-const OBJECTIVE_TH: Record<number, string> = {
-  1: 'ความหมายของระบบปฏิบัติการ',
-  2: 'ประเภทของระบบปฏิบัติการ',
-  3: 'ขั้นตอนการติดตั้ง Windows 11',
-  4: 'ลงมือติดตั้ง Windows 11',
-};
 
 interface Props {
   items: readonly TestItem[];

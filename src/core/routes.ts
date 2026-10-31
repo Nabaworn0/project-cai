@@ -1,10 +1,10 @@
 // The game's pages and their addresses (docs/pages-plan.md, approved 29 Oct 2026): #/learn, #/pre, #/post,
-// #/order, #/shop, #/reflect, and the lessons #/lesson-os, #/lesson-types. An address can be typed, shared, reloaded or reached with Back, so whether its page may open is
+// #/order, #/shop, #/reflect, #/results, and the lessons #/lesson-os, #/lesson-types. An address can be typed, shared, reloaded or reached with Back, so whether its page may open is
 // decided here from the learning path, the same way the menu's cards are.
 
 import type { PathView } from './path';
 
-export const ROUTES = ['learn', 'pre', 'post', 'lesson-os', 'lesson-types', 'order', 'shop', 'reflect'] as const;
+export const ROUTES = ['learn', 'pre', 'post', 'lesson-os', 'lesson-types', 'order', 'shop', 'reflect', 'results'] as const;
 export type Route = (typeof ROUTES)[number];
 
 /** Page names, for "กำลังไปที่ …" while the shutter is down. */
@@ -17,6 +17,7 @@ export const ROUTE_TH: Record<Route, string> = {
   order: 'เรียงขั้นตอนการติดตั้ง',
   shop: 'ร้านซ่อมคอม',
   reflect: 'สะท้อนผลและประเมินความพึงพอใจ',
+  results: 'สรุปผลการเรียน',
 };
 
 export const routeHash = (r: Route) => `#/${r}`;

@@ -18,12 +18,14 @@ interface Props {
   onEnter: (step: StepId, caseId?: string, opts?: { replayIntro?: boolean }) => void;
   /** The coin purse, shown in the page's header. */
   coins: ComponentChildren;
+  /** The class the results are sent to (opened from the class's link), if any. */
+  className?: string | null;
 }
 
 const STATUS_TH = { soon: 'เร็วๆ นี้', locked: 'ยังไม่เปิด', open: 'ยังไม่ทำ', done: 'ทำแล้ว' } as const;
 const STATUS_ICON = { soon: '…', locked: '🔒', open: '▶', done: '✓' } as const;
 
-export function MenuScreen({ content, progress, options, onLearner, onReset, onEnter, coins }: Props) {
+export function MenuScreen({ content, progress, options, onLearner, onReset, onEnter, coins, className = null }: Props) {
   const view = pathView(progress, options);
   const caseName = (id: string) => {
     const t = content.cases.find((c) => c.id === id);
@@ -53,7 +55,7 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
       scrollKey={progress.learner ? 'path' : 'form'}
     >
       {!progress.learner ? (
-        <LearnerForm onSave={onLearner} />
+        <LearnerForm onSave={onLearner} className={className} />
       ) : (
         <>
           {nextOk && (
@@ -187,7 +189,7 @@ export function LearnPage(props: {
   );
 }
 
-function LearnerForm({ onSave }: { onSave: (l: Learner) => void }) {
+function LearnerForm({ onSave, className }: { onSave: (l: Learner) => void; className: string | null }) {
   const [l, setL] = useState<Learner>({ name: '', room: '', no: '' });
   const [error, setError] = useState<string | null>(null);
   const field = (k: keyof Learner) => (e: Event) => setL({ ...l, [k]: (e.target as HTMLInputElement).value });
@@ -199,7 +201,13 @@ function LearnerForm({ onSave }: { onSave: (l: Learner) => void }) {
   };
   return (
     <form class="learner-form" onSubmit={submit} noValidate>
-      <p>สวัสดีเด็กฝึกงานคนใหม่ กรอกชื่อก่อนเริ่มเรียน ชื่อนี้ใช้ในหน้าสรุปผลที่ส่งครู และเก็บไว้ในเครื่องนี้เท่านั้น</p>
+      {className ? (
+        <p data-testid="class-notice">
+          สวัสดีเด็กฝึกงานคนใหม่ กรอกชื่อก่อนเริ่มเรียน · <b>ผลการเรียนพร้อมชื่อนี้จะส่งให้ครูของห้อง {className}</b> ทุกครั้งที่ทำขั้นไหนเสร็จ
+        </p>
+      ) : (
+        <p>สวัสดีเด็กฝึกงานคนใหม่ กรอกชื่อก่อนเริ่มเรียน ชื่อนี้ใช้ในหน้าสรุปผลที่ส่งครู และเก็บไว้ในเครื่องนี้เท่านั้น</p>
+      )}
       <label>
         ชื่อ-สกุล
         <input value={l.name} onInput={field('name')} autocomplete="name" maxLength={60} />
