@@ -1,6 +1,6 @@
 // The start page before the name form (docs/start-page-plan.md): the boot screen the first time on a device, the
-// WINSTALL title with its animations (skipped by a tap, or not run for those who ask for less motion), what the game
-// teaches, the class's badge with "not my class", the class-mismatch note in the name form, and "เกี่ยวกับเกม".
+// WINSTALL title with its animations (skipped by a tap, or not run for those who ask for less motion) on one screen,
+// what the game teaches folded under it, the class's badge with "not my class", the class-mismatch note in the name form, and "เกี่ยวกับเกม".
 
 import { expect, test, type Page, type Route } from '@playwright/test';
 import start from '../src/content/data/start.json' with { type: 'json' };
@@ -27,11 +27,11 @@ test('a first visit: the boot screen, then the start page, then the name form', 
   const s = startPage(page);
   await expect(s.getByRole('heading', { level: 1 })).toHaveText('WINSTALL');
   await expect(s).toContainText(start.tagline);
-  await expect(s.locator('.start-goals li')).toHaveText(start.goals);
-  await expect(s.locator('.start-steps li')).toHaveText(start.steps.map((t, i) => `${i + 1}${t}`));
   await expect(s).toContainText(start.time);
-  await expect(s.locator('.start-how li')).toHaveText(start.howTo);
   await expect(s.getByRole('link', { name: start.teacherLink })).toHaveAttribute('href', /\?view=teacher$/);
+  // The steps are the menu's to show; what the game teaches is folded away, there to open.
+  await expect(s.locator('.start-steps, .start-how')).toHaveCount(0);
+  await expect(s.locator('.start-goals li').first()).toBeHidden();
   // No class link: nothing about sending.
   await expect(s.getByTestId('start-class')).toHaveCount(0);
   // Everything in place on its own, and the page fits the screen's width.
@@ -39,7 +39,14 @@ test('a first visit: the boot screen, then the start page, then the name form', 
   await expect(s.locator('.start-bubble')).toContainText(start.greeting);
   expect(await page.evaluate(() => document.querySelector('.start-scroll')!.scrollWidth - document.querySelector('.start-scroll')!.clientWidth)).toBe(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+  // One screen: nothing to scroll to, the button to start in full view.
+  expect(await page.evaluate(() => document.querySelector('.start-scroll')!.scrollHeight - document.querySelector('.start-scroll')!.clientHeight)).toBeLessThanOrEqual(0);
+  const go = (await s.getByRole('button', { name: start.start }).boundingBox())!;
+  expect(go.y + go.height).toBeLessThanOrEqual(page.viewportSize()!.height);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/start-${info.project.name}.png` });
+  await s.getByText(start.goalsTitle).click();
+  await expect(s.locator('.start-goals li')).toHaveText(start.goals);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/start-goals-${info.project.name}.png` });
 
   await s.getByRole('button', { name: start.start }).click();
   await expect(menu(page).getByLabel('ชื่อ-สกุล')).toBeVisible();

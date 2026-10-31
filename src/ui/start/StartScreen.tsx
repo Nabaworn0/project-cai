@@ -1,7 +1,8 @@
 // The start page before the name form (docs/start-page-plan.md): a boot screen the first time on this device
 // ("Press any key to start", the same line learners meet when booting from the USB drive in the cases), then the
-// game's name WINSTALL over the shop's workbench, the senior greeting the intern, what the game teaches and what
-// the learner will do. The wording is ChatGPT's (src/content/data/start.json).
+// game's name WINSTALL over the shop's workbench, the senior greeting the intern, and the button to start, all on
+// one screen; what the game teaches is folded under it. The wording is ChatGPT's (src/content/data/start.json; its
+// list of steps and how to play are kept there but not shown: the menu shows the steps, 1 Nov 2026).
 //
 // Animated with CSS and a few timers, all of it skipped by a tap, and none of it for those who ask for less motion.
 
@@ -198,7 +199,7 @@ function Title({ text, className, onLeaveClass, muted, onMuted, onStart, again =
                       ))}
                     </p>
                     <button
-                      class="btn ghost small"
+                      class="start-link"
                       type="button"
                       onClick={() => {
                         onLeaveClass();
@@ -212,46 +213,31 @@ function Title({ text, className, onLeaveClass, muted, onMuted, onStart, again =
               </div>
             )}
 
-            <h2>{text.goalsTitle}</h2>
-            <ol class="start-goals">
-              {text.goals.map((g, i) => (
-                <li key={i} style={{ '--i': i }}>
-                  {g}
-                </li>
-              ))}
-            </ol>
-
-            <h2>{text.stepsTitle}</h2>
-            <ol class="start-steps">
-              {text.steps.map((s, i) => (
-                <li key={i} style={{ '--i': i + 4 }}>
-                  <span class="start-no">{i + 1}</span>
-                  {s}
-                </li>
-              ))}
-            </ol>
-            <p class="start-time">⏱ {text.time}</p>
-
-            <ul class="start-how">
-              {text.howTo.map((h, i) => (
-                <li key={i}>{h}</li>
-              ))}
-            </ul>
-
-            <div class="start-actions">
+            <div class="start-row">
+              <p class="start-time">⏱ {text.time}</p>
               <button class="btn ghost small" type="button" aria-pressed={!muted} onClick={() => onMuted(!muted)}>
                 {muted ? `🔇 ${text.soundOff}` : `🔊 ${text.soundOn}`}
               </button>
-              <button class="btn start-go" type="button" onClick={onStart}>
-                {again ? 'กลับไปเมนู' : text.start}
-              </button>
+            </div>
+            <button class="btn start-go" type="button" onClick={onStart}>
+              {again ? 'กลับไปเมนู' : text.start}
+            </button>
+
+            {/* What the game teaches, folded: there for whoever wants it (and for the teacher showing it). */}
+            <div class="start-row">
+              <details class="start-goals-box">
+                <summary>{text.goalsTitle}</summary>
+                <ol class="start-goals">
+                  {text.goals.map((g, i) => (
+                    <li key={i}>{g}</li>
+                  ))}
+                </ol>
+              </details>
+              <a class="start-teacher" href={teacher}>
+                {text.teacherLink}
+              </a>
             </div>
           </div>
-
-          <footer class="start-foot">
-            <span>รายวิชา 21910-2001 ระบบปฏิบัติการเบื้องต้น</span>
-            <a href={teacher}>{text.teacherLink}</a>
-          </footer>
         </div>
       </div>
     </main>
