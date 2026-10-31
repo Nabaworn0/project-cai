@@ -6,6 +6,7 @@
 
 import { orderStars, type OrderResult } from './order';
 import type { TestDraft } from './quiz';
+import { MAX_WRITE, type ReflectAnswers, type ReflectResult } from './reflect';
 
 export const STEPS = ['pre', 'lesson-os', 'lesson-types', 'order', 'cases', 'post', 'reflect', 'results'] as const;
 export type StepId = (typeof STEPS)[number];
@@ -23,7 +24,7 @@ export const STEP_INFO: Record<StepId, { th: string; objective: number | null }>
 };
 
 /** Tests are taken once, so the pre/post comparison means something. */
-const ONCE: ReadonlySet<StepId> = new Set(['pre', 'post']);
+const ONCE: ReadonlySet<StepId> = new Set(['pre', 'post', 'reflect']);
 
 export interface Learner {
   name: string;
@@ -77,6 +78,9 @@ export interface Progress {
   order: OrderRecord | null;
   /** The lesson cartoons by step id (docs/lessons-plan.md). */
   lessons: Record<string, LessonRecord>;
+  /** The reflection and satisfaction form as sent (docs/reflect-plan.md), and one left half way. */
+  reflect: ReflectResult | null;
+  reflectDraft: ReflectAnswers | null;
 }
 
 export const EMPTY: Progress = {
@@ -90,6 +94,8 @@ export const EMPTY: Progress = {
   testDraft: null,
   order: null,
   lessons: {},
+  reflect: null,
+  reflectDraft: null,
 };
 
 /** What is learned before the shop: the pre-test, both lessons and the step ordering. */
@@ -213,6 +219,11 @@ export function recordQuiz(p: Progress, kind: 'pre' | 'post', r: QuizResult): Pr
   return p[kind] ? { ...p, testDraft } : { ...p, [kind]: r, testDraft };
 }
 
+/** Sends the reflection: the first one stands (a teacher's retake is not kept); the step is done, the draft gone. */
+export function recordReflect(p: Progress, r: ReflectResult): Progress {
+  return { ...markDone(p, 'reflect'), reflect: p.reflect ?? r, reflectDraft: null };
+}
+
 /** Why the name form cannot be saved yet, or null. */
 export function learnerError(l: Learner): string | null {
   if (!l.name.trim()) return 'กรอกชื่อ-สกุล';
@@ -288,6 +299,21 @@ function lessonRecords(v: unknown): Record<string, LessonRecord> {
   return out;
 }
 
+/** Ratings 1-5 and texts by id; anything else in them makes the whole lot unreadable. */
+function reflectAnswers(v: unknown): ReflectAnswers | null {
+  if (!isObj(v) || !isObj(v.self) || !isObj(v.write) || !isObj(v.sat) || typeof v.suggest !== 'string') return null;
+  const rating = (m: Record<string, unknown>) => Object.values(m).every((x) => Number.isInteger(x) && (x as number) >= 1 && (x as number) <= 5);
+  const texts = Object.values(v.write).every((x) => typeof x === 'string' && x.length <= MAX_WRITE);
+  if (!rating(v.self) || !rating(v.sat) || !texts || v.suggest.length > MAX_WRITE) return null;
+  return { self: v.self as Record<string, number>, write: v.write as Record<string, string>, sat: v.sat as Record<string, number>, suggest: v.suggest };
+}
+
+function reflectResult(v: unknown): ReflectResult | null {
+  const a = reflectAnswers(v);
+  const at = isObj(v) ? count(v.at) : null;
+  return a && at !== null ? { ...a, at } : null;
+}
+
 function learner(v: unknown): Learner | null {
   if (!isObj(v)) return null;
   const name = str(v.name);
@@ -329,5 +355,7 @@ export function parseProgress(raw: string | null, oldRaw: string | null = null):
     testDraft: draft(v.testDraft),
     order: orderRecord(v.order),
     lessons: lessonRecords(v.lessons),
+    reflect: reflectResult(v.reflect),
+    reflectDraft: reflectAnswers(v.reflectDraft),
   };
 }

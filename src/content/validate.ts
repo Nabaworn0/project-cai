@@ -20,6 +20,7 @@ import {
   ObjectivesSchema,
   ProblemsSchema,
   CourseTestSchema,
+  ReflectSchema,
   OrderSchema,
   LessonsSchema,
   type Brand,
@@ -32,6 +33,7 @@ import {
   type Objectives,
   type Problem,
   type CourseTest,
+  type Reflect,
   type Order,
   type Lessons,
 } from './schema';
@@ -66,6 +68,7 @@ export interface ParsedContent {
   cutscenes?: Cutscenes;
   order?: Order;
   lessons?: Lessons;
+  reflect?: Reflect;
 }
 
 export interface ValidateOptions {
@@ -98,6 +101,7 @@ export function validateContent(files: readonly ContentFile[], opts: ValidateOpt
   checkProblems(parsed, checkLo, errors);
   const generated = checkCases(parsed, seeds, checkLo, errors, warnings);
   checkTest(parsed.test, errors, warnings);
+  checkReflect(parsed.reflect, errors, warnings);
   checkOrder(parsed.order, errors, warnings);
   checkCards(parsed, errors, warnings);
   checkWin11Check(parsed, errors);
@@ -141,9 +145,10 @@ export function parseAll(files: readonly ContentFile[], errors: string[]): Parse
     else if (f.path === 'test.json') out.test = parse(CourseTestSchema, f);
     else if (f.path === 'order.json') out.order = parse(OrderSchema, f);
     else if (f.path === 'lessons.json') out.lessons = parse(LessonsSchema, f);
+    else if (f.path === 'reflect.json') out.reflect = parse(ReflectSchema, f);
     else
       errors.push(
-        `${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, test, order, lessons, brands/, cases/)`,
+        `${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, test, order, lessons, reflect, brands/, cases/)`,
       );
   }
   return out;
@@ -402,6 +407,25 @@ function checkTest(test: CourseTest | undefined, errors: string[], warnings: str
     dupes(it.choicesTh, `test.json[${it.id}]: duplicate choice`, errors);
   }
   for (const o of [1, 2, 3]) if (!test.items.some((i) => i.objective === o)) errors.push(`test.json: no question for objective ${o}`);
+}
+
+/** The reflection: every item told apart by id, one self-check per objective 1-4, every satisfaction item in a
+ *  group that exists and every group used. */
+function checkReflect(r: Reflect | undefined, errors: string[], warnings: string[]): void {
+  if (!r) {
+    errors.push('reflect.json: missing');
+    return;
+  }
+  if (r.draft) warnings.push('reflect.json: ข้อความยังเป็นร่าง');
+  dupes([...r.self, ...r.write, ...r.satisfaction].map((i) => i.id), 'reflect.json: duplicate id', errors);
+  dupes(r.groups.map((g) => g.id), 'reflect.json: duplicate group', errors);
+  for (const o of [1, 2, 3, 4]) {
+    const n = r.self.filter((s) => s.objective === o).length;
+    if (n !== 1) errors.push(`reflect.json: objective ${o} has ${n} self-checks (needs exactly one)`);
+  }
+  const groups = new Set(r.groups.map((g) => g.id));
+  for (const s of r.satisfaction) if (!groups.has(s.group)) errors.push(`reflect.json[${s.id}]: unknown group ${s.group}`);
+  for (const g of r.groups) if (!r.satisfaction.some((s) => s.group === g.id)) errors.push(`reflect.json: group ${g.id} has no items`);
 }
 
 /** The ordering game: every card is told apart by id and by its text (the learner sees only the text), and the

@@ -6,7 +6,7 @@ import { EMPTY, markDone, pathView, recordCase, recordQuiz, STEPS, type PathOpti
 import { allowedRoute, parseRoute, ROUTES, routeHash } from '../src/core/routes';
 
 const CASES = ['c1', 'c2'];
-const BUILT: PathOptions = { built: new Set(['pre', 'lesson-os', 'lesson-types', 'order', 'cases', 'post']), caseIds: CASES };
+const BUILT: PathOptions = { built: new Set(['pre', 'lesson-os', 'lesson-types', 'order', 'cases', 'post', 'reflect']), caseIds: CASES };
 const quiz: QuizResult = { score: 5, total: 10, answers: {}, at: 1, seconds: 60 };
 const named: Progress = { ...EMPTY, learner: { name: 'สมชาย ใจดี', room: 'ปวช.1/2', no: '7' } };
 const allowed = (p: Progress, o: PathOptions = BUILT) => ROUTES.filter((r) => allowedRoute(r, !!p.learner, pathView(p, o)) === r);
@@ -22,7 +22,7 @@ test('before a name is given only the learning page opens, even with everything 
   assert.deepEqual(allowed(EMPTY, { ...BUILT, unlockAll: true }), ['learn']);
 });
 
-test('a page opens when its card could be tapped: the pre-test first, then the lessons and the ordering, then the shop, then the post-test', () => {
+test('a page opens when its card could be tapped: the pre-test first, then the lessons and the ordering, then the shop, then the post-test, then the reflection', () => {
   assert.deepEqual(allowed(named), ['learn', 'pre']);
   let p = recordQuiz(named, 'pre', quiz);
   const learning = ['lesson-os', 'lesson-types', 'order'];
@@ -33,7 +33,9 @@ test('a page opens when its card could be tapped: the pre-test first, then the l
   assert.deepEqual(allowed(p), ['learn', ...learning, 'shop']);
   p = CASES.reduce((acc, c) => recordCase(acc, c, 2), p);
   assert.deepEqual(allowed(p), ['learn', 'post', ...learning, 'shop']);
-  assert.deepEqual(allowed(recordQuiz(p, 'post', quiz)), ['learn', ...learning, 'shop']);
+  p = recordQuiz(p, 'post', quiz);
+  assert.deepEqual(allowed(p), ['learn', ...learning, 'shop', 'reflect']);
+  assert.deepEqual(allowed(markDone(p, 'reflect')), ['learn', ...learning, 'shop'], 'the reflection is sent once');
 });
 
 test('?unlock=all opens every page; a step not built yet stays shut', () => {

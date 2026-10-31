@@ -4,6 +4,7 @@ import {
   BrandSchema,
   CaseSchema,
   CourseTestSchema,
+  ReflectSchema,
   OrderSchema,
   LessonsSchema,
   CustomersSchema,
@@ -14,6 +15,7 @@ import {
   type Brand,
   type Case,
   type CourseTest,
+  type Reflect,
   type Order,
   type Lessons,
   type Customer,
@@ -49,6 +51,8 @@ export interface Content {
   order: Order;
   /** The lesson cartoons (docs/lessons-plan.md). */
   lessons: Lessons;
+  /** The reflection and satisfaction form after learning (docs/reflect-plan.md). */
+  reflect: Reflect;
 }
 
 /** Parses (and so applies schema defaults to) the bundled content. Bad content fails loudly at startup. */
@@ -66,5 +70,6 @@ export function loadContent(): Content {
     test: CourseTestSchema.parse(raw['./data/test.json']),
     order: OrderSchema.parse(raw['./data/order.json']),
     lessons: LessonsSchema.parse(raw['./data/lessons.json']),
+    reflect: ReflectSchema.parse(raw['./data/reflect.json']),
   };
 }

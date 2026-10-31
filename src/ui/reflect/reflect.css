@@ -1,0 +1,41 @@
+/* The reflection page (ReflectScreen.tsx) on the learning page's notice board (menu.css); the check before sending
+   borrows the test's (quiz.css). */
+.reflect { display: grid; gap: 10px; }
+.reflect-senior { display: flex; align-items: flex-end; gap: 10px; }
+.reflect-senior img { flex: none; width: 64px; image-rendering: pixelated; }
+.menu-scroll .reflect-senior p { margin: 0; padding: 8px 12px; font-size: 15px; line-height: 1.5; background: #fff; box-shadow: inset 0 0 0 2px var(--navy); }
+.reflect-thanks { display: grid; gap: 12px; }
+
+.reflect-part { margin: 8px 0 0; padding: 4px 10px; font-family: var(--f-head); font-size: 17px; color: #fff; background: var(--navy); }
+.menu-scroll .reflect-how { margin: 0; font-size: 14px; color: #5f6b80; }
+
+.reflect-item { display: grid; gap: 6px; padding: 8px 10px; background: #fff; box-shadow: inset 0 0 0 2px var(--navy); }
+.reflect-item.left { box-shadow: inset 0 0 0 3px var(--coral); background: #fff5f5; }
+.menu-scroll .reflect-item p { margin: 0; font-size: 15px; line-height: 1.45; }
+.reflect-item > span { font-size: 15px; font-weight: 700; }
+.reflect-item small { font-size: 13px; color: #c23b3b; }
+.reflect-item textarea {
+  width: 100%; box-sizing: border-box; min-height: 3.2em; padding: 6px 8px; resize: vertical;
+  font: inherit; font-size: 16px; line-height: 1.4; color: var(--ink); border: 2px solid var(--navy); border-radius: 0;
+}
+
+.reflect-stars { display: flex; gap: 4px; }
+.reflect-stars button {
+  width: 44px; height: 44px; padding: 0; font-size: 28px; line-height: 1; color: #d8dee8;
+  background: #fff; border: 0; box-shadow: inset 0 0 0 2px var(--navy); cursor: pointer;
+}
+.reflect-stars button.lit { color: #d9a12b; background: #fff8dc; }
+
+.reflect-group { display: grid; gap: 8px; margin: 0; padding: 8px; border: 2px solid var(--navy); background: #fff4e0; }
+.reflect-group legend { padding: 0 6px; font-family: var(--f-head); font-weight: 700; font-size: 16px; }
+.reflect-levels { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.reflect-levels button {
+  display: grid; justify-items: center; gap: 2px; min-height: 48px; padding: 4px 2px; font: inherit; color: var(--ink);
+  background: #fff; border: 0; box-shadow: inset 0 0 0 2px var(--navy); cursor: pointer;
+}
+.reflect-levels b { font-family: var(--f-head); font-size: 17px; line-height: 1.1; }
+.reflect-levels small { font-size: clamp(10px, 3vw, 11.5px); line-height: 1.2; color: #3c475c; white-space: nowrap; }
+.reflect-levels button[aria-checked='true'] { background: var(--yellow); box-shadow: inset 0 0 0 3px var(--navy); }
+
+.reflect-send { display: grid; gap: 6px; }
+.menu-scroll .reflect-left { margin: 0; font-weight: 700; color: #c23b3b; }

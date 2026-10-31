@@ -429,3 +429,33 @@ test('talks: the welcome must exist, scenes belong to cases, faces exist for the
   files = files.filter((f) => f.path !== 'cutscenes.json');
   hasError(files, 'cutscenes.json: missing');
 });
+
+test('the reflection form: ids apart, one self-check per objective, every item in a group and every group used', () => {
+  const R = (files: ContentFile[]) => get(files, 'reflect.json');
+  let files = real();
+  R(files).satisfaction[1].id = R(files).satisfaction[0].id;
+  hasError(files, 'reflect.json: duplicate id "sat-clear"');
+  files = real();
+  R(files).write[0].id = R(files).self[0].id;
+  hasError(files, 'reflect.json: duplicate id "self-os"');
+  files = real();
+  R(files).self[1].objective = 1;
+  hasError(files, 'reflect.json: objective 1 has 2 self-checks');
+  hasError(files, 'reflect.json: objective 2 has 0 self-checks');
+  files = real();
+  R(files).satisfaction[0].group = 'nowhere';
+  hasError(files, 'reflect.json[sat-clear]: unknown group nowhere');
+  files = real();
+  for (const s of R(files).satisfaction) if (s.group === 'design') s.group = 'content';
+  hasError(files, 'reflect.json: group design has no items');
+  files = real();
+  R(files).groups.push({ ...R(files).groups[0] });
+  hasError(files, 'reflect.json: duplicate group "content"');
+  hasError(
+    real().filter((f) => f.path !== 'reflect.json'),
+    'reflect.json: missing',
+  );
+  files = real();
+  R(files).draft = true;
+  assert.ok(run(files).warnings.includes('reflect.json: ข้อความยังเป็นร่าง'));
+});

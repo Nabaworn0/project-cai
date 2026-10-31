@@ -64,7 +64,7 @@ test('a first visit asks for the name, checks it, then shows the path with case 
     await expect(step(page, id).locator('.path-row')).toBeDisabled();
   }
   // Steps not built yet say so and cannot be tapped.
-  for (const id of ['reflect', 'results']) {
+  for (const id of ['results']) {
     await expect(step(page, id)).toHaveAttribute('data-status', 'soon');
     await expect(step(page, id).locator('.path-row')).toBeDisabled();
   }

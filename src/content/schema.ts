@@ -313,6 +313,25 @@ export const CourseTestSchema = z.object({
 });
 export type CourseTest = z.infer<typeof CourseTestSchema>;
 
+/** The reflection after learning (docs/reflect-plan.md): how well the learner thinks they can do each of the four
+ *  objectives (1-5 stars), three short written answers, and a satisfaction form of five-level items in groups. */
+export const ReflectSchema = z
+  .object({
+    draft: z.boolean(),
+    source: z.string().optional(),
+    /** What the senior says at the top of the page. */
+    introTh: th.max(120),
+    /** Said once it is sent. */
+    thanksTh: th.max(100),
+    self: z.array(z.object({ id, objective: z.number().int().min(1).max(4), th: th.max(100) }).strict()).min(1),
+    write: z.array(z.object({ id, th: th.max(80), hintTh: th.max(80) }).strict()).min(1),
+    groups: z.array(z.object({ id, th: th.max(60) }).strict()).min(1),
+    satisfaction: z.array(z.object({ id, group: id, th: th.max(100) }).strict()).min(1),
+    suggestTh: th.max(80),
+  })
+  .strict();
+export type Reflect = z.infer<typeof ReflectSchema>;
+
 /** The step-ordering game (docs/order-plan.md): rounds of steps to put in order (the colour-hint part), the
  *  boss belt's full sequence (one overview step opened up into another round), and traps that should never be
  *  done. Each step has a hint (said when it is the first one still wrong) and a reason (said in the answer). */

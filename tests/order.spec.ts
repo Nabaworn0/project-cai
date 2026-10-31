@@ -100,7 +100,15 @@ const where = async (page: Page, id: string) => {
 async function onTheBelt(page: Page) {
   const pic = await picture(page);
   const stage = (await boss(page).locator('.boss-stage').boundingBox())!;
-  const boxes = await Promise.all((await boss(page).locator('.boss-card').all()).map(async (c) => (await c.boundingBox())!));
+  // All the cards read at once: one read per card let a card leave the belt between two reads.
+  const boxes = await boss(page)
+    .locator('.boss-card')
+    .evaluateAll((cs) =>
+      cs
+        .map((c) => c.getBoundingClientRect())
+        .filter((r) => r.width > 0)
+        .map((r) => ({ x: r.x, y: r.y, width: r.width, height: r.height })),
+    );
   for (const [i, a] of boxes.entries()) {
     expect(a.x, 'inside the stage').toBeGreaterThanOrEqual(stage.x);
     expect(a.x + a.width, 'inside the stage').toBeLessThanOrEqual(stage.x + stage.width);
