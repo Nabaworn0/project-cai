@@ -7,6 +7,7 @@
 // in Setup brings out the shop laptop to make it again (docs/case3-plan.md). Case 5 goes on past the install
 // to Windows' first-time setup and the desktop: the customer signs in themself (docs/case5-plan.md).
 
+import { PLAYABLE } from '../../core/path';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { bus } from '../../core/bus';
 import { generateCase, nextCase, type GeneratedCase } from '../../core/cases';
@@ -57,8 +58,7 @@ interface Props {
   replayIntro?: boolean;
 }
 
-/** Cases whose screens exist so far, in play order (Rufus came with case 2, Setup and its partition page with case 3). */
-export const PLAYABLE = ['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip', 'c05-lab-upgrade'];
+export { PLAYABLE };
 
 /**
  * The next customer: case 1, then 2, then 3, then mixed (nextCase). The first one is the menu's pick, or ?case=<id>

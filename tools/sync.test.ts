@@ -3,7 +3,23 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { EMPTY, recordCase, type Progress } from '../src/core/path';
-import { classFromQuery, classUrl, due, endpoint, NOT_SENT, parseClass, parseSync, payload, received, signature } from '../src/core/sync';
+import {
+  classFromQuery,
+  classUrl,
+  deploymentFrom,
+  due,
+  endpoint,
+  NOT_SENT,
+  parseClass,
+  parseSync,
+  payload,
+  readRequest,
+  received,
+  sheetClasses,
+  sheetFiles,
+  signature,
+  validClassName,
+} from '../src/core/sync';
 
 const TO = 'AKfycbx_abcdefghijklmnopqrstuvwxyz0123456789-XY';
 const learner = { name: 'สมชาย ใจดี', room: 'ปวช.1/2', no: '7' };
@@ -64,4 +80,28 @@ test('what was sent is remembered; anything unreadable is "not sent yet"', () =>
   assert.deepEqual(parseSync(JSON.stringify({ sent: 3, at: 'x', failed: 'yes' })), NOT_SENT);
   assert.deepEqual(parseSync('{'), NOT_SENT);
   assert.deepEqual(parseSync(null), NOT_SENT);
+});
+
+test("the teacher's set-up: the web app's link or its bare id; class names the link can carry", () => {
+  assert.equal(deploymentFrom(`https://script.google.com/macros/s/${TO}/exec`), TO);
+  assert.equal(deploymentFrom(`  https://script.google.com/macros/s/${TO}/dev?x=1 `), TO);
+  assert.equal(deploymentFrom(TO), TO);
+  for (const t of ['', 'https://script.google.com/macros/s/short/exec', 'https://example.com/', `${TO}!`]) assert.equal(deploymentFrom(t), null, t);
+  assert.equal(validClassName(' ปวช.1/2 '), true);
+  assert.equal(validClassName('a<b'), false);
+});
+
+test("reading the sheet: the key in the body; the classes or the files; the sheet's errors in Thai", () => {
+  assert.deepEqual(JSON.parse(readRequest('k1')), { action: 'classes', key: 'k1' });
+  assert.deepEqual(JSON.parse(readRequest('k1', 'ปวช.1/2')), { action: 'read', key: 'k1', class: 'ปวช.1/2' });
+  assert.deepEqual(sheetClasses({ ok: true, classes: ['ปวช.1/2', 'bad<', 3] }), { ok: true, value: ['ปวช.1/2'] });
+  assert.deepEqual(sheetFiles({ ok: true, files: [{ app: 'x' }, '{"a":1}'] }), { ok: true, value: [{ text: '{"app":"x"}', row: null }, { text: '{"a":1}', row: null }] });
+  assert.deepEqual(sheetFiles({ ok: true, files: ['a', 'b', 'c'], rows: [2, 'x', 4.5] }), {
+    ok: true,
+    value: [{ text: 'a', row: 2 }, { text: 'b', row: null }, { text: 'c', row: null }],
+  });
+  assert.deepEqual(sheetClasses({ ok: false, error: 'key' }), { ok: false, why: 'รหัสครูไม่ถูกต้อง' });
+  assert.deepEqual(sheetFiles({ ok: false, error: 'class' }), { ok: false, why: 'ไม่มีห้องนี้ใน Sheet' });
+  assert.equal(sheetFiles({ ok: true }).ok, false);
+  assert.ok(!sheetClasses('<html>').ok && sheetClasses('<html>').ok === false);
 });

@@ -8,6 +8,9 @@ import { orderStars, type OrderResult } from './order';
 import type { TestDraft } from './quiz';
 import { MAX_WRITE, type ReflectAnswers, type ReflectResult } from './reflect';
 
+/** Cases whose screens exist so far, in play order (Rufus came with case 2, Setup and its partition page with case 3). */
+export const PLAYABLE = ['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip', 'c05-lab-upgrade'];
+
 export const STEPS = ['pre', 'lesson-os', 'lesson-types', 'order', 'cases', 'post', 'reflect', 'results'] as const;
 export type StepId = (typeof STEPS)[number];
 

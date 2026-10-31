@@ -86,3 +86,51 @@ export const due = (p: Progress, c: ClassLink | null, s: SyncState) => !!c && !!
 export function received(body: unknown): boolean {
   return typeof body === 'object' && body !== null && (body as { ok?: unknown }).ok === true;
 }
+
+// ---- The teacher's side: setting it up and reading the sheet ------------------------------------------------
+
+/** The web app's deployment id, from the link Apps Script gives on deploying (…/macros/s/<id>/exec) or the bare id. */
+export function deploymentFrom(text: string): string | null {
+  const t = text.trim();
+  const m = /\/macros\/s\/([A-Za-z0-9_-]+)\/(?:exec|dev)\b/.exec(t);
+  const id = m ? m[1]! : t;
+  return DEPLOYMENT.test(id) ? id : null;
+}
+
+/** Whether a class name is one the link can carry. */
+export const validClassName = (name: string) => NAME.test(name.trim());
+
+/** What the teacher's page asks the web app: the classes in the sheet, or one class's results. The key goes in the
+ *  body, not the address, so it is not kept in logs and histories. */
+export const readRequest = (key: string, cls?: string) => JSON.stringify(cls ? { action: 'read', key, class: cls } : { action: 'classes', key });
+
+export type SheetReply<T> = { ok: true; value: T } | { ok: false; why: string };
+
+function sheetError(body: unknown): string {
+  const e = (body as { error?: unknown } | null)?.error;
+  return e === 'key' ? 'รหัสครูไม่ถูกต้อง' : e === 'class' ? 'ไม่มีห้องนี้ใน Sheet' : 'Sheet ตอบกลับมาไม่ถูกต้อง (ตรวจลิงก์ Web app และการ Deploy)';
+}
+
+/** {"ok": true, "classes": [...]} → the class names. */
+export function sheetClasses(body: unknown): SheetReply<string[]> {
+  const b = body as { ok?: unknown; classes?: unknown } | null;
+  if (!received(b) || !Array.isArray(b!.classes)) return { ok: false, why: sheetError(body) };
+  return { ok: true, value: b!.classes.filter((c): c is string => typeof c === 'string' && validClassName(c)) };
+}
+
+export interface SheetFile {
+  text: string;
+  /** Its row in the class's tab, when the sheet says. */
+  row: number | null;
+}
+
+/** {"ok": true, "files": [...], "rows": [...]} → each results file as text, for readResultsFile, and its row. */
+export function sheetFiles(body: unknown): SheetReply<SheetFile[]> {
+  const b = body as { ok?: unknown; files?: unknown; rows?: unknown } | null;
+  if (!received(b) || !Array.isArray(b!.files)) return { ok: false, why: sheetError(body) };
+  const rows = Array.isArray(b!.rows) ? b!.rows : [];
+  return {
+    ok: true,
+    value: b!.files.map((f, i) => ({ text: typeof f === 'string' ? f : JSON.stringify(f), row: Number.isInteger(rows[i]) ? (rows[i] as number) : null })),
+  };
+}

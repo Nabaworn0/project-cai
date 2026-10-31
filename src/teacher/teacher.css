@@ -1,0 +1,61 @@
+/* The teacher's page (TeacherScreen.tsx): a plain working page, readable on a laptop or a tablet, and printable. */
+/* A normal scrolling page, like the content viewer: only <html> scrolls. */
+html.teacher-page { overflow: auto; height: auto; }
+html.teacher-page body { overflow: visible; height: auto; overscroll-behavior: auto; background: #f4efe4; }
+html.teacher-page #game, html.teacher-page #splash { display: none; }
+html.teacher-page #ui { position: static; pointer-events: auto; }
+.teacher { max-width: 1000px; margin: 0 auto; padding: 16px; font-family: var(--f-body); color: var(--ink); }
+.teacher-head p { margin: 0; color: #5f6b80; font-size: 14px; }
+.teacher-head h1 { margin: 0 0 12px; font-family: var(--f-head); font-size: 26px; }
+.teacher-box { display: grid; gap: 8px; margin-bottom: 14px; padding: 14px; background: #fff; box-shadow: inset 0 0 0 2px var(--navy); }
+.teacher-box h2 { margin: 0; font-family: var(--f-head); font-size: 19px; }
+.teacher-box label { display: grid; gap: 4px; font-size: 15px; font-weight: 700; }
+.teacher-box input:not([type='file']), .teacher-box select {
+  min-height: 40px; padding: 6px 10px; font: inherit; font-weight: 400; font-size: 16px; border: 2px solid var(--navy); border-radius: 0; box-sizing: border-box; width: 100%;
+}
+.teacher-box select { width: auto; }
+.teacher-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.teacher-row .btn:disabled { opacity: 0.5; cursor: default; }
+.teacher-row a.btn { text-decoration: none; color: inherit; }
+.teacher-note { margin: 0; font-size: 13.5px; color: #5f6b80; }
+.teacher-msg { margin: 0; font-weight: 700; color: #2c3e66; }
+.teacher-warn { margin: 0; padding: 6px 10px; font-weight: 700; color: #8a2b2b; background: #ffe3e3; }
+
+.teacher-link { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.teacher-qr { width: 180px; height: 180px; flex: none; background: #fff; }
+.teacher-qr svg { display: block; width: 100%; height: 100%; }
+.teacher-link > div:last-child { display: grid; gap: 8px; flex: 1 1 240px; min-width: 0; }
+.teacher-url { margin: 0; padding: 6px 8px; font-family: Consolas, monospace; font-size: 13px; overflow-wrap: anywhere; background: #f4efe4; }
+
+.teacher-drop { display: grid; gap: 8px; padding: 18px; text-align: center; font-weight: 400 !important; border: 2px dashed #9aa5b8; cursor: pointer; }
+
+.teacher-count { margin: 0; font-size: 16px; font-weight: 700; }
+.teacher-skipped summary { cursor: pointer; color: #8a2b2b; }
+.teacher-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.teacher-tiles > div { display: grid; justify-items: center; padding: 8px; background: #fff4e0; box-shadow: inset 0 0 0 2px #d8c9a8; }
+.teacher-tiles small { font-size: 13px; color: #5f6b80; }
+.teacher-tiles b { font-family: var(--f-head); font-size: 22px; }
+.teacher-tiles span { font-size: 12.5px; color: #5f6b80; }
+.teacher-ttest { margin: 0; padding: 8px 10px; font-weight: 700; background: #e3f6f3; }
+
+.teacher-scroll { overflow-x: auto; }
+.teacher-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.teacher-table th, .teacher-table td { padding: 5px 8px; border: 1px solid #9aa5b8; text-align: left; vertical-align: top; }
+.teacher-table thead th { color: #fff; background: var(--navy); font-family: var(--f-head); white-space: nowrap; }
+.teacher-table tbody th { font-weight: 400; }
+.teacher-table tr.low td { background: #ffe3e3; }
+.teacher-table tr.edited td { background: #fff1c2; }
+.teacher-table tr.group th, .teacher-table tr.group td { font-weight: 700; background: #fff4e0; }
+.teacher-table tr.overall th, .teacher-table tr.overall td { font-weight: 700; background: #e3f6f3; }
+.teacher-table small { color: #5f6b80; }
+.teacher-writes summary { cursor: pointer; font-weight: 700; }
+.teacher-writes ul { margin: 6px 0; padding-left: 20px; font-size: 14.5px; }
+
+@media print {
+  html.teacher-page, html.teacher-page body { background: #fff; }
+  .no-print { display: none !important; }
+  .teacher { max-width: none; padding: 0; }
+  .teacher-box { box-shadow: none; border: 1px solid #999; break-inside: avoid; }
+  .teacher-scroll { overflow: visible; }
+  .teacher-writes { break-inside: auto; }
+}

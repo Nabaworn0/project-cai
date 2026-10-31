@@ -41,7 +41,22 @@ async function bootStudio(lesson: string): Promise<void> {
   document.getElementById('splash')?.remove();
 }
 
+/** ?view=teacher: the teacher's page, a class's results brought together (src/teacher). */
+async function bootTeacher(): Promise<void> {
+  document.documentElement.classList.add('teacher-page');
+  document.title = 'หน้าครู · ร้านซ่อมคอม';
+  const { TeacherScreen } = await import('./teacher/TeacherScreen');
+  render(h(TeacherScreen, {}), document.getElementById('ui')!);
+  document.getElementById('splash')?.remove();
+}
+
 const params = new URLSearchParams(location.search);
 const view = params.get('view');
-void (view === 'content' ? bootViewer() : view === 'studio' ? bootStudio(params.get('lesson') ?? '') : bootGame());
+void (view === 'content'
+  ? bootViewer()
+  : view === 'studio'
+    ? bootStudio(params.get('lesson') ?? '')
+    : view === 'teacher'
+      ? bootTeacher()
+      : bootGame());
 registerPwa();
