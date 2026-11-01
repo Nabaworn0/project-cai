@@ -310,26 +310,32 @@ export function ContentViewer() {
           <section class="v-stack">
             <article class="v-card">
               <header class="v-card-head">
-                <h3>แบบทดสอบก่อน/หลังเรียน ({parsed.test.items.length} ข้อ ชุดเดียวกัน สลับข้อและตัวเลือก)</h3>
+                <h3>แบบทดสอบก่อน/หลังเรียน (ชุดคู่ขนาน ชุดละ {parsed.test.items.length} ข้อ สลับข้อและตัวเลือก)</h3>
                 {parsed.test.draft && <span class="v-badge warn">ร่าง</span>}
               </header>
               {parsed.test.source && <p class="v-dim">{parsed.test.source}</p>}
-              {parsed.test.items.map((it, n) => (
-                <div key={it.id} class="v-q">
-                  <div class="v-dim">
-                    ข้อ {n + 1} · วัตถุประสงค์ข้อ {it.objective}
+              {parsed.test.items.flatMap((it, n) => {
+                const post = parsed.test!.postItems.find((q) => q.pair === it.id);
+                return [
+                  { q: it, label: `ข้อ ${n + 1} ก · ก่อนเรียน` },
+                  ...(post ? [{ q: post, label: `ข้อ ${n + 1} ข · หลังเรียน (คู่ขนาน)` }] : []),
+                ].map(({ q, label }) => (
+                  <div key={q.id} class="v-q" data-question={q.id}>
+                    <div class="v-dim">
+                      {label} · วัตถุประสงค์ข้อ {q.objective}
+                    </div>
+                    <p>{q.stemTh}</p>
+                    <ol class="v-choices">
+                      {q.choicesTh.map((c, k) => (
+                        <li key={c} class={k === q.answer ? 'right' : ''}>
+                          {c}
+                        </li>
+                      ))}
+                    </ol>
+                    <p class="v-dim">{q.explainTh}</p>
                   </div>
-                  <p>{it.stemTh}</p>
-                  <ol class="v-choices">
-                    {it.choicesTh.map((c, k) => (
-                      <li key={c} class={k === it.answer ? 'right' : ''}>
-                        {c}
-                      </li>
-                    ))}
-                  </ol>
-                  <p class="v-dim">{it.explainTh}</p>
-                </div>
-              ))}
+                ));
+              })}
             </article>
           </section>
         )}

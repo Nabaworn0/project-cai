@@ -41,6 +41,8 @@ html.teacher-page #ui { position: static; pointer-events: auto; }
 .teacher-scroll { overflow-x: auto; }
 .teacher-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .teacher-table th, .teacher-table td { padding: 5px 8px; border: 1px solid #9aa5b8; text-align: left; vertical-align: top; }
+.teacher-table .pair-q { display: block; }
+.teacher-table .pair-q + .pair-q { margin-top: 4px; color: #3d4a63; }
 .teacher-table thead th { color: #fff; background: var(--navy); font-family: var(--f-head); white-space: nowrap; }
 .teacher-table tbody th { font-weight: 400; }
 .teacher-table tr.low td { background: #ffe3e3; }

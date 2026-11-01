@@ -77,6 +77,29 @@ test('a fix that does not repair its problem is rejected', () => {
   hasError(files, 'fix "upgrade-ram" does not clear blocker tpm-disabled');
 });
 
+test('the post-test is a parallel form: one pair for each pre-test question, on its objective, not its copy', () => {
+  let files = real();
+  const post = () => get(files, 'test.json').postItems as { id: string; pair: string; objective: number; stemTh: string; answer: number }[];
+  post()[0]!.pair = 'nope';
+  hasError(files, 'test.json[os-meaning-b]: pairs with nope, which is not a pre-test question');
+  hasError(files, 'pre-test question os-meaning has no post-test pair');
+  files = real();
+  post()[1]!.pair = 'os-meaning';
+  hasError(files, 'two post-test questions pair with the same pre-test question');
+  files = real();
+  post()[3]!.objective = 1;
+  hasError(files, 'test.json[os-server-b]: objective 1, but its pair os-server is on objective 2');
+  files = real();
+  post()[6]!.stemTh = get(files, 'test.json').items[6].stemTh;
+  hasError(files, 'test.json[w11-tpm-b]: the same question as w11-tpm');
+  files = real();
+  post()[2]!.id = 'os-no-boot';
+  hasError(files, 'duplicate question id "os-no-boot"');
+  files = real();
+  post()[4]!.answer = 7;
+  hasError(files, 'test.json[os-mobile-b]: answer 7 is out of range');
+});
+
 test('the course test: answers in range, choices differ, objectives 1-3 each tested', () => {
   let files = real();
   get(files, 'test.json').items[0].answer = 4;

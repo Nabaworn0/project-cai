@@ -7,6 +7,8 @@ import courseTest from '../src/content/data/test.json' with { type: 'json' };
 import { LEARNED, LEARNER, PRE_DONE } from './helpers';
 
 const items = courseTest.items;
+/** The post-test's parallel form (docs/parallel-test-plan.md). */
+const postItems = courseTest.postItems;
 const CASES = ['c01-boot-order', 'c02-rufus-scheme', 'c03-red-text', 'c04-security-chip', 'c05-lab-upgrade'];
 const menu = (page: Page) => page.getByTestId('menu');
 const quiz = (page: Page) => page.getByTestId('quiz');
@@ -22,10 +24,10 @@ const seed = (page: Page, progress: unknown) =>
     JSON.stringify(progress),
   );
 
-/** The item on screen, found by its question. */
+/** The item on screen, found by its question (in either form). */
 async function current(page: Page) {
   const stem = await quiz(page).locator('.quiz-stem').innerText();
-  const it = items.find((i) => i.stemTh === stem);
+  const it = [...items, ...postItems].find((i) => i.stemTh === stem);
   expect(it, stem).toBeTruthy();
   return it!;
 }
@@ -188,17 +190,20 @@ test('the post-test: the score beside the pre-test, per objective, and every ans
   await page.goto('/');
   await menu(page).getByRole('button', { name: 'ทำต่อ: แบบทดสอบหลังเรียน' }).click();
   await expect(quiz(page).getByRole('heading', { name: 'แบบทดสอบหลังเรียน' })).toBeVisible();
-  await expect(quiz(page)).toContainText('ชุดเดียวกับก่อนเรียน');
+  await expect(quiz(page)).toContainText('ชุดคู่ขนานกับก่อนเรียน');
   await quiz(page).getByRole('button', { name: 'เริ่มทำแบบทดสอบ' }).click();
-  // All right but the TPM question.
+  // All right but the TPM question; every question is the post-test's own, none of the pre-test's.
+  const asked: string[] = [];
   for (let n = 1; n <= 10; n++) {
     const it = await current(page);
-    await answer(page, it.id !== 'w11-tpm');
+    asked.push(it.id);
+    await answer(page, it.id !== 'w11-tpm-b');
     await quiz(page)
       .getByRole('button', { name: n === 10 ? 'ตรวจก่อนส่ง' : 'ข้อต่อไป →' })
       .click();
   }
   await quiz(page).getByRole('alertdialog').getByRole('button', { name: 'ส่งคำตอบ' }).click();
+  expect(asked.sort()).toEqual(postItems.map((i) => i.id).sort());
 
   const result = quiz(page).getByTestId('quiz-result');
   await expect(result.locator('.quiz-score b')).toHaveText(['3', '9']);
@@ -210,15 +215,15 @@ test('the post-test: the score beside the pre-test, per objective, and every ans
   const key = result.locator('.quiz-key li');
   await expect(key).toHaveCount(10);
   await expect(result.locator('.quiz-key li.wrong')).toHaveCount(1);
-  const tpm = items.find((i) => i.id === 'w11-tpm')!;
-  const wrong = result.locator('[data-item="w11-tpm"]');
+  const tpm = postItems.find((i) => i.id === 'w11-tpm-b')!;
+  const wrong = result.locator('[data-item="w11-tpm-b"]');
   await expect(wrong).toContainText('✗ ผิด');
   await expect(wrong.locator('.quiz-answer')).toHaveText(`คำตอบที่ถูก: ${tpm.choicesTh[tpm.answer]}`);
   await expect(wrong.locator('.quiz-explain')).toHaveText(tpm.explainTh);
-  const os = items.find((i) => i.id === 'os-meaning')!;
-  await expect(result.locator('[data-item="os-meaning"]')).toContainText('✓ ถูก');
-  await expect(result.locator('[data-item="os-meaning"] .quiz-answer')).toHaveCount(0);
-  await expect(result.locator('[data-item="os-meaning"] .quiz-explain')).toHaveText(os.explainTh);
+  const os = postItems.find((i) => i.id === 'os-meaning-b')!;
+  await expect(result.locator('[data-item="os-meaning-b"]')).toContainText('✓ ถูก');
+  await expect(result.locator('[data-item="os-meaning-b"] .quiz-answer')).toHaveCount(0);
+  await expect(result.locator('[data-item="os-meaning-b"] .quiz-explain')).toHaveText(os.explainTh);
   // The whole key can be scrolled to, down to the way back.
   await result.getByRole('button', { name: 'กลับเส้นทางเรียน' }).scrollIntoViewIfNeeded();
   await expect(result.getByRole('button', { name: 'กลับเส้นทางเรียน' })).toBeInViewport();

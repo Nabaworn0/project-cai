@@ -377,7 +377,8 @@ export function App() {
       ) : view === 'test' ? (
         <QuizScreen
           key={test}
-          items={content.test.items}
+          items={test === 'post' ? content.test.postItems : content.test.items}
+          preItems={content.test.items}
           kind={test}
           draft={progress.testDraft}
           pre={progress.pre}
@@ -398,7 +399,7 @@ export function App() {
       ) : view === 'results' ? (
         <ResultsScreen
           progress={progress}
-          content={{ test: content.test.items, lessons: content.lessons.lessons, reflect: content.reflect, caseIds: PLAYABLE }}
+          content={{ test: content.test.items, postTest: content.test.postItems, lessons: content.lessons.lessons, reflect: content.reflect, caseIds: PLAYABLE }}
           canEnter={(id) => !!pathView(progress, pathOptions).steps.find((s) => s.id === id)?.canEnter}
           onEnter={(id) => enter(id)}
           onBack={toMenu}

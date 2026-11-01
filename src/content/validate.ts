@@ -423,7 +423,8 @@ function checkQuestion(where: string, q: CaseQuestion, errors: string[]): void {
   dupes(q.choicesTh, `${where}: duplicate choice`, errors);
 }
 
-/** Every answer is one of its choices, choices differ, and objectives 1-3 are each tested. */
+/** Every answer is one of its choices, choices differ, and objectives 1-3 are each tested. The post-test is a
+ *  parallel form (docs/parallel-test-plan.md): one item for each pre-test item, on its objective, not its copy. */
 function checkTest(test: CourseTest | undefined, errors: string[], warnings: string[]): void {
   if (!test) {
     errors.push('test.json: missing');
@@ -431,11 +432,27 @@ function checkTest(test: CourseTest | undefined, errors: string[], warnings: str
   }
   if (test.draft) warnings.push('test.json: ข้อสอบยังเป็นร่าง');
   dupes(
-    test.items.map((i) => i.id),
+    [...test.items, ...test.postItems].map((i) => i.id),
     'test.json: duplicate question id',
     errors,
   );
-  for (const it of test.items) {
+  dupes(
+    test.postItems.map((i) => i.pair),
+    'test.json: two post-test questions pair with the same pre-test question',
+    errors,
+  );
+  for (const it of test.postItems) {
+    const pre = test.items.find((i) => i.id === it.pair);
+    const at = `test.json[${it.id}]`;
+    if (!pre) errors.push(`${at}: pairs with ${it.pair}, which is not a pre-test question`);
+    else {
+      if (pre.objective !== it.objective) errors.push(`${at}: objective ${it.objective}, but its pair ${pre.id} is on objective ${pre.objective}`);
+      if (pre.stemTh === it.stemTh) errors.push(`${at}: the same question as ${pre.id}; a parallel form asks it another way`);
+    }
+  }
+  for (const pre of test.items)
+    if (!test.postItems.some((i) => i.pair === pre.id)) errors.push(`test.json: pre-test question ${pre.id} has no post-test pair`);
+  for (const it of [...test.items, ...test.postItems]) {
     if (it.answer >= it.choicesTh.length) errors.push(`test.json[${it.id}]: answer ${it.answer} is out of range`);
     dupes(it.choicesTh, `test.json[${it.id}]: duplicate choice`, errors);
   }

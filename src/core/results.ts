@@ -6,11 +6,14 @@
 import type { CourseTest, Lesson, Reflect } from '../content/schema';
 import { orderStars } from './order';
 import { parseProgress, STEPS, type Learner, type Progress } from './path';
-import { grade } from './quiz';
+import { grade, postForm } from './quiz';
 
 /** What the summary needs of the game's content. */
 export interface ResultsContent {
+  /** The pre-test's questions (form A). */
   test: CourseTest['items'];
+  /** The post-test's (form B), each paired with a pre-test question. */
+  postTest: CourseTest['postItems'];
   lessons: readonly Lesson[];
   reflect: Reflect;
   caseIds: readonly string[];
@@ -60,9 +63,12 @@ function casesDuring(p: Progress, caseIds: readonly string[]): Score | null {
   return { got: played.reduce((s, r) => s + (r!.first ?? r!.stars), 0), max: 3 * played.length };
 }
 
+/** A post-test sitting graded on the questions it was answered on. */
+const gradePost = (c: ResultsContent, answers: Readonly<Record<string, number>>) => grade(postForm(c.test, c.postTest, answers), answers);
+
 export function learnerSummary(p: Progress, c: ResultsContent): LearnerSummary {
   const pre = p.pre ? grade(c.test, p.pre.answers) : null;
-  const post = p.post ? grade(c.test, p.post.answers) : null;
+  const post = p.post ? gradePost(c, p.post.answers) : null;
   const byObj = (g: ReturnType<typeof grade> | null, o: number): Score | null => {
     const row = g?.byObjective.find((b) => b.objective === o);
     return row ? { got: row.right, max: row.total } : null;
@@ -255,12 +261,14 @@ export interface Stat {
 const stat = (xs: readonly number[]): Stat => ({ n: xs.length, mean: mean(xs), sd: sd(xs) });
 
 export interface ItemRow {
+  /** The pre-test question, and its pair on the post-test. */
   id: string;
+  postId: string;
   objective: number;
   /** Percent right, of those who took that test. */
   pre: number;
   post: number;
-  /** The wrong choice picked most on the post-test, and by how many. */
+  /** The wrong choice of the post-test pair picked most, and by how many. */
   commonWrong: { choice: number; count: number } | null;
 }
 
@@ -286,29 +294,38 @@ export interface ClassFigures {
 export function classFigures(ps: readonly Progress[], c: ResultsContent): ClassFigures {
   const both = ps.filter((p) => p.pre && p.post);
   const preScores = both.map((p) => grade(c.test, p.pre!.answers).score);
-  const postScores = both.map((p) => grade(c.test, p.post!.answers).score);
+  const postScores = both.map((p) => gradePost(c, p.post!.answers).score);
   const total = c.test.length;
-  const objectives = [...new Set(c.test.map((i) => i.objective))].sort((a, b) => a - b).map((objective) => {
-    const its = c.test.filter((i) => i.objective === objective);
-    const pct = (answers: Record<string, number>) => (100 * its.filter((i) => answers[i.id] === i.answer).length) / its.length;
-    return { objective, pre: mean(both.map((p) => pct(p.pre!.answers))), post: mean(both.map((p) => pct(p.post!.answers))) };
-  });
+  const byObjective = (g: ReturnType<typeof grade>, objective: number) => {
+    const row = g.byObjective.find((b) => b.objective === objective)!;
+    return (100 * row.right) / row.total;
+  };
+  const objectives = [...new Set(c.test.map((i) => i.objective))].sort((a, b) => a - b).map((objective) => ({
+    objective,
+    pre: mean(both.map((p) => byObjective(grade(c.test, p.pre!.answers), objective))),
+    post: mean(both.map((p) => byObjective(gradePost(c, p.post!.answers), objective))),
+  }));
+  // Item by item, as pairs: the pre-test question before, its post-test pair after (or the same question, for a
+  // sitting taken before the two were split).
   const items = c.test.map((it): ItemRow => {
-    const right = (rs: (Record<string, number> | undefined)[]) => {
-      const answered = rs.filter((a): a is Record<string, number> => !!a && a[it.id] !== undefined);
-      return answered.length ? (100 * answered.filter((a) => a[it.id] === it.answer).length) / answered.length : NaN;
+    const pair = c.postTest.find((q) => q.pair === it.id) ?? it;
+    const after = (answers: Record<string, number>) => (postForm(c.test, c.postTest, answers) === c.test ? it : pair);
+    const right = (sittings: { q: { id: string; answer: number }; a: Record<string, number> }[]) => {
+      const answered = sittings.filter((x) => x.a[x.q.id] !== undefined);
+      return answered.length ? (100 * answered.filter((x) => x.a[x.q.id] === x.q.answer).length) / answered.length : NaN;
     };
     const wrong = new Map<number, number>();
     for (const p of ps) {
-      const a = p.post?.answers[it.id];
-      if (a !== undefined && a !== it.answer) wrong.set(a, (wrong.get(a) ?? 0) + 1);
+      const a = p.post?.answers[pair.id];
+      if (a !== undefined && a !== pair.answer) wrong.set(a, (wrong.get(a) ?? 0) + 1);
     }
     const top = [...wrong.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0];
     return {
       id: it.id,
+      postId: pair.id,
       objective: it.objective,
-      pre: right(ps.map((p) => p.pre?.answers)),
-      post: right(ps.map((p) => p.post?.answers)),
+      pre: right(ps.flatMap((p) => (p.pre ? [{ q: it, a: p.pre.answers }] : []))),
+      post: right(ps.flatMap((p) => (p.post ? [{ q: after(p.post.answers), a: p.post.answers }] : []))),
       commonWrong: top ? { choice: top[0], count: top[1] } : null,
     };
   });
@@ -326,7 +343,7 @@ export function classFigures(ps: readonly Progress[], c: ResultsContent): ClassF
     objectives,
     items,
     e1: mean(e1s),
-    e2: mean(finished.map((p) => (100 * grade(c.test, p.post!.answers).score) / total)),
+    e2: mean(finished.map((p) => (100 * gradePost(c, p.post!.answers).score) / total)),
     satisfaction: c.reflect.satisfaction.map((s) => ({ id: s.id, group: s.group, ...withReading(stat(ratings([s.id]))) })),
     groups: c.reflect.groups.map((g) => ({ id: g.id, ...withReading(stat(ratings(c.reflect.satisfaction.filter((s) => s.group === g.id).map((s) => s.id)))) })),
     overall: withReading(stat(ratings(c.reflect.satisfaction.map((s) => s.id)))),

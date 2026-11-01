@@ -24,7 +24,10 @@ test.describe('content viewer (?view=content)', () => {
     await tab('BIOS').click();
     await expect(page.getByRole('heading', { name: 'Acer', exact: true })).toBeVisible();
     await tab('ข้อสอบ').click();
-    await expect(page.getByRole('heading', { name: /แบบทดสอบก่อน\/หลังเรียน \(10 ข้อ/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /แบบทดสอบก่อน\/หลังเรียน \(ชุดคู่ขนาน ชุดละ 10 ข้อ/ })).toBeVisible();
+    // Each pre-test question with its post-test pair right after it.
+    await expect(page.locator('[data-question]')).toHaveCount(20);
+    await expect(page.locator('[data-question="w11-tpm"] + [data-question="w11-tpm-b"]')).toContainText('ข้อ 7 ข · หลังเรียน');
     await tab('เรียงขั้นตอน').click();
     await expect(page.getByRole('heading', { name: 'รอบ 1 ภาพรวมทั้งงาน (8 ขั้น)' })).toBeVisible();
     await expect(page.getByTestId('order-traps')).toContainText('ถอด USB ระหว่างคัดลอกไฟล์');

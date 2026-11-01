@@ -294,22 +294,23 @@ export type Brand = z.infer<typeof BrandSchema>;
 
 /** The course test (docs/quiz-plan.md): the 10 items of the content analysis document, taken before and after
  *  learning in a shuffled order. `objective` is one of the four course objectives (4 is measured by the cases). */
+const TestItemSchema = z.object({
+  id,
+  objective: z.number().int().min(1).max(4),
+  stemTh: th,
+  choicesTh: z.array(th).min(2).max(5),
+  answer: z.number().int().nonnegative(),
+  explainTh: th,
+});
+
+/** The pre-test (`items`, form A) and the post-test (`postItems`, form B: a parallel form, each item paired with
+ *  one of form A on the same objective, docs/parallel-test-plan.md). */
 export const CourseTestSchema = z.object({
   draft: z.boolean(),
   /** Where the items come from, for people checking the content. */
   source: z.string().optional(),
-  items: z
-    .array(
-      z.object({
-        id,
-        objective: z.number().int().min(1).max(4),
-        stemTh: th,
-        choicesTh: z.array(th).min(2).max(5),
-        answer: z.number().int().nonnegative(),
-        explainTh: th,
-      }),
-    )
-    .min(1),
+  items: z.array(TestItemSchema).min(1),
+  postItems: z.array(TestItemSchema.extend({ pair: id })).min(1),
 });
 export type CourseTest = z.infer<typeof CourseTestSchema>;
 

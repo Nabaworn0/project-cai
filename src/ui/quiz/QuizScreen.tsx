@@ -15,7 +15,10 @@ const LETTERS = ['ก', 'ข', 'ค', 'ง', 'จ'];
 
 
 interface Props {
+  /** This test's questions: the pre-test's, or the post-test's parallel form (docs/parallel-test-plan.md). */
   items: readonly TestItem[];
+  /** The pre-test's questions, for the post-test's comparison by objective. */
+  preItems: readonly TestItem[];
   kind: TestKind;
   /** The half-done sitting kept on this device, if any. */
   draft: TestDraft | null;
@@ -30,7 +33,7 @@ interface Props {
 
 type Phase = { at: 'intro' } | { at: 'question'; n: number } | { at: 'check' } | { at: 'result'; result: QuizResult };
 
-export function QuizScreen({ items, kind, draft, pre, seed, onDraft, onFinish, onBack }: Props) {
+export function QuizScreen({ items, preItems, kind, draft, pre, seed, onDraft, onFinish, onBack }: Props) {
   const resumed = resumable(items, draft, kind);
   const [d, setD] = useState<TestDraft>(() => (resumed ? draft : startTest(items, kind, seed ?? Math.random().toString(36).slice(2), Date.now())));
   const [phase, setPhase] = useState<Phase>({ at: 'intro' });
@@ -86,7 +89,7 @@ export function QuizScreen({ items, kind, draft, pre, seed, onDraft, onFinish, o
           {kind === 'pre' ? (
             <p>ยังไม่ได้เรียนก็ไม่เป็นไร ตอบตามที่เข้าใจตอนนี้ คะแนนนี้ไม่ได้ตัดสินอะไร ใช้ดูว่าเรียนแล้วเก่งขึ้นแค่ไหน</p>
           ) : (
-            <p>ข้อสอบชุดเดียวกับก่อนเรียน แต่สลับข้อและตัวเลือก ส่งแล้วจะได้เห็นคะแนนเทียบกับก่อนเรียน พร้อมเฉลยทุกข้อ</p>
+            <p>ข้อสอบชุดคู่ขนานกับก่อนเรียน วัดเรื่องเดียวกันแต่โจทย์ไม่ซ้ำ ส่งแล้วจะได้เห็นคะแนนเทียบกับก่อนเรียน พร้อมเฉลยทุกข้อ</p>
           )}
           <p class="quiz-note">ทำได้ครั้งเดียว ถ้าออกไปก่อน คำตอบที่ทำไว้จะเก็บไว้ในเครื่องนี้</p>
           <div class="actions">
@@ -115,7 +118,7 @@ export function QuizScreen({ items, kind, draft, pre, seed, onDraft, onFinish, o
         (kind === 'pre' ? (
           <PreResult result={phase.result} onBack={onBack} />
         ) : (
-          <PostResult items={items} result={phase.result} pre={pre} onBack={onBack} />
+          <PostResult items={items} preItems={preItems} result={phase.result} pre={pre} onBack={onBack} />
         ))}
     </LearnPage>
   );
@@ -218,9 +221,9 @@ function PreResult({ result, onBack }: { result: QuizResult; onBack: () => void 
   );
 }
 
-function PostResult({ items, result, pre, onBack }: { items: readonly TestItem[]; result: QuizResult; pre: QuizResult | null; onBack: () => void }) {
+function PostResult({ items, preItems, result, pre, onBack }: { items: readonly TestItem[]; preItems: readonly TestItem[]; result: QuizResult; pre: QuizResult | null; onBack: () => void }) {
   const after = grade(items, result.answers);
-  const before = pre ? grade(items, pre.answers) : null;
+  const before = pre ? grade(preItems, pre.answers) : null;
   const gain = pre ? result.score - pre.score : 0;
   return (
     <div class="quiz-result" data-testid="quiz-result">

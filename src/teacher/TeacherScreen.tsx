@@ -26,7 +26,7 @@ import appsScript from '../../apps-script/Code.gs?raw';
 import './teacher.css';
 
 const content = loadContent();
-const RC: ResultsContent = { test: content.test.items, lessons: content.lessons.lessons, reflect: content.reflect, caseIds: PLAYABLE };
+const RC: ResultsContent = { test: content.test.items, postTest: content.test.postItems, lessons: content.lessons.lessons, reflect: content.reflect, caseIds: PLAYABLE };
 const SETTINGS_KEY = 'shop.teacher.v1';
 /** The sheet's Apps Script (docs/sheet-setup.md), for the teacher to paste or save. */
 const codeHref = `data:text/plain;charset=utf-8,${encodeURIComponent(appsScript)}`;
@@ -439,13 +439,15 @@ function Report({ loaded, skipped, from }: { loaded: Loaded[]; skipped: string[]
 
           <section class="teacher-box">
             <h2>วิเคราะห์ข้อสอบรายข้อ</h2>
-            <p class="teacher-note">ข้อที่ตอบถูกหลังเรียนไม่ถึง 50% จะแสดงสีแดง ควรสอนซ้ำ</p>
+            <p class="teacher-note">
+              ข้อสอบก่อนและหลังเรียนเป็นชุดคู่ขนาน แถวละคู่: ข้อ ก (ก่อนเรียน) กับข้อ ข (หลังเรียน) วัดเรื่องเดียวกัน · ข้อที่ตอบถูกหลังเรียนไม่ถึง 50% จะแสดงสีแดง ควรสอนซ้ำ
+            </p>
             <div class="teacher-scroll">
               <table class="teacher-table" data-testid="items">
                 <thead>
                   <tr>
                     <th>ข้อ</th>
-                    <th>คำถาม</th>
+                    <th>คำถาม (ก ก่อนเรียน · ข หลังเรียน)</th>
                     <th>ก่อน</th>
                     <th>หลัง</th>
                     <th>ตัวเลือกผิดที่เลือกบ่อย (หลังเรียน)</th>
@@ -454,16 +456,20 @@ function Report({ loaded, skipped, from }: { loaded: Loaded[]; skipped: string[]
                 <tbody>
                   {f.items.map((it, i) => {
                     const item = RC.test[i]!;
+                    const post = RC.postTest.find((q) => q.id === it.postId) ?? item;
                     return (
                       <tr key={it.id} class={it.post < 50 ? 'low' : ''}>
                         <td>
                           {i + 1}
                           <small> (วัตถุประสงค์ {it.objective})</small>
                         </td>
-                        <td>{item.stemTh}</td>
+                        <td>
+                          <span class="pair-q">ก. {item.stemTh}</span>
+                          {post !== item && <span class="pair-q">ข. {post.stemTh}</span>}
+                        </td>
                         <td>{pct(it.pre)}</td>
                         <td>{pct(it.post)}</td>
-                        <td>{it.commonWrong ? `${LETTERS[it.commonWrong.choice]}. ${item.choicesTh[it.commonWrong.choice]} (${it.commonWrong.count} คน)` : '-'}</td>
+                        <td>{it.commonWrong ? `${LETTERS[it.commonWrong.choice]}. ${post.choicesTh[it.commonWrong.choice]} (${it.commonWrong.count} คน)` : '-'}</td>
                       </tr>
                     );
                   })}

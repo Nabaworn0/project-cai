@@ -16,15 +16,16 @@ const TO = 'AKfycbx_abcdefghijklmnopqrstuvwxyz0123456789-XY';
 const KEY = 'ครู1234';
 const CLASS = 'ปวช.1/2';
 const items = testJson.items;
-const RC: ResultsContent = { test: items, lessons: lessons.lessons as Lesson[], reflect: reflect as Reflect, caseIds: PLAYABLE };
+const RC: ResultsContent = { test: items, postTest: testJson.postItems, lessons: lessons.lessons as Lesson[], reflect: reflect as Reflect, caseIds: PLAYABLE };
 const teacher = (page: Page) => page.getByTestId('teacher');
 
 /** Learner n of 30: pre-test 2–6 right, post-test 5–10, satisfaction 3–5, a few without the post-test. */
 function learner(n: number): Progress {
-  const sit = (right: number) => ({
+  // The pre-test on its questions, the post-test on its parallel form (docs/parallel-test-plan.md).
+  const sit = (right: number, set: readonly { id: string; answer: number; choicesTh: string[] }[] = items) => ({
     score: right,
-    total: items.length,
-    answers: Object.fromEntries(items.map((it, i) => [it.id, i < right ? it.answer : (it.answer + 1 + (n % 2)) % it.choicesTh.length])),
+    total: set.length,
+    answers: Object.fromEntries(set.map((it, i) => [it.id, i < right ? it.answer : (it.answer + 1 + (n % 2)) % it.choicesTh.length])),
     at: 1,
     seconds: 300,
   });
@@ -32,7 +33,7 @@ function learner(n: number): Progress {
     ...EMPTY,
     learner: { name: `นักเรียน ${n}`, room: CLASS, no: String(n) },
     pre: sit(2 + (n % 5)),
-    post: n > 27 ? null : sit(5 + (n % 6)),
+    post: n > 27 ? null : sit(5 + (n % 6), testJson.postItems),
     order: { stars: 3, plays: 1, first: { tries: [n % 4, 2], solved: [true, true], lost: n % 3 } },
     cases: { 'c01-boot-order': { stars: 3, plays: 1, first: 1 + (n % 3) } },
     reflect: n > 25 ? null : { self: { 'self-os': 1 + (n % 5) }, write: { learned: n === 3 ? 'ได้รู้เรื่อง BIOS' : '' }, sat: Object.fromEntries(reflect.satisfaction.map((s, i) => [s.id, 3 + ((n + i) % 3)])), suggest: '', at: 1 },
@@ -109,6 +110,13 @@ test('connect, make the class link with its QR code, and read the class of 30 fr
   await expect(teacher(page).getByTestId('learners').locator('tbody tr').nth(9).locator('td').nth(1)).toHaveText('10');
   await expect(teacher(page).getByTestId('items').locator('tbody tr')).toHaveCount(items.length);
   await expect(teacher(page).getByTestId('items').locator('tbody tr.low')).toHaveCount(f.items.filter((i) => i.post < 50).length);
+  // A row is a pair: the pre-test question and its post-test pair, the wrong choice picked most named from the pair.
+  const last = teacher(page).getByTestId('items').locator('tbody tr').last();
+  const pairB = testJson.postItems.at(-1)!;
+  const wrong = f.items.at(-1)!.commonWrong!;
+  await expect(last).toContainText(`ก. ${items.at(-1)!.stemTh}`);
+  await expect(last).toContainText(`ข. ${pairB.stemTh}`);
+  await expect(last.locator('td').last()).toHaveText(`${'กขคงจ'[wrong.choice]}. ${pairB.choicesTh[wrong.choice]} (${wrong.count} คน)`);
   await expect(teacher(page).locator('.teacher-writes').first()).toContainText('เลขที่ 3: ได้รู้เรื่อง BIOS');
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/teacher-desktop.png`, fullPage: true });
 

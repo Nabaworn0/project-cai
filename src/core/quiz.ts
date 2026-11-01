@@ -80,6 +80,13 @@ export interface Grade {
   byObjective: { objective: number; right: number; total: number }[];
 }
 
+/** The questions a post-test sitting was answered on: the post-test's own (a parallel form,
+ *  docs/parallel-test-plan.md), or the pre-test's for a sitting taken before the two were split (1 Nov 2026),
+ *  whose answers name only pre-test questions. */
+export function postForm(pre: readonly TestItem[], post: readonly TestItem[], answers: Readonly<Record<string, number>>): readonly TestItem[] {
+  return !post.some((i) => i.id in answers) && pre.some((i) => i.id in answers) ? pre : post;
+}
+
 /** Right answers overall and per objective (in objective order). */
 export function grade(items: readonly TestItem[], answers: Readonly<Record<string, number>>): Grade {
   const objectives = [...new Set(items.map((i) => i.objective))].sort((a, b) => a - b);

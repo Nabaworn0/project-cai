@@ -27,15 +27,18 @@ import {
 
 const json = (f: string) => JSON.parse(readFileSync(new URL(`../src/content/data/${f}`, import.meta.url), 'utf8'));
 const test_ = CourseTestSchema.parse(json('test.json')).items;
+const post_ = CourseTestSchema.parse(json('test.json')).postItems;
 const lessons = LessonsSchema.parse(json('lessons.json')).lessons;
 const reflect = ReflectSchema.parse(json('reflect.json'));
-const C: ResultsContent = { test: test_, lessons, reflect, caseIds: ['c1', 'c2'] };
+const C: ResultsContent = { test: test_, postTest: post_, lessons, reflect, caseIds: ['c1', 'c2'] };
 
-/** A test sitting with the first `right` items right and the rest wrong. */
-function sitting(right: number): QuizResult {
-  const answers = Object.fromEntries(test_.map((it, i) => [it.id, i < right ? it.answer : (it.answer + 1) % it.choicesTh.length]));
-  return { score: right, total: test_.length, answers, at: 1, seconds: 60 };
+/** A test sitting with the first `right` items right and the rest wrong: the pre-test's questions, or others. */
+function sitting(right: number, items: readonly { id: string; answer: number; choicesTh: string[] }[] = test_): QuizResult {
+  const answers = Object.fromEntries(items.map((it, i) => [it.id, i < right ? it.answer : (it.answer + 1) % it.choicesTh.length]));
+  return { score: right, total: items.length, answers, at: 1, seconds: 60 };
 }
+/** The same on the post-test's parallel form (item i pairs with pre-test item i). */
+const postSitting = (right: number) => sitting(right, post_);
 const learner = (no: string, name = 'สมชาย ใจดี', room = 'ปวช.1/2') => ({ name, room, no });
 
 test('one learner by the four objectives: before, while learning, after and their own stars', () => {
@@ -44,7 +47,7 @@ test('one learner by the four objectives: before, while learning, after and thei
     ...EMPTY,
     learner: learner('7'),
     pre: sitting(3),
-    post: sitting(10),
+    post: postSitting(10),
     done: ['lesson-os', 'order', 'reflect'],
     lessons: { 'lesson-os': { at: 0, first: [os.questions[0]!.answer, (os.questions[1]!.answer + 1) % 3] } },
     order: { stars: 3, plays: 2, first: { tries: [2, 5], solved: [true, true], lost: 1 } },
@@ -139,17 +142,28 @@ test("the t-test against the textbook table: the one-tailed .05 and .025 critica
   assert.equal(pairedT([1, 2], [3, 4]), null, 'every gain the same: no spread');
 });
 
+test('the post-test is graded on its own parallel form, and one taken before the split on the pre-test', () => {
+  assert.deepEqual(post_.map((q) => q.pair), test_.map((q) => q.id), 'item i pairs with item i');
+  const onB = learnerSummary({ ...EMPTY, learner: learner('1'), pre: sitting(3), post: postSitting(7) }, C);
+  const onA = learnerSummary({ ...EMPTY, learner: learner('2'), pre: sitting(3), post: sitting(7) }, C);
+  for (const s of [onB, onA]) assert.deepEqual(s.post, { got: 7, max: 10 });
+  // Pre-test answers on the post-test's questions (or the other way round) would score nothing.
+  const f = classFigures([{ ...EMPTY, learner: learner('1'), pre: sitting(3), post: postSitting(7) }, { ...EMPTY, learner: learner('2'), pre: sitting(3), post: sitting(7) }], C);
+  assert.deepEqual([f.post.mean, f.e2], [7, 70]);
+  assert.deepEqual([f.items[0]!.post, f.items[9]!.post], [100, 0], 'both kinds of sitting counted on their own question');
+});
+
 test('the class: tests before and after, each item, satisfaction by item, group and all, E1/E2', () => {
   const sat = (v: number) => Object.fromEntries(reflect.satisfaction.map((s, i) => [s.id, i === 0 ? v : 4]));
   const a: Progress = {
     ...EMPTY,
     learner: learner('1'),
     pre: sitting(3),
-    post: sitting(8),
+    post: postSitting(8),
     order: { stars: 3, plays: 1, first: { tries: [1, 1], solved: [true, true], lost: 0 } },
     reflect: { self: { 'self-os': 5 }, write: {}, sat: sat(5), suggest: '', at: 1 },
   };
-  const b: Progress = { ...a, learner: learner('2'), pre: sitting(5), post: sitting(9), order: { stars: 1, plays: 1, first: { tries: [4, 4], solved: [true, true], lost: 2 } }, reflect: { ...a.reflect!, self: { 'self-os': 3 }, sat: sat(2) } };
+  const b: Progress = { ...a, learner: learner('2'), pre: sitting(5), post: postSitting(9), order: { stars: 1, plays: 1, first: { tries: [4, 4], solved: [true, true], lost: 2 } }, reflect: { ...a.reflect!, self: { 'self-os': 3 }, sat: sat(2) } };
   const none: Progress = { ...EMPTY, learner: learner('3'), pre: sitting(1) };
   const f = classFigures([a, b, none], C);
   assert.equal(f.learners, 3);
@@ -161,7 +175,9 @@ test('the class: tests before and after, each item, satisfaction by item, group 
   assert.deepEqual([f.items[0]!.pre, f.items[0]!.post], [100, 100]);
   assert.equal(f.items[3]!.pre, (100 * 1) / 3, 'b had 5 right, a 3, none 1');
   assert.equal(f.items[9]!.post, 0);
-  assert.deepEqual(f.items[9]!.commonWrong, { choice: (test_[9]!.answer + 1) % test_[9]!.choicesTh.length, count: 2 });
+  // The wrong choice is the post-test pair's own.
+  assert.deepEqual(f.items[9]!.commonWrong, { choice: (post_[9]!.answer + 1) % post_[9]!.choicesTh.length, count: 2 });
+  assert.deepEqual([f.items[9]!.id, f.items[9]!.postId], [test_[9]!.id, post_[9]!.id]);
   assert.equal(f.items[0]!.commonWrong, null);
   // E1: a's ordering game 3/3, b's 1/3 (nothing else done while learning): (100 + 33.3) / 2. E2: (80 + 90) / 2.
   assert.equal(f.e1.toFixed(2), ((100 + 100 / 3) / 2).toFixed(2));
@@ -183,13 +199,13 @@ test('the class: tests before and after, each item, satisfaction by item, group 
 });
 
 test('the t-test appears with spread, in the direction of the gain', () => {
-  const ps = [3, 4, 5, 6, 2].map((pre, i) => ({ ...EMPTY, learner: learner(String(i + 1)), pre: sitting(pre), post: sitting([7, 8, 6, 9, 6][i]!) }));
+  const ps = [3, 4, 5, 6, 2].map((pre, i) => ({ ...EMPTY, learner: learner(String(i + 1)), pre: sitting(pre), post: postSitting([7, 8, 6, 9, 6][i]!) }));
   const f = classFigures(ps, C);
   assert.equal(f.t!.t.toFixed(3), '5.488');
 });
 
 test('the CSV: a byte-order mark, a heading, one row per learner, quotes where needed', () => {
-  const a: Progress = { ...EMPTY, learner: learner('1', 'ก "ข", ค'), pre: sitting(3), post: sitting(8), reflect: { self: {}, write: { learned: 'สอง\nบรรทัด' }, sat: {}, suggest: '', at: 1 } };
+  const a: Progress = { ...EMPTY, learner: learner('1', 'ก "ข", ค'), pre: sitting(3), post: postSitting(8), reflect: { self: {}, write: { learned: 'สอง\nบรรทัด' }, sat: {}, suggest: '', at: 1 } };
   const csv = classCsv([a], C);
   assert.ok(csv.startsWith('﻿ชั้น,เลขที่,ชื่อ-สกุล,ก่อนเรียน,หลังเรียน,ผลต่าง,'));
   const [, row] = csv.slice(1).split('\r\n');
@@ -199,7 +215,7 @@ test('the CSV: a byte-order mark, a heading, one row per learner, quotes where n
 });
 
 test('the results as text: who, steps, the tests and each objective, "-" for what is not done', () => {
-  const p: Progress = { ...EMPTY, learner: learner('7'), pre: sitting(3), post: sitting(8), reflect: { self: { 'self-os': 4 }, write: {}, sat: {}, suggest: '', at: 1 } };
+  const p: Progress = { ...EMPTY, learner: learner('7'), pre: sitting(3), post: postSitting(8), reflect: { self: { 'self-os': 4 }, write: {}, sat: {}, suggest: '', at: 1 } };
   const lines = resultsText(p, C).split('\n');
   assert.equal(lines[1], 'สมชาย ใจดี · ปวช.1/2 · เลขที่ 7');
   assert.equal(lines[2], 'ทำครบ 2/7 ขั้น');
@@ -209,5 +225,5 @@ test('the results as text: who, steps, the tests and each objective, "-" for wha
   assert.equal(lines[8], 'เคสที่เล่นแล้ว 0/2');
   const fresh = resultsText(EMPTY, C).split('\n');
   assert.deepEqual([fresh[1], fresh[3]], ['ยังไม่ได้กรอกชื่อ', 'แบบทดสอบ: ก่อนเรียน - → หลังเรียน -']);
-  assert.ok(resultsText({ ...p, post: sitting(1) }, C).includes('(-2)'));
+  assert.ok(resultsText({ ...p, post: postSitting(1) }, C).includes('(-2)'));
 });
