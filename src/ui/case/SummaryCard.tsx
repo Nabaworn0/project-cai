@@ -23,9 +23,12 @@ interface Props {
   /** The case's own problem, whose card explains a wrong guess or a wrong explanation. */
   problem?: string;
   onCard?: (id: string) => void;
+  /** A free play job with a problem mixed in: the log links each problem's card, so the one met by surprise can
+   *  be read up on (src/core/visits.ts). */
+  logCards?: boolean;
 }
 
-export function SummaryCard({ summary, text, cards = [], problem, onCard }: Props) {
+export function SummaryCard({ summary, text, cards = [], problem, onCard, logCards = false }: Props) {
   const { stars, coins, satisfaction, mistakes, log, check, criteria, bonuses } = summary;
   const [lit, setLit] = useState(0);
   const [counted, setCounted] = useState(0);
@@ -99,12 +102,20 @@ export function SummaryCard({ summary, text, cards = [], problem, onCard }: Prop
       </dl>
       <div class="techlog">
         <div class="techlog-head">บันทึกช่าง</div>
-        {log.map((l) => (
-          <p key={l.textTh}>
-            {l.textTh}
-            {l.bookPage && <span class="page"> (หนังสือ น.{l.bookPage})</span>}
-          </p>
-        ))}
+        {log.map((l) => {
+          const card = logCards && onCard && l.problem ? cardForProblem(cards, l.problem) : null;
+          return (
+            <p key={l.textTh} data-problem={l.problem}>
+              {l.textTh}
+              {l.bookPage && <span class="page"> (หนังสือ น.{l.bookPage})</span>}
+              {card && (
+                <button class="assess-card" type="button" data-card-link={card.id} onClick={() => onCard!(card.id)}>
+                  📖 อ่านการ์ด: {card.nameTh}
+                </button>
+              )}
+            </p>
+          );
+        })}
       </div>
     </div>
   );

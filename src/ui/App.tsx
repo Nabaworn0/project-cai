@@ -7,6 +7,8 @@
 // and links work as on any website; which page an address may open is src/core/routes.ts. Between pages the shop's
 // shutter rolls down and up (Shutter.tsx), held down the first time the shop's scene loads. The technician's book
 // (docs/book-plan.md) opens over whichever page it is opened from: the menu, the shop's HUD, or the case summary.
+// Free play (โหมดอิสระ, src/core/free.ts) swaps in a save of its own and its own menu; the results sent to the teacher
+// are the class's save only, so nothing played there reaches the sheet.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Game } from 'phaser';
@@ -16,6 +18,7 @@ import type { ShopLayout } from '../game/scenes/ShopScene';
 import { CaseFlow, PLAYABLE } from './case/CaseFlow';
 import { SUMMARY_REVEAL_MS } from './case/SummaryCard';
 import { MenuScreen } from './menu/MenuScreen';
+import { FreeMenu } from './menu/FreeMenu';
 import { BookScreen } from './book/BookScreen';
 import { unlockedCards, unreadCards } from '../core/book';
 import { StartScreen } from './start/StartScreen';
@@ -25,8 +28,11 @@ import { useSync } from './sync';
 import { ResultsScreen } from './results/ResultsScreen';
 import { OrderScreen } from './order/OrderScreen';
 import { QuizScreen } from './quiz/QuizScreen';
-import { loadProgress, saveProgress, type Progress } from './progress';
-import { EMPTY, markCardRead, markSeen, pathView, recordCase, recordLesson, recordOrder, recordQuiz, recordReflect, type PathOptions, type StepId } from '../core/path';
+import { loadFree, loadMode, loadProgress, saveFree, saveMode, saveProgress, type Progress } from './progress';
+import { classFinished, freeRoute, freeStart, type Mode } from '../core/free';
+import { mixedCase, mixedVisits, pickVisit, visitKey } from '../core/visits';
+import type { GeneratedCase } from '../core/cases';
+import { EMPTY, markCardRead, markSeen, pathView, recordCase, recordJob, recordLesson, recordOrder, recordQuiz, recordReflect, type PathOptions, type StepId } from '../core/path';
 import { allowedRoute, parseRoute, routeHash, type Route } from '../core/routes';
 import { prefersLessMotion } from './motion';
 import { Shutter, SHUTTER_MS, type ShutterPhase } from './Shutter';
@@ -39,6 +45,11 @@ const params = new URLSearchParams(location.search);
 /** Steps whose screens exist (docs/learning-path-plan.md); the rest show as "เร็วๆ นี้". */
 const BUILT: ReadonlySet<StepId> = new Set<StepId>(['pre', 'lesson-os', 'lesson-types', 'order', 'cases', 'post', 'reflect', 'results']);
 const pathOptions: PathOptions = { built: BUILT, caseIds: PLAYABLE, unlockAll: params.get('unlock') === 'all' };
+/** Free play: every case open at once. */
+const freeOptions: PathOptions = { ...pathOptions, unlockAll: true };
+/** Free play's customers: each with a problem mixed in from another case (src/core/visits.ts). */
+const freeCases = content.cases.filter((c) => PLAYABLE.includes(c.id));
+const VISITS = mixedVisits(freeCases, content.problems);
 
 /** The shop scene, started once on the first visit. */
 let game: Promise<Game> | null = null;
@@ -62,7 +73,9 @@ const VIEW: Record<Route, View> = {
 const caseLink = params.has('case');
 /** The same page with another address (the query, such as ?seed=, stays). */
 const urlOf = (r: Route) => `${location.pathname}${location.search}${routeHash(r)}`;
-const nextCase = (p: Progress) => pathView(p, pathOptions).cases.find((c) => c.status === 'open')?.id;
+const nextCase = (p: Progress, m: Mode) => pathView(p, m === 'free' ? freeOptions : pathOptions).cases.find((c) => c.status === 'open')?.id;
+/** The page an address may open now, in this mode. */
+const allowed = (r: Route, m: Mode, p: Progress) => (m === 'free' ? freeRoute(r) : allowedRoute(r, !!p.learner, pathView(p, pathOptions)));
 /** Leaving before the job starts or after it ends loses nothing; in the middle, ask first. */
 const CALM_STAGES = ['', 'arriving', 'talk', 'intro', 'summary'];
 /** The boot screen is shown once per device. */
@@ -87,19 +100,27 @@ const shutterMs = fade ? SHUTTER_MS.fade : SHUTTER_MS.roll;
 export function App() {
   const [ready, setReady] = useState(false);
   const [sign, setSign] = useState<ShopLayout['sign'] | null>(null);
-  const [progress, setProgress] = useState(loadProgress);
-  const sync = useSync(progress);
+  const [mode, setMode] = useState<Mode>(loadMode);
+  const free = mode === 'free';
+  const [classProgress, setClassProgress] = useState(loadProgress);
+  /** Free play's save, null until the first visit to it. */
+  const [freeProgress, setFreeProgress] = useState(loadFree);
+  const progress = free ? (freeProgress ?? EMPTY) : classProgress;
+  // Only the class's save is ever sent.
+  const sync = useSync(classProgress);
   // The page the address asks for, if it may open now; else the learning page.
-  const [route, setRoute] = useState<Route>(() => allowedRoute(parseRoute(location.hash), !!progress.learner, pathView(progress, pathOptions)));
+  const [route, setRoute] = useState<Route>(() => allowed(parseRoute(location.hash), mode, progress));
   const view: View = caseLink ? 'shop' : VIEW[route];
   const test = route === 'post' ? 'post' : 'pre';
   /** The case picked in the menu, and a count that gives each visit to the shop a fresh case flow. */
-  const [first, setFirst] = useState<string | undefined>(() => (route === 'shop' ? nextCase(progress) : undefined));
+  const [first, setFirst] = useState<string | undefined>(() => (route === 'shop' ? nextCase(progress, mode) : undefined));
   const [visit, setVisit] = useState(0);
   const stage = useRef('');
   // The address listener reads these, not the values of the render it was set up in.
   const progressRef = useRef(progress);
   progressRef.current = progress;
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
   const routeRef = useRef(route);
   /** What the tap that changed the address asked for: a case, the welcome again, or leaving a case without asking. */
   const pending = useRef<{ caseId?: string; replayIntro?: boolean; leaving?: boolean }>({});
@@ -168,7 +189,7 @@ export function App() {
   // A page reached by its address: a tap here, Back/Forward, or a typed or shared link.
   const arrive = (wanted: Route) => {
     const p = progressRef.current;
-    const r = allowedRoute(wanted, !!p.learner, pathView(p, pathOptions));
+    const r = allowed(wanted, modeRef.current, p);
     const { leaving, ...asked } = pending.current;
     pending.current = {};
     // Back in the middle of a case: stay (on a new entry, so Back can ask again), and ask as "☰ เมนู" does.
@@ -182,7 +203,7 @@ export function App() {
     if (r === routeRef.current) return;
     if (r === 'shop') {
       setReplayIntro(!!asked.replayIntro);
-      setFirst(asked.caseId ?? nextCase(p));
+      setFirst(asked.caseId ?? nextCase(p, modeRef.current));
       setVisit((n) => n + 1);
     }
     routeRef.current = r;
@@ -210,12 +231,45 @@ export function App() {
   }, []);
 
   const update = (f: (p: Progress) => Progress) =>
-    setProgress((p) => {
-      const next = f(p);
-      saveProgress(next);
-      return next;
+    free
+      ? setFreeProgress((p) => {
+          const next = f(p ?? EMPTY);
+          saveFree(next);
+          return next;
+        })
+      : setClassProgress((p) => {
+          const next = f(p);
+          saveProgress(next);
+          return next;
+        });
+  useEffect(() => {
+    document.body.dataset.mode = mode;
+  }, [mode]);
+  /** Into free play, from the start page or the class's menu (both on #/learn, where its menu then shows). */
+  const enterFree = () => {
+    if (!freeProgress) {
+      const start = freeStart(classProgress);
+      saveFree(start);
+      setFreeProgress(start);
+    }
+    saveMode('free');
+    setMode('free');
+    setAbout(false);
+  };
+  /** Back to the class mode: the start page, or the learning path when a name is given on this device. */
+  const leaveFree = () => {
+    saveMode('class');
+    setMode('class');
+    setStarted(false);
+  };
+  const finish = (caseId: string, stars: number, coins: number, gc: GeneratedCase) =>
+    update((p) => {
+      const next = recordCase({ ...p, coins: p.coins + coins }, caseId, stars);
+      return gc.mixed ? recordJob(next, visitKey(gc.mixed), gc.problems.map((x) => x.id), stars) : next;
     });
-  const finish = (caseId: string, stars: number, coins: number) => update((p) => recordCase({ ...p, coins: p.coins + coins }, caseId, stars));
+  /** Free play's next job: a pair not met yet first, not the same customer twice in a row. */
+  const nextVisit = (lastHost: string | null) =>
+    mixedCase(freeCases, content, pickVisit(VISITS, progressRef.current.jobs.pairs, lastHost, Math.random), `${Date.now()}`);
   const enter = (step: StepId, caseId?: string, opts: { replayIntro?: boolean } = {}) => {
     if (step === 'cases') {
       pending.current = { caseId, replayIntro: opts.replayIntro };
@@ -247,7 +301,7 @@ export function App() {
             ☰ เมนู
           </button>
           <h1 class="chip brand">
-            ร้านซ่อมคอม <small>รอบ 1</small>
+            ร้านซ่อมคอม <small data-testid="hud-mode">{free ? 'เล่นอิสระ' : 'รอบ 1'}</small>
           </h1>
           <div class="hud-right">
             <button class="chip book-chip" type="button" aria-label="สมุดช่าง" title="สมุดช่าง: การ์ดความรู้ที่สะสมไว้" data-testid="hud-book" onClick={() => openBook()}>
@@ -273,7 +327,7 @@ export function App() {
         </header>
       )}
 
-      {view === 'menu' && (about || (!progress.learner && !started)) ? (
+      {view === 'menu' && !free && (about || (!progress.learner && !started)) ? (
         <StartScreen
           text={content.start}
           boot={!about && !bootSeen}
@@ -290,6 +344,16 @@ export function App() {
             setStarted(true);
             setAbout(false);
           }}
+          onFree={enterFree}
+        />
+      ) : view === 'menu' && free ? (
+        <FreeMenu
+          progress={progress}
+          pairs={VISITS.length}
+          onEnter={(step, caseId) => enter(step, caseId)}
+          onLeave={leaveFree}
+          coins={<CoinChip coins={progress.coins} />}
+          book={{ got: cardsGot.size, total: content.cards.cards.length, fresh: cardsNew, onOpen: () => openBook() }}
         />
       ) : view === 'menu' ? (
         <MenuScreen
@@ -308,6 +372,7 @@ export function App() {
           coins={<CoinChip coins={progress.coins} />}
           className={sync.cls?.name}
           book={{ got: cardsGot.size, total: content.cards.cards.length, fresh: cardsNew, onOpen: () => openBook() }}
+          onFree={classFinished(classProgress) ? enterFree : undefined}
         />
       ) : view === 'test' ? (
         <QuizScreen
@@ -359,7 +424,7 @@ export function App() {
           content={content}
           ready={ready}
           first={first}
-          inPath={!caseLink}
+          inPath={!caseLink && !free}
           onFinish={finish}
           onMenu={toMenu}
           onStage={(st) => (stage.current = st)}
@@ -368,6 +433,8 @@ export function App() {
           replayIntro={replayIntro}
           cardsGot={cardsGot}
           onBook={openBook}
+          visit={free && !caseLink ? nextVisit : undefined}
+          served={free ? progress.cases : undefined}
         />
       )}
 
@@ -382,7 +449,7 @@ export function App() {
         />
       )}
 
-      <Shutter phase={shutter.phase} to={shutter.to} fade={fade} />
+      <Shutter phase={shutter.phase} to={shutter.to} fade={fade} label={free && shutter.to === 'learn' ? 'เมนูเล่นอิสระ' : undefined} />
 
       {askLeave && (
         <div class="menu-backdrop" role="alertdialog" aria-modal="true" aria-labelledby="leave-q">

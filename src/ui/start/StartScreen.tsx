@@ -40,6 +40,8 @@ interface Props {
   muted: boolean;
   onMuted: (muted: boolean) => void;
   onStart: () => void;
+  /** Free play at home (src/core/free.ts): no name, no tests, nothing sent. */
+  onFree: () => void;
   /** Opened again from the menu ("เกี่ยวกับเกม"): the button goes back instead. */
   again?: boolean;
 }
@@ -96,7 +98,7 @@ function Boot({ onDone }: { onDone: () => void }) {
   );
 }
 
-function Title({ text, className, onLeaveClass, muted, onMuted, onStart, again = false }: Props) {
+function Title({ text, className, onLeaveClass, muted, onMuted, onStart, onFree, again = false }: Props) {
   const still = prefersLessMotion();
   const [settled, setSettled] = useState(still);
   const [typed, setTyped] = useState(still ? text.greeting.length : 0);
@@ -221,6 +223,10 @@ function Title({ text, className, onLeaveClass, muted, onMuted, onStart, again =
             </div>
             <button class="btn start-go" type="button" onClick={onStart}>
               {again ? 'กลับไปเมนู' : text.start}
+            </button>
+            {/* The way in at home: a second button, so the class's own one stays the obvious tap. */}
+            <button class="btn ghost small start-free" type="button" data-testid="start-free" onClick={onFree}>
+              🎮 เล่นอิสระ (ไม่บันทึกผล)
             </button>
 
             {/* What the game teaches, folded: there for whoever wants it (and for the teacher showing it). */}

@@ -27,7 +27,8 @@ const GEAR = [
   '....##.##...',
 ];
 
-export function Shutter({ phase, to, fade }: { phase: ShutterPhase; to: Route; fade: boolean }) {
+/** `label`: the page's name when it is not the route's own (free play's menu is on #/learn). */
+export function Shutter({ phase, to, fade, label }: { phase: ShutterPhase; to: Route; fade: boolean; label?: string }) {
   if (phase === 'idle') return null;
   return (
     <div class={`shutter ${phase}${fade ? ' fade' : ''}`} data-testid="shutter" aria-live="polite">
@@ -35,7 +36,7 @@ export function Shutter({ phase, to, fade }: { phase: ShutterPhase; to: Route; f
         <svg class="shutter-gear" viewBox="0 0 12 12" aria-hidden="true" shape-rendering="crispEdges">
           {GEAR.flatMap((row, y) => [...row].map((c, x) => (c === '#' ? <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" /> : null)))}
         </svg>
-        <span>กำลังไปที่ {ROUTE_TH[to]}…</span>
+        <span>กำลังไปที่ {label ?? ROUTE_TH[to]}…</span>
       </div>
     </div>
   );

@@ -43,6 +43,18 @@ test('a keep-my-files customer cannot need a destructive-only fix', () => {
   hasError(files, 'no listed fix is allowed');
 });
 
+test("free play's mixed jobs are checked too: a problem mixed in must be fixable on that customer's PC", () => {
+  const files = real();
+  // Somsri's PC on a BIOS with no TPM setting: case 1 alone still works, but TPM off mixed in (case 4's) cannot.
+  const hp = get(files, 'brands/hp.json');
+  hp.phase = 'next';
+  hp.pages = hp.pages.filter((p: { id: string }) => p.id !== 'security');
+  get(files, 'cases/c01-boot-order.json').brands = ['hp'];
+  const { errors } = run(files);
+  assert.ok(!errors.some((e) => e.startsWith('cases/c01-boot-order.json') && e.includes('no sequence of repairs')), errors.join(' | '));
+  hasError(files, 'free play c01-boot-order+tpm-disabled');
+});
+
 test('a machine that is broken before problems are added is rejected', () => {
   const files = real();
   get(files, 'cases/c03-red-text.json').machine.ramGB = [2];

@@ -146,3 +146,13 @@
 }
 /* The shop canvas stays loaded but out of sight on the learning page. */
 body:not([data-view='shop']) #game { visibility: hidden; }
+
+/* Free play's menu (FreeMenu.tsx): its lists sit flush, under small headings. */
+.free-note b { color: #b83232; }
+.free-head { margin: 14px 0 6px; font-family: var(--f-head); font-size: 15px; color: var(--navy); }
+.case-list.free-list { margin-left: 0; }
+.menu-free { width: 100%; margin-bottom: 12px; text-align: left; }
+.free-jobs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0; }
+.free-jobs div { padding: 6px 8px; background: #fff; box-shadow: inset 0 0 0 2px var(--navy); }
+.free-jobs dt { font-size: 12.5px; color: #5f6b80; }
+.free-jobs dd { margin: 0; font-family: var(--f-head); font-weight: 700; font-size: 16px; color: var(--navy); }

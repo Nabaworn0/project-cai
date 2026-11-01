@@ -88,6 +88,17 @@ export interface Progress {
   reflectDraft: ReflectAnswers | null;
   /** Knowledge cards opened in the technician's book (docs/book-plan.md); the cards got are worked out, not kept. */
   cardsRead: string[];
+  /** Free play's jobs (src/core/visits.ts); the class's save keeps them empty. */
+  jobs: JobsRecord;
+}
+
+/** Jobs done in free play: how many, how many with three stars, the customer + mixed-in problem pairs met, and
+ *  every problem met (for the ranks, docs/phase3-plan.md). */
+export interface JobsRecord {
+  count: number;
+  three: number;
+  pairs: string[];
+  problems: string[];
 }
 
 export const EMPTY: Progress = {
@@ -104,6 +115,7 @@ export const EMPTY: Progress = {
   reflect: null,
   reflectDraft: null,
   cardsRead: [],
+  jobs: { count: 0, three: 0, pairs: [], problems: [] },
 };
 
 /** What is learned before the shop: the pre-test, both lessons and the step ordering. */
@@ -185,6 +197,20 @@ function nextStep(steps: PathView['steps'], cases: PathView['cases']): PathView[
     if (c) return { step: 'cases', caseId: c.id };
   }
   return { step: 'results' };
+}
+
+/** A free play job finished: counted, and its pair and problems noted as met. */
+export function recordJob(p: Progress, pair: string, problems: readonly string[], stars: number): Progress {
+  const j = p.jobs;
+  return {
+    ...p,
+    jobs: {
+      count: j.count + 1,
+      three: j.three + (stars >= 3 ? 1 : 0),
+      pairs: j.pairs.includes(pair) ? j.pairs : [...j.pairs, pair],
+      problems: [...new Set([...j.problems, ...problems])],
+    },
+  };
 }
 
 /** A case finished: count the play, keep the best stars, and the first play's stars once. */
@@ -374,5 +400,8 @@ export function parseProgress(raw: string | null, oldRaw: string | null = null):
     reflect: reflectResult(v.reflect),
     reflectDraft: reflectAnswers(v.reflectDraft),
     cardsRead: ids(v.cardsRead),
+    jobs: isObj(v.jobs)
+      ? { count: count(v.jobs.count) ?? 0, three: count(v.jobs.three) ?? 0, pairs: ids(v.jobs.pairs), problems: ids(v.jobs.problems) }
+      : EMPTY.jobs,
   };
 }

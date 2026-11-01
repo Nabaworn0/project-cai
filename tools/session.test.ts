@@ -133,9 +133,9 @@ test('the customer is worried until the PC is fixed, then pleased', () => {
   assert.equal(customerMood(gc, step(gc, atRepair, { type: 'repaired', route: 'bios' })), 'happy');
 });
 
-test("the technician's log teaches the hidden problem with its textbook page", () => {
+test("the technician's log teaches the hidden problem with its textbook page, and names it (for its card)", () => {
   const { log } = summarize(gc, playCase());
-  assert.deepEqual(log, [{ textTh: gc.problems[0]!.explainTh, bookPage: '48–51' }]);
+  assert.deepEqual(log, [{ textTh: gc.problems[0]!.explainTh, bookPage: '48–51', problem: 'usb-not-first' }]);
 });
 
 test('steps never change the session they were given', () => {

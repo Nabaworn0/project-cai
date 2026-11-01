@@ -25,6 +25,10 @@ async function start(page: Page, progress: unknown) {
       rec.push({ shutter: d.shutter, view: d.view, scene: d.scene, at: performance.now(), covered: !!top?.closest('[data-testid="shutter"]') });
       // document, not document.documentElement: init scripts run before the <html> element exists.
     }).observe(document, { attributes: true, subtree: true, attributeFilter: ['data-shutter', 'data-view', 'data-scene'] });
+    // Taps too: the shutter's timer starts in the tap's handler, before the attribute is written (after paint).
+    const taps: number[] = [];
+    (window as unknown as { __taps: number[] }).__taps = taps;
+    addEventListener('click', () => taps.push(performance.now()), true);
   }, JSON.stringify(progress));
   await page.goto('/');
   await expect(menu(page)).toBeVisible({ timeout: 15_000 });
@@ -45,9 +49,11 @@ test('down, the page changes behind it, up; once down it covers the screen', asy
   const changed = steps.find((s) => s.view === 'test')!;
   expect(changed.shutter).toBe('closed');
   expect(changed.covered).toBe(true);
-  // It took its time rolling down (timers never fire early, so this cannot fail under load).
-  const down = steps.find((s) => s.shutter === 'down')!;
-  expect(changed.at - down.at).toBeGreaterThanOrEqual(290);
+  // It took its time rolling down: timed from the tap, which comes before the timer starts (timers never fire early,
+  // so this cannot fail under load; "down" is written after paint, which a busy machine can put off).
+  const taps = await page.evaluate(() => (window as unknown as { __taps: number[] }).__taps);
+  const tap = taps.findLast((t) => t < changed.at)!;
+  expect(changed.at - tap).toBeGreaterThanOrEqual(290);
 });
 
 test('the first trip to the shop holds the shutter down until the scene is ready', async ({ page }, info) => {

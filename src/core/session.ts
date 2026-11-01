@@ -79,6 +79,8 @@ export type SessionEvent =
 export interface LogEntry {
   textTh: string;
   bookPage?: string;
+  /** The problem it explains (a free play job links its card). */
+  problem?: string;
 }
 
 export interface Summary {
@@ -124,8 +126,9 @@ export function startSession(gc: GeneratedCase): Session {
     route: null,
     bypassedChecks: false,
     wrongEdition: false,
-    // Two hints per machine (the brief), taken from the hidden problems in order.
-    hints: gc.problems.flatMap((p) => p.hintsTh).slice(0, SCORING.hintLimit),
+    // Two hints per machine (the brief), taken from the hidden problems in order; a free play job with a problem
+    // mixed in (src/core/visits.ts) gets the first hint of each, so neither problem goes without one.
+    hints: (gc.mixed ? gc.problems.map((p) => p.hintsTh[0]!) : gc.problems.flatMap((p) => p.hintsTh)).slice(0, SCORING.hintLimit),
     hintsUsed: 0,
     checks: [],
     oobe: null,
@@ -239,7 +242,7 @@ export function summarize(gc: GeneratedCase, s: Session): Summary {
   if (s.oobe?.privacyAsked) bonuses.push({ id: 'privacy', coins: SCORING.privacyCoin });
   const coins = SCORING.repairCoins + right * SCORING.checkCoin + bonuses.reduce((n, b) => n + b.coins, 0);
 
-  const log: LogEntry[] = gc.problems.map((p) => ({ textTh: p.explainTh, bookPage: p.bookPage }));
+  const log: LogEntry[] = gc.problems.map((p) => ({ textTh: p.explainTh, bookPage: p.bookPage, problem: p.id }));
   if (s.bypassedChecks) log.push({ textTh: BYPASS_NOTE_TH });
   if (s.wrongEdition) log.push({ textTh: EDITION_NOTE_TH });
   if (s.oobe) log.push(...oobeNotes(s.oobe, gc.template.deviceName));

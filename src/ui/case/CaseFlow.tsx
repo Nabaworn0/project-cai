@@ -13,7 +13,7 @@
 import { PLAYABLE } from '../../core/path';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { bus } from '../../core/bus';
-import { generateCase, nextCase, type GeneratedCase } from '../../core/cases';
+import { generateCase, nextCase, regenerate, type GeneratedCase } from '../../core/cases';
 import { confirmBackup, insertUsb, powerOn, type Effect, type Pc } from '../../core/pc';
 import { ISO_FILES, openRufus, type Rufus, type RufusEffect, type Usb } from '../../core/rufus';
 import { goodbyeLine, reactionLine } from '../../core/reactions';
@@ -51,8 +51,8 @@ interface Props {
   first?: string;
   /** Started from the menu's learning path: after the last case the way on is the menu, not a random customer. */
   inPath: boolean;
-  /** Once per finished case, when the summary appears: its stars and coins. */
-  onFinish: (caseId: string, stars: number, coins: number) => void;
+  /** Once per finished case, when the summary appears: its stars and coins (and the job, for free play's record). */
+  onFinish: (caseId: string, stars: number, coins: number, gc: GeneratedCase) => void;
   onMenu: () => void;
   /** Where the case is, so the menu button knows whether leaving loses a job in progress. */
   onStage: (stage: string) => void;
@@ -64,6 +64,10 @@ interface Props {
   /** The technician's book: the cards the learner has, and opening it (on a card, or on the list). */
   cardsGot: ReadonlySet<string>;
   onBook: (card?: string) => void;
+  /** Free play (src/core/visits.ts): the next job, a customer with a problem mixed in, given the last one's case. */
+  visit?: (lastHost: string | null) => GeneratedCase;
+  /** Free play: how many times each customer's case has been played, for "ซ่อมให้…เป็นครั้งที่ 3". */
+  served?: Readonly<Record<string, { plays: number }>>;
 }
 
 export { PLAYABLE };
@@ -105,8 +109,8 @@ function startPc(gc: GeneratedCase, usb: Usb): Pc {
 /** What Rufus finds on a stick whose partition Setup deleted. */
 const WIPED_LABEL = 'NO_LABEL';
 
-export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onStage, seen, onSeen, replayIntro, cardsGot, onBook }: Props) {
-  const [gc, setGc] = useState(() => newCase(content, null, first));
+export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onStage, seen, onSeen, replayIntro, cardsGot, onBook, visit, served }: Props) {
+  const [gc, setGc] = useState(() => (visit ? visit(null) : newCase(content, null, first)));
   const [s, setS] = useState<Session>(() => startSession(gc));
   const [arrived, setArrived] = useState(false);
   const [simOpen, setSimOpen] = useState(false);
@@ -220,7 +224,7 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
   const summary = useMemo(() => (s.stage === 'summary' ? summarize(gc, s) : null), [gc, s]);
   useEffect(() => {
     if (!summary) return;
-    onFinish(gc.template.id, summary.stars, summary.coins);
+    onFinish(gc.template.id, summary.stars, summary.coins, gc);
     if (summary.stars >= 2) bus.emit('customer:cheer', {});
   }, [summary !== null]);
 
@@ -345,7 +349,11 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
       off();
       leaving.current = false;
       const done = latest.current.gc;
-      const g = again ? generateCase(done.template, content, `${Date.now()}`) : newCase(content, done.template.id);
+      const g = again
+        ? regenerate(done, content, `${Date.now()}`)
+        : visit
+          ? visit(done.template.id)
+          : newCase(content, done.template.id);
       setFocus(again ? focusOf(again, content.feedback) : null);
       pcRef.current = undefined;
       rufusRef.current = undefined;
@@ -662,7 +670,19 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
         <>
           {speaker}
           <p class="says" data-testid="goodbye">“{goodbyeLine(gc.template.customer.reactionsTh, summary!.stars)}”</p>
-          <SummaryCard summary={summary!} text={content.feedback} cards={content.cards.cards} problem={gc.template.problems.fixed[0]} onCard={onBook} />
+          {served && (served[gc.template.id]?.plays ?? 0) >= 2 && (
+            <p class="regular" data-testid="regular">
+              🧾 ลูกค้าประจำ: ซ่อมให้{name}เป็นครั้งที่ {served[gc.template.id]!.plays}
+            </p>
+          )}
+          <SummaryCard
+            summary={summary!}
+            text={content.feedback}
+            cards={content.cards.cards}
+            problem={gc.template.problems.fixed[0]}
+            onCard={onBook}
+            logCards={!!gc.mixed}
+          />
           {newCards.length > 0 && (
             <div class="new-cards" data-testid="new-cards">
               <p>

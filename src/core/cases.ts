@@ -15,6 +15,8 @@ export interface GeneratedCase {
   base: Machine;
   machine: Machine;
   problems: Problem[];
+  /** Free play: the customer and the problem mixed in (src/core/visits.ts). */
+  mixed?: { host: string; extra: string };
 }
 
 export interface CaseLibrary {
@@ -83,6 +85,12 @@ export function generateCase(template: Case, lib: CaseLibrary, seed: string, det
   const machine = problems.reduce((m, p) => applyPatch(m, p.patch), base);
   return { template, seed, brand, base, machine, problems };
 }
+
+/** The same customer and problems on a new machine ("ลองใหม่"); a free play job keeps its pair. */
+export const regenerate = (gc: GeneratedCase, lib: CaseLibrary, seed: string): GeneratedCase => ({
+  ...generateCase(gc.template, lib, seed),
+  ...(gc.mixed && { mixed: gc.mixed }),
+});
 
 export interface SolveOptions {
   keepData: boolean;

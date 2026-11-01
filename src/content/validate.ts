@@ -4,7 +4,8 @@
 
 import { z } from 'zod';
 import { ACTIONS, ACTION_IDS } from '../core/actions';
-import { brandShows, conflicts, generateCase, solve } from '../core/cases';
+import { brandShows, conflicts, generateCase, solve, type CaseLibrary } from '../core/cases';
+import { mixedTemplate, mixedVisits, SETUP_FIXES, visitKey } from '../core/visits';
 import { applyPatch, healthyMachine, matches, type Machine, type MachinePatch } from '../core/machine';
 import { DRIVES, OPTION_VALUES } from '../core/pc';
 import { BLOCKER_IDS, findBlockers, hardwareLimits } from '../core/requirements';
@@ -105,7 +106,7 @@ export function validateContent(files: readonly ContentFile[], opts: ValidateOpt
 
   checkBrands(parsed.brands, errors, warnings);
   checkProblems(parsed, checkLo, errors);
-  const generated = checkCases(parsed, seeds, checkLo, errors, warnings);
+  const generated = checkCases(parsed, seeds, checkLo, errors, warnings) + checkMixed(parsed, seeds, errors);
   checkTest(parsed.test, errors, warnings);
   checkReflect(parsed.reflect, errors, warnings);
   if (!parsed.start) errors.push('start.json: missing');
@@ -291,7 +292,6 @@ function checkWin11Check(parsed: ParsedContent, errors: string[]): void {
 }
 
 /** Repairs done on Setup's later pages, not before it. */
-const SETUP_FIXES: readonly string[] = ['setup-delete-all', 'skip-product-key'];
 
 function checkCases(
   parsed: ParsedContent,
@@ -369,31 +369,53 @@ function checkCases(
       if (why) errors.push(`${where}: fixed problems contradict each other: ${why}`);
     });
 
-    const failures = new Map<string, string>();
-    for (let s = 0; s < seeds; s++) {
-      const g = generateCase(c, parsed, `v${s}`);
-      checked++;
-      const tag = (msg: string) => failures.has(msg) || failures.set(msg, `seed v${s}, brand ${g.brand.id}`);
-      const baseBlockers = findBlockers(g.base);
-      if (baseBlockers.length) tag(`machine is already broken before problems are added (${baseBlockers.join(', ')}); use a problem instead`);
-      const limits = hardwareLimits(g.base);
-      if (limits.length) tag(`machine can never run Windows 11 (${limits.join(', ')})`);
-      const blockers = findBlockers(g.machine);
-      for (const p of g.problems) {
-        const others = Object.fromEntries(Object.entries(p.requires).filter(([k]) => !(k in p.patch))) as MachinePatch;
-        if (!matches(g.machine, others)) tag(`problem ${p.id}: its requirements are not met on this machine`);
-        if (!blockers.includes(p.blocker as never)) tag(`problem ${p.id} is hidden by another problem (blocker ${p.blocker} never shows)`);
-        const usable = p.fixes.filter((f) => {
-          const a = ACTIONS.find((x) => x.id === f);
-          return a && !(c.customer.keepData && a.destructive) && brandShows(g.brand, a);
-        });
-        if (usable.length === 0) tag(`problem ${p.id}: no listed fix is allowed here (keepData=${c.customer.keepData}, brand ${g.brand.id})`);
-      }
-      if (!solve(g.machine, g.brand, { keepData: c.customer.keepData })) tag('no sequence of repairs fixes this machine');
-    }
-    for (const [msg, at] of failures) errors.push(`${where}: ${msg} [${at}]`);
+    checked += checkMachines(c, parsed, seeds, where, errors);
   }
   return checked;
+}
+
+/** Every generated machine of a case (or a free play job, src/core/visits.ts): each problem shows and has a fix
+ *  allowed here, and some sequence of repairs fixes the machine. Returns how many machines were checked. */
+function checkMachines(c: Case, lib: CaseLibrary, seeds: number, where: string, errors: string[]): number {
+  let n = 0;
+  const failures = new Map<string, string>();
+  for (let s = 0; s < seeds; s++) {
+    const g = generateCase(c, lib, `v${s}`);
+    n++;
+    const tag = (msg: string) => failures.has(msg) || failures.set(msg, `seed v${s}, brand ${g.brand.id}`);
+    const baseBlockers = findBlockers(g.base);
+    if (baseBlockers.length) tag(`machine is already broken before problems are added (${baseBlockers.join(', ')}); use a problem instead`);
+    const limits = hardwareLimits(g.base);
+    if (limits.length) tag(`machine can never run Windows 11 (${limits.join(', ')})`);
+    const blockers = findBlockers(g.machine);
+    for (const p of g.problems) {
+      const others = Object.fromEntries(Object.entries(p.requires).filter(([k]) => !(k in p.patch))) as MachinePatch;
+      if (!matches(g.machine, others)) tag(`problem ${p.id}: its requirements are not met on this machine`);
+      if (!blockers.includes(p.blocker as never)) tag(`problem ${p.id} is hidden by another problem (blocker ${p.blocker} never shows)`);
+      const usable = p.fixes.filter((f) => {
+        const a = ACTIONS.find((x) => x.id === f);
+        return a && !(c.customer.keepData && a.destructive) && brandShows(g.brand, a);
+      });
+      if (usable.length === 0) tag(`problem ${p.id}: no listed fix is allowed here (keepData=${c.customer.keepData}, brand ${g.brand.id})`);
+    }
+    if (!solve(g.machine, g.brand, { keepData: c.customer.keepData })) tag('no sequence of repairs fixes this machine');
+  }
+  for (const [msg, at] of failures) errors.push(`${where}: ${msg} [${at}]`);
+  return n;
+}
+
+/** Free play's jobs (src/core/visits.ts): every pair of a customer and a problem mixed in can be fixed. */
+function checkMixed(parsed: { cases: Case[] } & CaseLibrary, seeds: number, errors: string[]): number {
+  // Cases whose own references are broken are reported by checkCases and left out here.
+  const cases = parsed.cases.filter((c) => PLAYABLE.includes(c.id) && c.brands.every((b) => parsed.brands.some((x) => x.id === b)));
+  const visits = mixedVisits(cases, parsed.problems);
+  if (visits.length < cases.length) errors.push(`free play: only ${visits.length} customer + problem pairs`);
+  let n = 0;
+  for (const v of visits) {
+    const host = cases.find((c) => c.id === v.host)!;
+    n += checkMachines(mixedTemplate(host, parsed.problems.find((p) => p.id === v.extra)!), parsed, seeds, `free play ${visitKey(v)}`, errors);
+  }
+  return n;
 }
 
 function checkQuestion(where: string, q: CaseQuestion, errors: string[]): void {

@@ -27,12 +27,14 @@ interface Props {
   aboutLabel?: string;
   /** Said under the name form when the class typed is not the link's ({typed}, {class}). */
   roomMismatch?: string;
+  /** Free play (src/core/free.ts), offered once the class's work is over. */
+  onFree?: () => void;
 }
 
 const STATUS_TH = { soon: 'เร็วๆ นี้', locked: 'ยังไม่เปิด', open: 'ยังไม่ทำ', done: 'ทำแล้ว' } as const;
 const STATUS_ICON = { soon: '…', locked: '🔒', open: '▶', done: '✓' } as const;
 
-export function MenuScreen({ content, progress, options, onLearner, onReset, onEnter, coins, className = null, onAbout, aboutLabel, roomMismatch, book }: Props) {
+export function MenuScreen({ content, progress, options, onLearner, onReset, onEnter, coins, className = null, onAbout, aboutLabel, roomMismatch, book, onFree }: Props) {
   const view = pathView(progress, options);
   const caseName = (id: string) => {
     const t = content.cases.find((c) => c.id === id);
@@ -70,14 +72,12 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
               ทำต่อ: {nextLabel}
             </button>
           )}
-          {book && (
-            <button class="btn ghost menu-book" type="button" data-testid="open-book" onClick={book.onOpen}>
-              <span>
-                📖 สมุดช่าง · สะสมแล้ว {book.got}/{book.total}
-              </span>
-              {book.fresh > 0 && <span class="book-new">ใหม่ {book.fresh}</span>}
+          {onFree && (
+            <button class="btn ghost menu-free" type="button" data-testid="go-free" onClick={onFree}>
+              🎮 เล่นอิสระ · ฝึกต่อได้ไม่จำกัด (ไม่บันทึกผล)
             </button>
           )}
+          {book && <BookButton {...book} />}
           <ol class="path">
             {view.steps.map((s, i) => {
               const info = STEP_INFO[s.id];
@@ -158,6 +158,18 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
         </>
       )}
     </LearnPage>
+  );
+}
+
+/** Opens the technician's book, with the cards got so far and those not opened yet. */
+export function BookButton({ got, total, fresh, onOpen }: NonNullable<Props['book']>) {
+  return (
+    <button class="btn ghost menu-book" type="button" data-testid="open-book" onClick={onOpen}>
+      <span>
+        📖 สมุดช่าง · สะสมแล้ว {got}/{total}
+      </span>
+      {fresh > 0 && <span class="book-new">ใหม่ {fresh}</span>}
+    </button>
   );
 }
 
