@@ -1,6 +1,6 @@
 // Free play's menu (โหมดอิสระ, docs/phase3-plan.md tasks A and B), on the same notice board as the learning path: open
 // the shop for customers (at random, each with a problem mixed in from another case: no cases 1–5 here), the jobs
-// done so far, the lessons and the ordering game to go over again, and the technician's book. Nothing played here is
+// done so far, the technician's rank, decorating the shop, the lessons and the ordering game to go over again, and the technician's book. Nothing played here is
 // sent to the teacher; the page says so under its title.
 
 import type { ComponentChildren } from 'preact';
@@ -8,6 +8,7 @@ import type { Progress, StepId } from '../../core/path';
 import { STEP_INFO } from '../../core/path';
 import type { Rank, Step } from '../../core/rank';
 import { BookButton, LearnPage } from './MenuScreen';
+import '../decor/decor.css';
 import './menu.css';
 
 interface Props {
@@ -21,12 +22,14 @@ interface Props {
   onLeave: () => void;
   coins: ComponentChildren;
   book: { got: number; total: number; fresh: number; onOpen: () => void };
+  /** Decorating the shop: how many of its places have something put out. */
+  decor: { placed: number; slots: number; onOpen: () => void };
 }
 
 /** What can be gone over again: the two lessons and the ordering game. */
 const REVIEW: readonly StepId[] = ['lesson-os', 'lesson-types', 'order'];
 
-export function FreeMenu({ progress, pairs, rank, onEnter, onLeave, coins, book }: Props) {
+export function FreeMenu({ progress, pairs, rank, onEnter, onLeave, coins, book, decor }: Props) {
   const jobs = progress.jobs;
 
   return (
@@ -45,6 +48,9 @@ export function FreeMenu({ progress, pairs, rank, onEnter, onLeave, coins, book 
         🏪 เปิดร้านรับลูกค้า
       </button>
       <BookButton {...book} />
+      <button class="btn ghost menu-decor" type="button" data-testid="open-decor" onClick={decor.onOpen}>
+        🛋️ แต่งร้าน · วางของแล้ว {decor.placed}/{decor.slots} จุด
+      </button>
 
       <RankCard {...rank} />
 

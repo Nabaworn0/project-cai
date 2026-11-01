@@ -449,6 +449,33 @@ export const RanksSchema = z
   .strict();
 export type Ranks = z.infer<typeof RanksSchema>;
 
+/** Free play's decorations (docs/phase3-plan.md task D): the shop's places to put them, a few to choose from in each,
+ *  bought with coins; some need a rank first. The icon shows until the item's picture is there. */
+export const DecorSchema = z
+  .object({
+    draft: z.boolean(),
+    source: z.string().optional(),
+    slots: z.array(z.object({ id, nameTh: th.max(24) }).strict()).min(1),
+    items: z
+      .array(
+        z
+          .object({
+            id,
+            slot: id,
+            nameTh: th.max(24),
+            descTh: th.max(60),
+            icon: z.string().min(1).max(4),
+            price: z.number().int().positive(),
+            /** The rank (ranks.json) the technician must have to buy it. */
+            rank: id.optional(),
+          })
+          .strict(),
+      )
+      .min(1),
+  })
+  .strict();
+export type Decor = z.infer<typeof DecorSchema>;
+
 /** Faces each speaker has (sprites `senior-<face>.png`, `tech-<face>.png`). */
 export const CUTSCENE_FACES = { senior: ['neutral', 'happy', 'thinking'], intern: ['neutral', 'happy', 'thinking', 'surprised'] } as const;
 

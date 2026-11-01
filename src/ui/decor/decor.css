@@ -1,0 +1,18 @@
+/* Decorating the shop (DecorScreen.tsx): the technician's book's panel and tiles, with a buy/put-out row on each. */
+.decor-note { margin: 0 0 4px; font-size: 14px; color: #5f6b80; }
+.decor-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.decor-tile { cursor: default; grid-template-rows: auto auto 1fr auto; }
+.decor-tile:hover { background: #fff; }
+.decor-tile.placed { background: #f1fbfa; box-shadow: inset 0 0 0 3px var(--teal-shade), inset 0 -6px 0 0 var(--yellow); }
+.decor-tile.locked, .decor-tile.short { color: #5f6b80; background: #f3f5f8; box-shadow: inset 0 0 0 3px #9aa3b5; }
+.decor-tile.locked .book-pic { filter: grayscale(1); opacity: 0.6; }
+.decor-act { display: flex; justify-content: center; width: 100%; margin-top: 4px; }
+.decor-act .btn { width: 100%; }
+.decor-why { font-size: 13px; font-weight: 700; line-height: 1.35; }
+.decor-rank { white-space: nowrap; }
+.decor-ask { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+.decor-q { grid-column: 1 / -1; font-size: 13px; font-weight: 700; }
+.decor-on { background: var(--teal); color: #fff; }
+
+/* The way in: a button in free play's menu, a HUD chip in the shop. */
+.menu-decor { width: 100%; margin-bottom: 12px; text-align: left; }

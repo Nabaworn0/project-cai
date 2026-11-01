@@ -100,6 +100,40 @@ test('the post-test is a parallel form: one pair for each pre-test question, on 
   hasError(files, 'test.json[os-mobile-b]: answer 7 is out of range');
 });
 
+test("free play's decorations: in places the shop has, three each, priced 150–600, a known rank that is not the first", () => {
+  let files = real();
+  const items = () => get(files, 'decor.json').items as { id: string; slot: string; price: number; rank?: string }[];
+  items()[0]!.slot = 'roof';
+  hasError(files, 'decor.json[sign-neon]: unknown slot roof');
+  files = real();
+  items()[0]!.price = 100;
+  hasError(files, 'decor.json[sign-neon]: price 100 outside 150–600');
+  files = real();
+  items()[0]!.price = 601;
+  hasError(files, 'decor.json[sign-neon]: price 601 outside 150–600');
+  files = real();
+  items()[0]!.rank = 'boss';
+  hasError(files, 'decor.json[sign-neon]: unknown rank boss');
+  files = real();
+  items()[0]!.rank = 'intern';
+  hasError(files, 'decor.json[sign-neon]: everyone starts at rank intern, so it needs no rank');
+  files = real();
+  items()[0]!.rank = 'assistant';
+  hasError(files, 'decor.json[sign]: every item needs a rank, so a new technician can buy none here');
+  files = real();
+  items()[3]!.slot = 'sign';
+  hasError(files, 'decor.json[sign]: 4 items to choose from, not 3');
+  hasError(files, 'decor.json[counter]: 2 items to choose from, not 3');
+  files = real();
+  items()[1]!.id = 'sign-neon';
+  hasError(files, 'duplicate item "sign-neon"');
+  files = real();
+  (get(files, 'decor.json').slots as { id: string }[])[1]!.id = 'sign';
+  hasError(files, 'duplicate slot "sign"');
+  files = real().filter((f) => f.path !== 'decor.json');
+  hasError(files, 'decor.json: missing');
+});
+
 test("free play's ranks: the first needs nothing, each next needs more and has the senior's praise", () => {
   let files = real();
   const ranks = () => get(files, 'ranks.json').ranks as { id: string; needs: Record<string, unknown>; praiseTh?: string }[];

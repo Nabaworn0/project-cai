@@ -202,3 +202,13 @@ export async function fixSomsriMixed(page: Page) {
   await page.getByRole('button', { name: 'ต่อไป' }).click();
   await expectStage(page, 'summary');
 }
+
+/** The HUD's chips stay apart and inside the screen (the brand's chip may be read out only, on phones). */
+export async function hudFits(page: Page) {
+  const brand = (await page.locator('.hud .brand').boundingBox())!;
+  const right = (await page.locator('.hud-right').boundingBox())!;
+  const menu = (await page.locator('.hud .menu-chip').boundingBox())!;
+  expect(brand.x + brand.width).toBeLessThanOrEqual(right.x);
+  expect(menu.x + menu.width).toBeLessThanOrEqual(right.x);
+  expect(right.x + right.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+}

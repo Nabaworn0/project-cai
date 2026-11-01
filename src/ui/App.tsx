@@ -6,7 +6,8 @@
 // Each page has its own address (#/learn, #/pre, #/post, #/order, #/shop: docs/pages-plan.md), so Back, reloading
 // and links work as on any website; which page an address may open is src/core/routes.ts. Between pages the shop's
 // shutter rolls down and up (Shutter.tsx), held down the first time the shop's scene loads. The technician's book
-// (docs/book-plan.md) opens over whichever page it is opened from: the menu, the shop's HUD, or the case summary.
+// (docs/book-plan.md) opens over whichever page it is opened from: the menu, the shop's HUD, or the case summary;
+// free play's decorating (src/core/decor.ts) opens the same way, from its menu or the shop's HUD.
 // Free play (โหมดอิสระ, src/core/free.ts) swaps in a save of its own and its own menu; the results sent to the teacher
 // are the class's save only, so nothing played there reaches the sheet.
 
@@ -20,6 +21,8 @@ import { SUMMARY_REVEAL_MS } from './case/SummaryCard';
 import { MenuScreen } from './menu/MenuScreen';
 import { FreeMenu } from './menu/FreeMenu';
 import { BookScreen } from './book/BookScreen';
+import { DecorScreen } from './decor/DecorScreen';
+import { buy, place, takeOff } from '../core/decor';
 import { unlockedCards, unreadCards } from '../core/book';
 import { StartScreen } from './start/StartScreen';
 import { LessonScreen } from './lesson/LessonScreen';
@@ -174,6 +177,12 @@ export function App() {
     if (rank > lastRank.current && lastRank.current >= 0) setPromoted(RANKS[rank]!);
     lastRank.current = rank;
   }, [rank]);
+  /** Decorating the shop (free play only), when open. */
+  const [decorOpen, setDecorOpen] = useState(false);
+  const openDecor = () => {
+    play('key');
+    setDecorOpen(true);
+  };
   const openBook = (card?: string) => {
     play('key');
     setBook({ card });
@@ -275,6 +284,7 @@ export function App() {
   const leaveFree = () => {
     saveMode('class');
     setMode('class');
+    setDecorOpen(false);
     setStarted(false);
   };
   const finish = (caseId: string, stars: number, coins: number, gc: GeneratedCase) =>
@@ -327,6 +337,11 @@ export function App() {
             <small data-testid="hud-mode">{free ? 'เล่นอิสระ' : 'รอบ 1'}</small>
           </h1>
           <div class="hud-right">
+            {free && (
+              <button class="chip decor-chip" type="button" aria-label="แต่งร้าน" title="แต่งร้าน: ซื้อของมาวางในร้าน" data-testid="hud-decor" onClick={openDecor}>
+                🛋️
+              </button>
+            )}
             <button class="chip book-chip" type="button" aria-label="สมุดช่าง" title="สมุดช่าง: การ์ดความรู้ที่สะสมไว้" data-testid="hud-book" onClick={() => openBook()}>
               📖
               {cardsNew > 0 && <span class="book-dot" data-testid="book-dot" aria-hidden="true" />}
@@ -344,7 +359,7 @@ export function App() {
               {muted ? '🔇' : '🔊'}
             </button>
             <div class="chip sim-badge" role="status" title="ทุกหน้าจอในเกมเป็นการจำลอง ไม่ได้ติดตั้งระบบจริง">
-              โหมดจำลอง
+              <span class="sim-long">โหมด</span>จำลอง
             </div>
           </div>
         </header>
@@ -378,6 +393,7 @@ export function App() {
           onLeave={leaveFree}
           coins={<CoinChip coins={progress.coins} />}
           book={{ got: cardsGot.size, total: content.cards.cards.length, fresh: cardsNew, onOpen: () => openBook() }}
+          decor={{ placed: Object.keys(progress.decor.placed).length, slots: content.decor.slots.length, onOpen: openDecor }}
         />
       ) : view === 'menu' ? (
         <MenuScreen
@@ -475,6 +491,22 @@ export function App() {
           card={book.card}
           onRead={(id) => update((p) => markCardRead(p, id))}
           onClose={() => setBook(null)}
+        />
+      )}
+
+      {decorOpen && free && (
+        <DecorScreen
+          decor={content.decor}
+          progress={progress}
+          ranks={RANKS}
+          rank={rank}
+          onBuy={(item) => {
+            play('coin');
+            update((p) => buy(p, item, RANKS, rank));
+          }}
+          onPlace={(item) => update((p) => place(p, item))}
+          onTakeOff={(slot) => update((p) => takeOff(p, slot))}
+          onClose={() => setDecorOpen(false)}
         />
       )}
 

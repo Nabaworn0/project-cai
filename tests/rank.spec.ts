@@ -4,7 +4,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 import ranksJson from '../src/content/data/ranks.json' with { type: 'json' };
-import { ALL_TALKS, expectStage, fixSomsriMixed, openShop, takeSomsriMixed } from './helpers';
+import { ALL_TALKS, expectStage, fixSomsriMixed, hudFits, openShop, takeSomsriMixed } from './helpers';
 
 const free = (page: Page) => page.getByTestId('free-menu');
 const shot = async (page: Page, name: string, project: string) => {
@@ -109,16 +109,6 @@ test('the job that earns a rank tells it on the summary, with the senior\'s prai
   await expect(page.getByTestId('rank-up')).toHaveCount(0);
   await expect(page.getByTestId('hud-rank')).toHaveText('🔧 ช่างผู้ช่วย');
 });
-
-/** The HUD's chips stay apart and inside the screen (the brand's chip may be read out only, on phones). */
-async function hudFits(page: Page) {
-  const brand = (await page.locator('.hud .brand').boundingBox())!;
-  const right = (await page.locator('.hud-right').boundingBox())!;
-  const menu = (await page.locator('.hud .menu-chip').boundingBox())!;
-  expect(brand.x + brand.width).toBeLessThanOrEqual(right.x);
-  expect(menu.x + menu.width).toBeLessThanOrEqual(right.x);
-  expect(right.x + right.width).toBeLessThanOrEqual(page.viewportSize()!.width);
-}
 
 test('the class mode has no rank, and its HUD fits at every size', async ({ page }, info) => {
   await openShop(page);

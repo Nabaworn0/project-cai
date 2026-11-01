@@ -90,6 +90,14 @@ export interface Progress {
   cardsRead: string[];
   /** Free play's jobs (src/core/visits.ts); the class's save keeps them empty. */
   jobs: JobsRecord;
+  /** Free play's decorations (src/core/decor.ts): those bought, and the one put out in each of the shop's places. */
+  decor: DecorRecord;
+}
+
+export interface DecorRecord {
+  owned: string[];
+  /** Slot id to item id; only items bought. */
+  placed: Record<string, string>;
 }
 
 /** Jobs done in free play: how many, how many with three stars, the customer + mixed-in problem pairs met, and
@@ -116,6 +124,7 @@ export const EMPTY: Progress = {
   reflectDraft: null,
   cardsRead: [],
   jobs: { count: 0, three: 0, pairs: [], problems: [] },
+  decor: { owned: [], placed: {} },
 };
 
 /** What is learned before the shop: the pre-test, both lessons and the step ordering. */
@@ -403,5 +412,15 @@ export function parseProgress(raw: string | null, oldRaw: string | null = null):
     jobs: isObj(v.jobs)
       ? { count: count(v.jobs.count) ?? 0, three: count(v.jobs.three) ?? 0, pairs: ids(v.jobs.pairs), problems: ids(v.jobs.problems) }
       : EMPTY.jobs,
+    decor: decorRecord(v.decor, ids),
   };
+}
+
+/** Decorations bought, and those put out of them (one string per slot). */
+function decorRecord(v: unknown, ids: (a: unknown) => string[]): DecorRecord {
+  if (!isObj(v)) return EMPTY.decor;
+  const owned = ids(v.owned);
+  const placed: Record<string, string> = {};
+  if (isObj(v.placed)) for (const [slot, id] of Object.entries(v.placed)) if (typeof id === 'string' && owned.includes(id)) placed[slot] = id;
+  return { owned, placed };
 }

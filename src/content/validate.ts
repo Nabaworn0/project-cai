@@ -14,6 +14,7 @@ import {
   BrandSchema,
   CardsSchema,
   RanksSchema,
+  DecorSchema,
   CUTSCENE_FACES,
   CutscenesSchema,
   Win11CheckSchema,
@@ -30,6 +31,7 @@ import {
   type Brand,
   type Cards,
   type Ranks,
+  type Decor,
   type Cutscenes,
   type Win11Check,
   type Case,
@@ -72,6 +74,7 @@ export interface ParsedContent {
   test?: CourseTest;
   cards?: Cards;
   ranks?: Ranks;
+  decor?: Decor;
   win11Check?: Win11Check;
   cutscenes?: Cutscenes;
   order?: Order;
@@ -118,6 +121,7 @@ export function validateContent(files: readonly ContentFile[], opts: ValidateOpt
   checkOrder(parsed.order, errors, warnings);
   checkCards(parsed, errors, warnings);
   checkRanks(parsed.ranks, errors, warnings);
+  checkDecor(parsed, errors, warnings);
   checkWin11Check(parsed, errors);
   checkCutscenes(parsed, errors, warnings);
   checkLessons(parsed.lessons, opts.voice, errors, warnings);
@@ -152,6 +156,7 @@ export function parseAll(files: readonly ContentFile[], errors: string[]): Parse
     else if (f.path === 'problems.json') out.problems = parse(ProblemsSchema, f) ?? [];
     else if (f.path === 'cards.json') out.cards = parse(CardsSchema, f);
     else if (f.path === 'ranks.json') out.ranks = parse(RanksSchema, f);
+    else if (f.path === 'decor.json') out.decor = parse(DecorSchema, f);
     else if (f.path === 'customers.json') out.customers = parse(CustomersSchema, f) ?? [];
     else if (f.path === 'win11-check.json') out.win11Check = parse(Win11CheckSchema, f);
     else if (f.path === 'cutscenes.json') out.cutscenes = parse(CutscenesSchema, f);
@@ -542,6 +547,47 @@ function checkRanks(ranks: Ranks | undefined, errors: string[], warnings: string
     const more = m.jobs > before.jobs || m.three > before.three || (m.allProblems && !before.allProblems) || (m.allCards && !before.allCards);
     if (!more) errors.push(`${at}: needs nothing more than the rank before it`);
     before = m;
+  }
+}
+
+/** Prices free play's coins can reach in a few jobs (a job pays 100–200), the dearest one in about five. */
+export const DECOR_PRICES = { min: 150, max: 600 } as const;
+
+/** Free play's decorations: each in a place the shop has, every place with three to choose from, at least one of
+ *  them with no rank needed, priced within DECOR_PRICES; a rank asked for is one ranks.json has, never the first. */
+function checkDecor(parsed: ParsedContent, errors: string[], warnings: string[]): void {
+  const decor = parsed.decor;
+  if (!decor) {
+    errors.push('decor.json: missing');
+    return;
+  }
+  if (decor.draft) warnings.push('decor.json: ชื่อและคำบรรยายของแต่งยังเป็นร่าง รอข้อความจาก ChatGPT');
+  dupes(
+    decor.slots.map((s) => s.id),
+    'decor.json: duplicate slot',
+    errors,
+  );
+  dupes(
+    decor.items.map((i) => i.id),
+    'decor.json: duplicate item',
+    errors,
+  );
+  const slots = new Set(decor.slots.map((s) => s.id));
+  const ranks = parsed.ranks?.ranks.map((r) => r.id) ?? [];
+  for (const i of decor.items) {
+    const at = `decor.json[${i.id}]`;
+    if (!slots.has(i.slot)) errors.push(`${at}: unknown slot ${i.slot}`);
+    if (i.price < DECOR_PRICES.min || i.price > DECOR_PRICES.max) errors.push(`${at}: price ${i.price} outside ${DECOR_PRICES.min}–${DECOR_PRICES.max}`);
+    if (i.rank !== undefined) {
+      const r = ranks.indexOf(i.rank);
+      if (r < 0) errors.push(`${at}: unknown rank ${i.rank}`);
+      else if (r === 0) errors.push(`${at}: everyone starts at rank ${i.rank}, so it needs no rank`);
+    }
+  }
+  for (const s of decor.slots) {
+    const items = decor.items.filter((i) => i.slot === s.id);
+    if (items.length !== 3) errors.push(`decor.json[${s.id}]: ${items.length} items to choose from, not 3`);
+    if (items.length && items.every((i) => i.rank)) errors.push(`decor.json[${s.id}]: every item needs a rank, so a new technician can buy none here`);
   }
 }
 
