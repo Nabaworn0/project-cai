@@ -3,7 +3,7 @@
 // (portrait) and PCs (landscape) both fit. All coordinates stay whole numbers to keep pixels square.
 
 import Phaser from 'phaser';
-import { bus } from '../../core/bus';
+import { bus, type PlacedDecor } from '../../core/bus';
 import { hex, PALETTE as P } from '../art/palette';
 import { paintRows, type PixelRows } from '../art/pixels';
 import { MONITOR } from '../art/props';
@@ -24,7 +24,16 @@ const HOP_MS = 50;
 
 type CustomerState = 'away' | 'walking-in' | 'here' | 'walking-out';
 
-/** HUD chip footprint in CSS px (see .hud in theme.css); the sign must not sit under the chips. */
+/** Free play's decorations (docs/phase3-plan.md task E): ChatGPT's pixel pictures, src/assets/decor/<id>.png, else the
+ *  item's icon drawn small. The box each place gives (art px): the sign's end, beside the PC on the counter, the wall,
+ *  and in front of the counter. */
+const DECOR_PICTURES = Object.entries(import.meta.glob<string>('../../assets/decor/*.png', { eager: true, query: '?url', import: 'default' })).map(
+  ([path, url]) => [path.split('/').pop()!.replace(/\.png$/, ''), url] as const,
+);
+const DECOR_SIZE: Record<string, number> = { sign: 12, counter: 16, wall: 16, floor: 20 };
+
+/** HUD chip footprint in CSS px (see .hud in theme.css) when the HUD is not on the page to measure; the sign must not
+ *  sit under the chips. */
 const HUD_CHIP = { width: 170, height: 56 };
 
 export interface ShopLayout {
@@ -82,6 +91,8 @@ export class ShopScene extends Phaser.Scene {
   private walk?: Phaser.Tweens.Tween;
   private bob?: Phaser.Time.TimerEvent;
   private hop?: Phaser.Time.TimerEvent;
+  /** Decorations put out, by place. */
+  private decor = new Map<string, Phaser.GameObjects.Image>();
 
   constructor() {
     super('shop');
@@ -92,6 +103,7 @@ export class ShopScene extends Phaser.Scene {
     this.seniorSprites?.forEach((url, key) => this.load.image(key, url));
     for (const [key, url] of Object.entries(this.props)) if (url) this.load.image(key, url);
     for (const set of this.customerSprites.values()) set.forEach((url, key) => this.load.image(key, url));
+    for (const [id, url] of DECOR_PICTURES) this.load.image(`decor-${id}`, url);
   }
 
   create(): void {
@@ -129,6 +141,8 @@ export class ShopScene extends Phaser.Scene {
       bus.on('senior:come', () => this.seniorTo('here')),
       bus.on('senior:go', () => this.seniorTo('away')),
       bus.on('talk:line', ({ who, face }) => this.speak(who, face)),
+      bus.on('decor:placed', ({ items }) => this.setDecor(items)),
+      bus.on('hud:resize', () => this.layout()),
     ];
     this.events.once('shutdown', () => offs.forEach((off) => off()));
 
@@ -143,6 +157,7 @@ export class ShopScene extends Phaser.Scene {
 
     this.scale.on('resize', this.layout, this);
     this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
+    this.setDecor(bus.last('decor:placed')?.items ?? [], false);
     this.layout();
 
     this.setExpression('neutral');
@@ -211,7 +226,9 @@ export class ShopScene extends Phaser.Scene {
     const signW = Math.min(W - 16, 96);
     const signH = 16;
     const sideRoom = (W - signW) / 2;
-    const signY = sideRoom * zoom < HUD_CHIP.width ? Math.ceil(HUD_CHIP.height / zoom) + 2 : 6;
+    const hud = this.hudReach();
+    const underHud = sideRoom * zoom < Math.max(hud.left, hud.right) + 4;
+    const signY = underHud ? Math.ceil(hud.bottom / zoom) + 2 : 6;
     const signX = Math.floor((W - signW) / 2);
     g.fillStyle(hex(P.navy)).fillRect(signX, signY, signW, signH);
     g.fillStyle(hex(P.yellow)).fillRect(signX + 2, signY + 2, signW - 4, 1).fillRect(signX + 2, signY + signH - 3, signW - 4, 1);
@@ -283,8 +300,26 @@ export class ShopScene extends Phaser.Scene {
       this.laptop.setPosition(lx, counterTop - this.laptop.height + 1);
     }
 
+    // Decorations, each in its place and clear of the case panel (landscape: its left edge, case.css).
+    const panelLeft = portrait ? W : Math.floor(W - (Math.min(W * zoom * 0.44, 460) + 12) / zoom);
+    const gapL = showWindow ? margin + winW : margin;
+    const gapR = W - margin - shelfW;
+    const at = (slot: string, x: number, y: number) => {
+      const img = this.decor.get(slot);
+      if (img) img.setPosition(Math.round(Math.max(2, Math.min(x, panelLeft - img.width - 2))), Math.round(y));
+    };
+    const size = (slot: string) => this.decor.get(slot)?.height ?? 0;
+    at('sign', signX + 3, signY + Math.floor((signH - size('sign')) / 2));
+    at('counter', mx - (this.decor.get('counter')?.width ?? 0) - 2, counterTop - size('counter') + 2);
+    at('wall', (gapL + gapR - (this.decor.get('wall')?.width ?? 0)) / 2, wy + 2);
+    at('floor', techX + (techW - (this.decor.get('floor')?.width ?? 0)) / 2, floorY + 3 - size('floor'));
+
     // Positions in CSS px: tap targets for the Playwright tests, and the sign rectangle for the HTML label.
     const css = (v: number) => Math.round(v * zoom);
+    document.body.dataset.counterY = `${css(counterTop)}`;
+    document.body.dataset.floorY = `${css(floorY)}`;
+    document.body.dataset.decorDrawn = `${this.children.list.filter((o) => o instanceof Phaser.GameObjects.Image && o.texture.key.startsWith('decor-')).length}`;
+    document.body.dataset.decorAt = [...this.decor].map(([slot, img]) => `${slot}:${this.decorKey(img)}@${css(img.x)},${css(img.y)},${css(img.width)},${css(img.height)}`).join(' ');
     const face = this.techSprites ? { x: Math.round(techW / 2), y: Math.round(techH * 0.3) } : TECH_FACE;
     document.body.dataset.techAt = `${css(techX + face.x)},${css(this.techBaseY + face.y)}`;
     if (this.senior) document.body.dataset.seniorAt = `${css(this.seniorSpot.x + this.senior.width / 2)},${css(this.seniorSpot.y + this.senior.height * 0.25)}`;
@@ -292,6 +327,53 @@ export class ShopScene extends Phaser.Scene {
     if (this.laptop) document.body.dataset.laptopAt = `${css(this.laptop.x + this.laptop.width / 2)},${css(this.laptop.y + 6)}`;
     const layout: ShopLayout = { sign: { x: css(signX), y: css(signY), w: css(signW), h: css(signH) } };
     bus.emit('layout:shop', layout);
+  }
+
+  /** How far the HUD's chips reach in from the canvas's left and right sides, and down from its top, in CSS px: the
+   *  chips change with the mode (free play's rank and 🛋️) and the screen's width, so they are measured. */
+  private hudReach(): { left: number; right: number; bottom: number } {
+    const chips = document.querySelectorAll('.hud .chip');
+    if (!chips.length) return { left: HUD_CHIP.width, right: HUD_CHIP.width, bottom: HUD_CHIP.height };
+    const box = this.game.canvas.getBoundingClientRect();
+    const reach = { left: 0, right: 0, bottom: 0 };
+    for (const chip of chips) {
+      const r = chip.getBoundingClientRect();
+      if (r.left + r.width / 2 < box.left + box.width / 2) reach.left = Math.max(reach.left, r.right - box.left);
+      else reach.right = Math.max(reach.right, box.right - r.left);
+      reach.bottom = Math.max(reach.bottom, r.bottom - box.top);
+    }
+    return reach;
+  }
+
+  // ---- free play's decorations ----
+
+  /** Puts out these decorations (none in the class mode), each as its picture or else its icon drawn small. */
+  private setDecor(items: readonly PlacedDecor[], relayout = true): void {
+    this.decor.forEach((img) => img.destroy());
+    this.decor.clear();
+    for (const { slot, id, icon } of items) {
+      const s = DECOR_SIZE[slot] ?? 16;
+      let key = `decor-${id}`;
+      if (!this.textures.exists(key)) {
+        key = `decor-icon-${id}`;
+        if (!this.textures.exists(key)) {
+          const tex = this.textures.createCanvas(key, s, s)!;
+          const ctx = tex.getContext();
+          ctx.font = `${s - 2}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(icon, s / 2, s / 2 + 1);
+          tex.refresh();
+        }
+      }
+      // Above the counter and the people: things on the counter stand in front of whoever is behind it.
+      this.decor.set(slot, this.add.image(0, 0, key).setOrigin(0, 0).setDepth(1));
+    }
+    if (relayout) this.layout();
+  }
+
+  private decorKey(img: Phaser.GameObjects.Image): string {
+    return img.texture.key.replace(/^decor-(icon-)?/, '');
   }
 
   // ---- the customer at the counter ----

@@ -140,4 +140,163 @@ test('the class mode has no decorating, and its simulation badge stays in full',
   await expect(page.locator('body')).toHaveAttribute('data-shutter', 'idle', { timeout: 15_000 });
   await expect(page.getByTestId('hud-decor')).toHaveCount(0);
   await expect(page.locator('.sim-badge')).toHaveJSProperty('innerText', 'โหมดจำลอง');
+  // Even a class save that somehow holds decorations draws none.
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem('shop.progress.v2')!);
+    localStorage.setItem('shop.progress.v2', JSON.stringify({ ...save, decor: { owned: ['wall-clock'], placed: { wall: 'wall-clock' } } }));
+  });
+  await page.reload();
+  await expect(page.locator('body')).toHaveAttribute('data-scene', 'shop', { timeout: 15_000 });
+  await expect(page.locator('body')).toHaveAttribute('data-decor-drawn', '0');
+});
+
+/** The decorations the shop's scene drew: by place, the item and its box in CSS px. */
+async function drawn(page: Page) {
+  const raw = (await page.locator('body').getAttribute('data-decor-at')) ?? '';
+  return Object.fromEntries(
+    raw
+      .split(' ')
+      .filter(Boolean)
+      .map((d) => {
+        const [slot, rest] = d.split(':') as [string, string];
+        const [id, box] = rest.split('@') as [string, string];
+        const [x, y, width, height] = box.split(',').map(Number) as [number, number, number, number];
+        return [slot, { id, x, y, width, height }];
+      }),
+  );
+}
+type Box = { x: number; y: number; width: number; height: number };
+const overlaps = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+const holds = (a: Box, [x, y]: number[]) => x! >= a.x && x! <= a.x + a.width && y! >= a.y && y! <= a.y + a.height;
+
+/** Every place's item is in view, clear of the HUD, the case panel, the faces and the PC, apart from each other, and in
+ *  its own place: on the sign, on the counter left of the PC, on the wall above the counter, in front of the counter. */
+async function checkPlaces(page: Page) {
+  const d = await drawn(page);
+  expect(Object.fromEntries(Object.entries(d).map(([s, x]) => [s, x.id]))).toEqual({ sign: 'sign-neon', counter: 'counter-cat', wall: 'wall-clock', floor: 'floor-bench' });
+  await expect(page.locator('body')).toHaveAttribute('data-decor-drawn', '4');
+  const view = page.viewportSize()!;
+  const chips = await Promise.all((await page.locator('.hud .chip').all()).map((c) => c.boundingBox()));
+  const panel = (await page.locator('.case-panel').boundingBox())!;
+  const point = async (name: string) => ((await page.locator('body').getAttribute(name)) ?? '').split(',').map(Number);
+  const pc = await point('data-pc-at');
+  const faces = [await point('data-tech-at'), pc, await point('data-customer-at'), await point('data-senior-at')];
+  for (const [slot, box] of Object.entries(d)) {
+    expect(box.x, slot).toBeGreaterThanOrEqual(0);
+    expect(box.y, slot).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, slot).toBeLessThanOrEqual(view.width);
+    expect(box.y + box.height, slot).toBeLessThanOrEqual(view.height);
+    for (const c of chips) if (c && c.width > 1) expect(overlaps(box, c), `${slot} under a HUD chip`).toBe(false);
+    expect(overlaps(box, panel), `${slot} under the case panel`).toBe(false);
+    for (const f of faces) expect(holds(box, f), `${slot} over a face or the PC`).toBe(false);
+  }
+  const all = Object.values(d);
+  for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) expect(overlaps(all[i]!, all[j]!)).toBe(false);
+
+  const sign = (await page.locator('.sign-label').boundingBox())!;
+  // The sign itself is clear of the chips too (the HUD is wider in free play).
+  for (const c of chips) if (c && c.width > 1) expect(overlaps(sign, c), 'the sign under a HUD chip').toBe(false);
+  expect(d.sign!.x).toBeGreaterThanOrEqual(sign.x);
+  expect(d.sign!.x + d.sign!.width).toBeLessThanOrEqual(sign.x + sign.width / 4);
+  expect(d.sign!.y).toBeGreaterThanOrEqual(sign.y);
+  expect(d.sign!.y + d.sign!.height).toBeLessThanOrEqual(sign.y + sign.height + 1);
+  const counterY = Number(await page.locator('body').getAttribute('data-counter-y'));
+  const floorY = Number(await page.locator('body').getAttribute('data-floor-y'));
+  const tech = await point('data-tech-at');
+  // On the counter's top, right of the intern and left of the PC.
+  expect(Math.abs(d.counter!.y + d.counter!.height - counterY)).toBeLessThanOrEqual(10);
+  expect(d.counter!.x).toBeGreaterThan(tech[0]!);
+  expect(d.counter!.x + d.counter!.width).toBeLessThan(pc[0]!);
+  // On the wall: under the sign, above the counter.
+  expect(d.wall!.y).toBeGreaterThan(sign.y + sign.height);
+  expect(d.wall!.y + d.wall!.height).toBeLessThan(counterY);
+  // Standing on the floor in front of the counter, under the intern.
+  expect(Math.abs(d.floor!.y + d.floor!.height - floorY)).toBeLessThanOrEqual(12);
+  expect(d.floor!.x).toBeLessThan(tech[0]!);
+  expect(d.floor!.x + d.floor!.width).toBeGreaterThan(tech[0]!);
+}
+
+/** Free play with one of each place's items put out, at the counter with Somsri's words in the panel. */
+async function shopWithAll(page: Page) {
+  await page.addInitScript(() => (Math.random = () => 0));
+  await seedFree(page, 0);
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem('shop.free.v1')!);
+    const placed = { sign: 'sign-neon', counter: 'counter-cat', wall: 'wall-clock', floor: 'floor-bench' };
+    localStorage.setItem('shop.free.v1', JSON.stringify({ ...save, decor: { owned: Object.values(placed), placed } }));
+  });
+  await page.reload();
+  await free(page).getByRole('button', { name: /เปิดร้านรับลูกค้า/ }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-shutter', 'idle', { timeout: 15_000 });
+  await expect(page.locator('.case-panel')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('body')).toHaveAttribute('data-customer', /./, { timeout: 15_000 });
+  await page.waitForTimeout(400);
+}
+
+test('what is put out stands in its place in the shop, in view at every size, clear of the HUD, the panel and the faces', async ({ page }, info) => {
+  await shopWithAll(page);
+  await checkPlaces(page);
+  await shot(page, 'decor-shop', info.project.name);
+});
+
+test('the sign moves clear of the HUD when its chips grow, and back when they shrink', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'the HUD has room beside the sign only on wide screens');
+  await shopWithAll(page);
+  const sign = page.locator('.sign-label');
+  const top = (await sign.boundingBox())!.y;
+  // A chip as wide as a much larger purse would make it.
+  await page.locator('.coins-chip').evaluate((el: HTMLElement) => (el.style.paddingLeft = '420px'));
+  await expect.poll(async () => (await sign.boundingBox())!.y).toBeGreaterThan(top + 20);
+  await checkPlaces(page);
+  await page.locator('.coins-chip').evaluate((el: HTMLElement) => (el.style.paddingLeft = ''));
+  await expect.poll(async () => (await sign.boundingBox())!.y).toBe(top);
+});
+
+test('the places hold at other screen sizes too (tablets, small laptops, short phones on their side)', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'sizes set here');
+  await shopWithAll(page);
+  for (const size of [
+    { width: 1024, height: 768 },
+    { width: 800, height: 600 },
+    { width: 640, height: 360 },
+    { width: 1366, height: 600 },
+    { width: 768, height: 1024 },
+    { width: 900, height: 420 },
+  ]) {
+    await page.setViewportSize(size);
+    await page.waitForTimeout(500);
+    await test.step(`${size.width}x${size.height}`, () => checkPlaces(page));
+    await shot(page, `decor-shop-${size.width}x${size.height}`, info.project.name);
+  }
+});
+
+test('what is bought from the HUD shows in the shop at once; the class mode\'s shop has none', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'the places are checked at every size above');
+  await seedFree(page, 300);
+  await free(page).getByRole('button', { name: /เปิดร้านรับลูกค้า/ }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-shutter', 'idle', { timeout: 15_000 });
+  expect(await drawn(page)).toEqual({});
+  await page.getByTestId('hud-decor').click();
+  await tile(page, 'wall-poster').getByRole('button', { name: 'ซื้อ 🪙 150' }).click();
+  await tile(page, 'wall-poster').getByRole('button', { name: 'ซื้อเลย' }).click();
+  await page.keyboard.press('Escape');
+  await expect.poll(async () => (await drawn(page)).wall?.id).toBe('wall-poster');
+  await expect(page.locator('body')).toHaveAttribute('data-decor-drawn', '1');
+  // Taken off: gone from the shop.
+  await page.getByTestId('hud-decor').click();
+  await tile(page, 'wall-poster').getByRole('button', { name: 'เก็บออก' }).click();
+  await page.keyboard.press('Escape');
+  await expect.poll(async () => Object.keys(await drawn(page))).toEqual([]);
+  await expect(page.locator('body')).toHaveAttribute('data-decor-drawn', '0');
+
+  // Back to the class mode: its shop draws none of free play's.
+  await page.getByTestId('hud-decor').click();
+  await tile(page, 'wall-poster').getByRole('button', { name: 'วางในร้าน' }).click();
+  await page.keyboard.press('Escape');
+  await expect.poll(async () => (await drawn(page)).wall?.id).toBe('wall-poster');
+  await page.getByRole('button', { name: '☰ เมนู' }).click();
+  await free(page).getByRole('button', { name: 'ออกจากโหมดอิสระ' }).click();
+  await openShop(page);
+  await expect(page.locator('body')).toHaveAttribute('data-shutter', 'idle', { timeout: 15_000 });
+  expect(await drawn(page)).toEqual({});
 });

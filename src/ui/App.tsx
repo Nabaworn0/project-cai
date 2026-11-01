@@ -11,7 +11,7 @@
 // Free play (โหมดอิสระ, src/core/free.ts) swaps in a save of its own and its own menu; the results sent to the teacher
 // are the class's save only, so nothing played there reaches the sheet.
 
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type { Game } from 'phaser';
 import { bus } from '../core/bus';
 import { loadContent } from '../content';
@@ -269,6 +269,13 @@ export function App() {
   useEffect(() => {
     document.body.dataset.mode = mode;
   }, [mode]);
+  // Free play's decorations, drawn by the shop's scene (the class mode's shop has none).
+  const placed = free ? progress.decor.placed : {};
+  const placedKey = JSON.stringify(placed);
+  useEffect(() => {
+    const items = content.decor.items.filter((i) => placed[i.slot] === i.id).map(({ slot, id, icon }) => ({ slot, id, icon }));
+    bus.emit('decor:placed', { items });
+  }, [placedKey]);
   /** Into free play, from the start page or the class's menu (both on #/learn, where its menu then shows). */
   const enterFree = () => {
     if (!freeProgress) {
@@ -305,6 +312,17 @@ export function App() {
     pending.current = { leaving: true };
     go('learn');
   };
+  /** Tells the shop's scene when the HUD's chips change size, so its sign stays clear of them. */
+  // A stable callback: the header is observed once each time it is put on the page, not at every render. Its brand
+  // chip and its right-hand group stay mounted while it is, and change size with what is in them.
+  const hudObserver = useRef<ResizeObserver | null>(null);
+  const hudRef = useCallback((el: HTMLElement | null) => {
+    hudObserver.current?.disconnect();
+    hudObserver.current = null;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    hudObserver.current = new ResizeObserver(() => bus.emit('hud:resize', {}));
+    for (const part of el.querySelectorAll('.brand, .hud-right')) hudObserver.current.observe(part);
+  }, []);
   const menuTapped = () => (CALM_STAGES.includes(stage.current) ? toMenu() : setAskLeave(true));
 
   return (
@@ -321,7 +339,7 @@ export function App() {
       )}
 
       {view === 'shop' && (
-        <header class="hud">
+        <header class="hud" ref={hudRef}>
           <button class="chip menu-chip" type="button" onClick={menuTapped}>
             ☰ เมนู
           </button>

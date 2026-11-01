@@ -29,6 +29,17 @@ export interface GameEvents {
   'ui:close-sim': Record<string, never>;
   /** The shop laptop on the counter was tapped (Rufus, case 2). */
   'ui:open-laptop': Record<string, never>;
+  /** Free play's decorations put out, one per place in the shop (none in the class mode); the icon shows until the
+   *  item's picture exists. */
+  'decor:placed': { items: PlacedDecor[] };
+  /** The HUD's chips changed size (coins, the rank, the mode): the scene keeps its sign clear of them. */
+  'hud:resize': Record<string, never>;
+}
+
+export interface PlacedDecor {
+  slot: string;
+  id: string;
+  icon: string;
 }
 
 type Handler<K extends keyof GameEvents> = (payload: GameEvents[K]) => void;
