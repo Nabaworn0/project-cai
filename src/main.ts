@@ -45,8 +45,9 @@ async function bootStudio(lesson: string): Promise<void> {
 async function bootTeacher(): Promise<void> {
   document.documentElement.classList.add('teacher-page');
   document.title = 'หน้าครู · WINSTALL';
-  const { TeacherScreen } = await import('./teacher/TeacherScreen');
-  render(h(TeacherScreen, {}), document.getElementById('ui')!);
+  // The PIN first; the page's own code only once it is right.
+  const { PinGate } = await import('./teacher/PinGate');
+  render(h(PinGate, { load: async () => (await import('./teacher/TeacherScreen')).TeacherScreen }), document.getElementById('ui')!);
   document.getElementById('splash')?.remove();
 }
 

@@ -11,6 +11,7 @@ import testJson from '../src/content/data/test.json' with { type: 'json' };
 import type { Lesson, Reflect } from '../src/content/schema';
 import { EMPTY, PLAYABLE, type Progress } from '../src/core/path';
 import { classFigures, resultsFile, type ResultsContent } from '../src/core/results';
+import { openTeacher } from './helpers';
 
 const TO = 'AKfycbx_abcdefghijklmnopqrstuvwxyz0123456789-XY';
 const KEY = 'ครู1234';
@@ -55,7 +56,7 @@ async function sheet(page: Page) {
 }
 
 async function connect(page: Page, key = KEY) {
-  await page.goto('/?view=teacher');
+  await openTeacher(page);
   await teacher(page).getByLabel('ลิงก์ Web app').fill(`https://script.google.com/macros/s/${TO}/exec`);
   await teacher(page).getByLabel(/รหัสครู/).fill(key);
   await teacher(page).getByRole('button', { name: 'บันทึก' }).click();
@@ -64,7 +65,7 @@ async function connect(page: Page, key = KEY) {
 test('connect, make the class link with its QR code, and read the class of 30 from the sheet', async ({ page, context }, info) => {
   test.skip(info.project.name !== 'desktop', 'checked on a phone below');
   const asked = await sheet(page);
-  await page.goto('/?view=teacher');
+  await openTeacher(page);
   await teacher(page).getByLabel('ลิงก์ Web app').fill('https://example.com/not-it');
   await teacher(page).getByRole('button', { name: 'บันทึก' }).click();
   await expect(teacher(page).locator('.teacher-msg')).toContainText('ลิงก์ Web app ไม่ถูกต้อง');
@@ -129,7 +130,7 @@ test('connect, make the class link with its QR code, and read the class of 30 fr
 
 test('results files: the latest per learner, an edited one flagged, an unreadable one skipped with its name', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'checked on a phone below');
-  await page.goto('/?view=teacher');
+  await openTeacher(page);
   const edited = JSON.parse(JSON.stringify(files[1]!));
   edited.data.post.score = 10;
   const older = { ...files[0]!, exportedAt: 1 };
@@ -148,7 +149,7 @@ test('results files: the latest per learner, an edited one flagged, an unreadabl
 test("the sheet's Apps Script is on the page to copy or save; a row broken in the sheet is named by its row", async ({ page, context }, info) => {
   test.skip(info.project.name !== 'desktop', 'checked on a phone below');
   const code = readFileSync(new URL('../apps-script/Code.gs', import.meta.url), 'utf8');
-  await page.goto('/?view=teacher');
+  await openTeacher(page);
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await teacher(page).getByRole('button', { name: 'คัดลอกโค้ด Apps Script' }).click();
   await expect(teacher(page).locator('.teacher-msg')).toHaveText('คัดลอกโค้ดแล้ว ให้นำไปวางใน Apps Script ของ Sheet');
@@ -194,7 +195,7 @@ test('on a phone: the page reads, wide tables scroll inside their box, nothing o
 
 test('a small gain is reported as not significant', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'checked on a phone above');
-  await page.goto('/?view=teacher');
+  await openTeacher(page);
   // Before 5,5,5,5,5 after 6,4,6,5,5: gains 1,−1,1,0,0, t = 0.535, p (one-tailed) ≈ .31.
   const five = [6, 4, 6, 5, 5].map((post, i) => {
     const p = learner(i + 1);

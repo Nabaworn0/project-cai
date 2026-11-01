@@ -25,12 +25,14 @@ interface Props {
   book: { got: number; total: number; fresh: number; onOpen: () => void };
   /** Decorating the shop: how many of its places have something put out. */
   decor: { placed: number; slots: number; onOpen: () => void };
+  /** Opens the play guide (docs/guide-pin-plan.md task H). */
+  onGuide: () => void;
 }
 
 /** What can be gone over again: the two lessons and the ordering game. */
 const REVIEW: readonly StepId[] = ['lesson-os', 'lesson-types', 'order'];
 
-export function FreeMenu({ progress, pairs, rank, onEnter, onLeave, coins, book, decor }: Props) {
+export function FreeMenu({ progress, pairs, rank, onEnter, onLeave, coins, book, decor, onGuide }: Props) {
   const jobs = progress.jobs;
 
   return (
@@ -51,6 +53,9 @@ export function FreeMenu({ progress, pairs, rank, onEnter, onLeave, coins, book,
       <BookButton {...book} />
       <button class="btn ghost menu-decor" type="button" data-testid="open-decor" onClick={decor.onOpen}>
         🛋️ แต่งร้าน · วางของแล้ว {decor.placed}/{decor.slots} จุด
+      </button>
+      <button class="btn ghost menu-guide" type="button" data-testid="open-guide" onClick={onGuide}>
+        ❓ วิธีเล่น · ปุ่ม ดาว เหรียญ และปัญหาที่พบบ่อย
       </button>
 
       <RankCard {...rank} />

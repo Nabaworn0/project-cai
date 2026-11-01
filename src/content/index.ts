@@ -10,6 +10,7 @@ import {
   CardsSchema,
   RanksSchema,
   DecorSchema,
+  GuideSchema,
   OrderSchema,
   LessonsSchema,
   CustomersSchema,
@@ -26,6 +27,7 @@ import {
   type Cards,
   type Ranks,
   type Decor,
+  type Guide,
   type Order,
   type Lessons,
   type Customer,
@@ -73,6 +75,8 @@ export interface Content {
   ranks: Ranks;
   /** Free play's decorations for the shop (docs/phase3-plan.md task D). */
   decor: Decor;
+  /** The play guide (docs/guide-pin-plan.md task H). */
+  guide: Guide;
 }
 
 /** Parses (and so applies schema defaults to) the bundled content. Bad content fails loudly at startup. */
@@ -96,5 +100,6 @@ export function loadContent(): Content {
     cards: CardsSchema.parse(raw['./data/cards.json']),
     ranks: RanksSchema.parse(raw['./data/ranks.json']),
     decor: DecorSchema.parse(raw['./data/decor.json']),
+    guide: GuideSchema.parse(raw['./data/guide.json']),
   };
 }

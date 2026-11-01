@@ -6,7 +6,7 @@
 
 ## เปิดเกม
 
-- **เข้าเคส 5 ตรงๆ:** https://nabaworn0.github.io/project-cai/?case=c05-lab-upgrade
+- **เข้าเคส 5 ตรงๆ:** https://project-cai.vercel.app/?case=c05-lab-upgrade
   - Legacy อย่างเดียว: เพิ่ม `&seed=s1` · ไม่มี Product Key ด้วย: `&seed=s3` · ปิด TPM ด้วย: `&seed=s5` (ไม่ใส่ seed = สุ่ม)
 - **หรือเล่นตามลำดับ:** ป้าสมศรี → น้องบีม → ลุงชัย → พี่ต้น → ครูวิไล
 - **ดูแค่หน้าตั้งค่าเริ่มต้น:** หน้าดูเนื้อหา `?view=content#sims` ข้อ 5 ติ๊ก "ข้ามไปหน้าตั้งค่าเริ่มต้นเลย"

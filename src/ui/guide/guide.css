@@ -1,0 +1,16 @@
+/* The play guide (GuideScreen.tsx): the technician's book's window, with its topics opened one at a time. */
+.guide-topic { margin-bottom: 8px; background: #fff; box-shadow: inset 0 0 0 2px var(--navy); }
+.guide-topic h3 { margin: 0; }
+.guide-topic h3 button {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 8px 12px;
+  font-family: var(--f-head); font-weight: 700; font-size: 16px; color: var(--navy); text-align: left;
+  background: none; border: 0; cursor: pointer;
+}
+.guide-topic h3 button::after { content: '▸'; margin-left: auto; }
+.guide-topic.open h3 button { background: var(--yellow); }
+.guide-topic.open h3 button::after { content: '▾'; }
+.guide-body { padding: 8px 12px 12px; }
+.guide-steps { margin: 8px 0 0; padding-left: 26px; display: grid; gap: 4px; font-size: 15px; font-weight: 700; color: var(--navy); }
+
+/* The ways in: on the start page, and beside the technician's book in both menus. */
+.menu-guide { width: 100%; margin-bottom: 12px; text-align: left; }

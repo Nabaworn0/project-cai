@@ -42,6 +42,8 @@ interface Props {
   onStart: () => void;
   /** Free play at home (src/core/free.ts): no name, no tests, nothing sent. */
   onFree: () => void;
+  /** Opens the play guide (docs/guide-pin-plan.md task H). */
+  onGuide: () => void;
   /** Opened again from the menu ("เกี่ยวกับเกม"): the button goes back instead. */
   again?: boolean;
 }
@@ -98,7 +100,7 @@ function Boot({ onDone }: { onDone: () => void }) {
   );
 }
 
-function Title({ text, className, onLeaveClass, muted, onMuted, onStart, onFree, again = false }: Props) {
+function Title({ text, className, onLeaveClass, muted, onMuted, onStart, onFree, onGuide, again = false }: Props) {
   const still = prefersLessMotion();
   const [settled, setSettled] = useState(still);
   const [typed, setTyped] = useState(still ? text.greeting.length : 0);
@@ -217,6 +219,9 @@ function Title({ text, className, onLeaveClass, muted, onMuted, onStart, onFree,
 
             <div class="start-row">
               <p class="start-time">⏱ {text.time}</p>
+              <button class="btn ghost small" type="button" data-testid="start-guide" onClick={onGuide}>
+                ❓ วิธีเล่น
+              </button>
               <button class="btn ghost small" type="button" aria-pressed={!muted} onClick={() => onMuted(!muted)}>
                 {muted ? `🔇 ${text.soundOff}` : `🔊 ${text.soundOn}`}
               </button>

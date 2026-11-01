@@ -44,7 +44,7 @@ art-source/     ภาพต้นฉบับจาก ChatGPT (ไม่เข
 
 ## ดูเนื้อหาในเบราว์เซอร์
 
-เปิด `?view=content` ต่อท้ายลิงก์เกม (เช่น https://nabaworn0.github.io/project-cai/?view=content หรือ http://localhost:5173/?view=content)
+เปิด `?view=content` ต่อท้ายลิงก์เกม (เช่น https://project-cai.vercel.app/?view=content หรือ http://localhost:5173/?view=content)
 จะเห็นทุกเคส ปัญหา BIOS ข้อสอบ การ์ด ผลตัวตรวจ และลองสุ่มเครื่องของแต่ละเคสพร้อมวิธีซ่อมที่ระบบหาให้ (สำหรับคนทำเกมและครู ไม่ใช่ส่วนของเกม)
 
 ## ไฟล์เนื้อหา (`src/content/data`)

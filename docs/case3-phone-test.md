@@ -6,7 +6,7 @@
 
 ## เปิดเกม
 
-- **เข้าเคส 3 ตรงๆ:** ต่อท้ายลิงก์เกมด้วย `?case=c03-red-text` เช่น https://nabaworn0.github.io/project-cai/?case=c03-red-text
+- **เข้าเคส 3 ตรงๆ:** ต่อท้ายลิงก์เกมด้วย `?case=c03-red-text` เช่น https://project-cai.vercel.app/?case=c03-red-text
   - มีคีย์บนสติกเกอร์: เพิ่ม `&seed=s4` · ลุงไม่มีคีย์: เพิ่ม `&seed=s1` (ไม่ใส่ seed = สุ่ม)
 - **หรือเล่นตามลำดับ:** ป้าสมศรี → น้องบีม → ลุงชัย
 

@@ -576,3 +576,19 @@ test("the technician's book: every card can be got, and each repair mistake and 
   files = files.filter((f) => f.path !== 'cards.json');
   hasError(files, 'cards.json: missing');
 });
+
+test('the play guide: topics with their own ids, the learning path among them, lines short enough to read', () => {
+  let files = real();
+  const sections = () => get(files, 'guide.json').sections as { id: string; linesTh: string[] }[];
+  sections()[1]!.id = 'start';
+  hasError(files, 'guide.json: duplicate topic');
+  files = real();
+  sections().find((s) => s.id === 'path')!.id = 'map';
+  hasError(files, 'guide.json: no topic "path"');
+  files = real();
+  sections()[0]!.linesTh = [];
+  hasError(files, 'guide.json');
+  files = real();
+  sections()[0]!.linesTh[0] = 'ก'.repeat(141);
+  hasError(files, 'guide.json');
+});

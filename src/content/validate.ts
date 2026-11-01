@@ -15,6 +15,7 @@ import {
   CardsSchema,
   RanksSchema,
   DecorSchema,
+  GuideSchema,
   CUTSCENE_FACES,
   CutscenesSchema,
   Win11CheckSchema,
@@ -32,6 +33,7 @@ import {
   type Cards,
   type Ranks,
   type Decor,
+  type Guide,
   type Cutscenes,
   type Win11Check,
   type Case,
@@ -75,6 +77,7 @@ export interface ParsedContent {
   cards?: Cards;
   ranks?: Ranks;
   decor?: Decor;
+  guide?: Guide;
   win11Check?: Win11Check;
   cutscenes?: Cutscenes;
   order?: Order;
@@ -122,6 +125,7 @@ export function validateContent(files: readonly ContentFile[], opts: ValidateOpt
   checkCards(parsed, errors, warnings);
   checkRanks(parsed.ranks, errors, warnings);
   checkDecor(parsed, errors, warnings);
+  checkGuide(parsed.guide, errors, warnings);
   checkWin11Check(parsed, errors);
   checkCutscenes(parsed, errors, warnings);
   checkLessons(parsed.lessons, opts.voice, errors, warnings);
@@ -157,6 +161,7 @@ export function parseAll(files: readonly ContentFile[], errors: string[]): Parse
     else if (f.path === 'cards.json') out.cards = parse(CardsSchema, f);
     else if (f.path === 'ranks.json') out.ranks = parse(RanksSchema, f);
     else if (f.path === 'decor.json') out.decor = parse(DecorSchema, f);
+    else if (f.path === 'guide.json') out.guide = parse(GuideSchema, f);
     else if (f.path === 'customers.json') out.customers = parse(CustomersSchema, f) ?? [];
     else if (f.path === 'win11-check.json') out.win11Check = parse(Win11CheckSchema, f);
     else if (f.path === 'cutscenes.json') out.cutscenes = parse(CutscenesSchema, f);
@@ -589,6 +594,21 @@ function checkDecor(parsed: ParsedContent, errors: string[], warnings: string[])
     if (items.length !== 3) errors.push(`decor.json[${s.id}]: ${items.length} items to choose from, not 3`);
     if (items.length && items.every((i) => i.rank)) errors.push(`decor.json[${s.id}]: every item needs a rank, so a new technician can buy none here`);
   }
+}
+
+/** The play guide: topics with their own ids, and the learning path's topic (its steps are listed under it). */
+function checkGuide(guide: Guide | undefined, errors: string[], warnings: string[]): void {
+  if (!guide) {
+    errors.push('guide.json: missing');
+    return;
+  }
+  if (guide.draft) warnings.push('guide.json: คู่มือการเล่นยังเป็นร่าง รอข้อความจาก ChatGPT');
+  dupes(
+    guide.sections.map((s) => s.id),
+    'guide.json: duplicate topic',
+    errors,
+  );
+  if (!guide.sections.some((s) => s.id === 'path')) errors.push('guide.json: no topic "path" (the steps of the learning path go under it)');
 }
 
 function checkCards(parsed: ParsedContent, errors: string[], warnings: string[]): void {

@@ -13,6 +13,7 @@
     "check": "npm run typecheck && npm run validate && npm run test:unit && npm run build && npm run test",
     "test:unit": "tsx --test tools/*.test.ts",
     "pixelize": "tsx tools/pixelize.ts",
+    "teacher-pin": "tsx tools/teacher-pin.ts",
     "voice": "python tools/voice.py",
     "teach-frames": "tsx tools/teach-frames.ts",
     "video": "tsx tools/video.ts"

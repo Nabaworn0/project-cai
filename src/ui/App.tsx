@@ -21,6 +21,7 @@ import { SUMMARY_REVEAL_MS } from './case/SummaryCard';
 import { MenuScreen } from './menu/MenuScreen';
 import { FreeMenu } from './menu/FreeMenu';
 import { BookScreen } from './book/BookScreen';
+import { GuideScreen } from './guide/GuideScreen';
 import { DecorScreen } from './decor/DecorScreen';
 import { buy, place, takeOff } from '../core/decor';
 import { unlockedCards, unreadCards } from '../core/book';
@@ -182,6 +183,8 @@ export function App() {
   }, [rank]);
   /** Decorating the shop (free play only), when open. */
   const [decorOpen, setDecorOpen] = useState(false);
+  /** The play guide's open topic, while it is open. */
+  const [guide, setGuide] = useState<string | null>(null);
   const openDecor = () => {
     play('key');
     setDecorOpen(true);
@@ -412,6 +415,7 @@ export function App() {
             setAbout(false);
           }}
           onFree={enterFree}
+          onGuide={() => setGuide('start')}
         />
       ) : view === 'menu' && free ? (
         <FreeMenu
@@ -423,6 +427,7 @@ export function App() {
           coins={<CoinChip coins={progress.coins} />}
           book={{ got: cardsGot.size, total: content.cards.cards.length, fresh: cardsNew, onOpen: () => openBook() }}
           decor={{ placed: Object.keys(progress.decor.placed).length, slots: content.decor.slots.length, onOpen: openDecor }}
+          onGuide={() => setGuide('free')}
         />
       ) : view === 'menu' ? (
         <MenuScreen
@@ -442,6 +447,7 @@ export function App() {
           className={sync.cls?.name}
           book={{ got: cardsGot.size, total: content.cards.cards.length, fresh: cardsNew, onOpen: () => openBook() }}
           onFree={classFinished(classProgress) ? enterFree : undefined}
+          onGuide={() => setGuide('path')}
         />
       ) : view === 'test' ? (
         <QuizScreen
@@ -522,6 +528,8 @@ export function App() {
           onClose={() => setBook(null)}
         />
       )}
+
+      {guide && <GuideScreen guide={content.guide} topic={guide} onClose={() => setGuide(null)} />}
 
       {decorOpen && free && (
         <DecorScreen

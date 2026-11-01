@@ -7,6 +7,14 @@ html.teacher-page #ui { position: static; pointer-events: auto; }
 .teacher { max-width: 1000px; margin: 0 auto; padding: 16px; font-family: var(--f-body); color: var(--ink); }
 .teacher-head p { margin: 0; color: #5f6b80; font-size: 14px; }
 .teacher-head h1 { margin: 0 0 12px; font-family: var(--f-head); font-size: 26px; }
+/* The PIN asked first (PinGate.tsx), the way to lock again, and the note while no PIN is set. */
+.teacher-head { display: flex; flex-wrap: wrap; align-items: flex-start; column-gap: 12px; }
+.teacher-head p { flex-basis: 100%; }
+.teacher-head h1 { flex: 1 1 auto; }
+.teacher-lock { margin: 0 0 12px auto; }
+.teacher-gate { max-width: 460px; padding-top: 48px; }
+.teacher-gate-wait { padding: 48px 16px; text-align: center; color: #5f6b80; }
+.teacher-warn { margin: 0 0 14px; padding: 10px 12px; background: #fff4e0; box-shadow: inset 0 0 0 2px var(--coral); font-size: 14px; font-weight: 700; }
 .teacher-box { display: grid; gap: 8px; margin-bottom: 14px; padding: 14px; background: #fff; box-shadow: inset 0 0 0 2px var(--navy); }
 .teacher-box h2 { margin: 0; font-family: var(--f-head); font-size: 19px; }
 .teacher-box label { display: grid; gap: 4px; font-size: 15px; font-weight: 700; }

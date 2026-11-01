@@ -6,9 +6,9 @@
 
 ## เปิดเกม
 
-- **ปกติ:** https://nabaworn0.github.io/project-cai/
-- **ครูสาธิต เปิดทุกเคส:** https://nabaworn0.github.io/project-cai/?unlock=all
-- **เข้าเคสตรงๆ (ข้ามเมนู):** เช่น https://nabaworn0.github.io/project-cai/?case=c03-red-text
+- **ปกติ:** https://project-cai.vercel.app/
+- **ครูสาธิต เปิดทุกเคส:** https://project-cai.vercel.app/?unlock=all
+- **เข้าเคสตรงๆ (ข้ามเมนู):** เช่น https://project-cai.vercel.app/?case=c03-red-text
 
 ## ลองตามนี้
 

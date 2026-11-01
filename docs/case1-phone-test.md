@@ -14,7 +14,7 @@ npm run preview -- --host
 
 เปิดลิงก์ `Network: http://192.168.x.x:4173` ที่ขึ้นมา ในเบราว์เซอร์ของมือถือ (ถ้าเปิดไม่ได้ ให้อนุญาต Node.js ผ่าน Windows Firewall)
 
-**วิธี B:** push ขึ้น GitHub แล้วเปิด https://nabaworn0.github.io/project-cai/ (รอ Actions ราว 2 นาที)
+**วิธี B:** push ขึ้น GitHub แล้วเปิด https://project-cai.vercel.app/ (Vercel build ใหม่เองภายในราว 1 นาที)
 
 ## ลองทั้ง 3 เส้นทาง
 

@@ -38,7 +38,7 @@
 
 **ข้อควรทราบ:** รหัสครูใช้สำหรับดึงผลการเรียนรู้ นักเรียนไม่จำเป็นต้องทราบรหัสนี้
 
-โค้ด Apps Script สามารถรับได้จาก [หน้าครูของเกม WINSTALL](https://nabaworn0.github.io/project-cai/?view=teacher) โดยใช้ปุ่ม
+โค้ด Apps Script สามารถรับได้จาก [หน้าครูของเกม WINSTALL](https://project-cai.vercel.app/?view=teacher) โดยใช้ปุ่ม
 
 - **คัดลอกโค้ด Apps Script**
 - **ดาวน์โหลดโค้ด (Code.gs)**
@@ -59,7 +59,7 @@
 1. ใน Google Sheet เลือกเมนู **ส่วนขยาย (Extensions) → Apps Script**
 2. ระบบจะเปิดหน้า Apps Script ในแท็บใหม่
 3. ตั้งชื่อโปรเจ็กต์ที่มุมซ้ายบน เช่น `รับผลเกมร้านซ่อมคอม`
-4. เปิด [หน้าครูของเกม](https://nabaworn0.github.io/project-cai/?view=teacher) ในอีกแท็บหนึ่ง
+4. เปิด [หน้าครูของเกม](https://project-cai.vercel.app/?view=teacher) ในอีกแท็บหนึ่ง
 5. กด **คัดลอกโค้ด Apps Script**
 6. กลับไปที่ Apps Script แล้วเปิดไฟล์ `Code.gs`
 7. ลบโค้ดเดิมทั้งหมด เช่น `function myFunction() {}`
@@ -130,7 +130,7 @@ Web app คือเว็บไซต์ขนาดเล็กที่ทำ
    {"ok":true,"app":"shop-sheet","note":"เว็บแอปรับผลของเกมร้านซ่อมคอมทำงานอยู่"}
    ```
 
-3. เปิด [หน้าครูของเกม](https://nabaworn0.github.io/project-cai/?view=teacher)
+3. เปิด [หน้าครูของเกม](https://project-cai.vercel.app/?view=teacher)
 4. ไปที่ส่วน **เชื่อมกับ Google Sheet ของครู**
 5. วาง URL ของเว็บแอป
 6. กรอกรหัสครูที่ตั้งไว้
@@ -167,7 +167,7 @@ Web app คือเว็บไซต์ขนาดเล็กที่ทำ
 
 ## 2.1 เชื่อมต่อ Google Sheet ของครู
 
-1. เปิด [หน้าครูของเกม](https://nabaworn0.github.io/project-cai/?view=teacher)
+1. เปิด [หน้าครูของเกม](https://project-cai.vercel.app/?view=teacher)
 2. ไปที่ส่วน **เชื่อมกับ Google Sheet ของครู**
 3. วางลิงก์ Web app ที่ได้จากการตั้งค่าครั้งแรก
 4. กรอกรหัสครู

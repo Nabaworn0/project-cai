@@ -1,6 +1,7 @@
 // Shared steps for the Playwright tests: open the shop, play case 1 up to the repair, open the PC.
 
 import { expect, type Locator, type Page } from '@playwright/test';
+import { TEACHER_PIN } from '../playwright.config';
 
 export const LEARNER = { name: 'สมชาย ใจดี', room: 'ปวช.1/2', no: '7' };
 
@@ -219,4 +220,17 @@ export async function hudFits(page: Page) {
   expect(brand.x + brand.width).toBeLessThanOrEqual(right.x);
   expect(menu.x + menu.width).toBeLessThanOrEqual(right.x);
   expect(right.x + right.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+}
+
+/** The teacher's page, through its PIN unless this tab opened it already (the tests' build has its own PIN,
+ *  playwright.config.ts). */
+export async function openTeacher(page: Page) {
+  await page.goto('/?view=teacher');
+  const gate = page.getByTestId('teacher-gate');
+  // Already opened in this tab: it stays open.
+  await expect(gate.or(page.getByTestId('teacher'))).toBeVisible({ timeout: 15_000 });
+  if (!(await gate.isVisible())) return;
+  await gate.getByLabel('รหัสเข้าหน้าครู').fill(TEACHER_PIN);
+  await gate.getByRole('button', { name: 'เข้าหน้าครู' }).click();
+  await expect(page.getByTestId('teacher')).toBeVisible({ timeout: 15_000 });
 }

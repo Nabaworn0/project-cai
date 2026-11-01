@@ -6,8 +6,8 @@
 
 ## เปิดเกม
 
-- **ปกติ:** https://nabaworn0.github.io/project-cai/ (ทำแบบทดสอบก่อนเรียนก่อน การ์ดบทเรียนจึงเปิด)
-- **ครูสาธิต เปิดทุกขั้น:** https://nabaworn0.github.io/project-cai/?unlock=all
+- **ปกติ:** https://project-cai.vercel.app/ (ทำแบบทดสอบก่อนเรียนก่อน การ์ดบทเรียนจึงเปิด)
+- **ครูสาธิต เปิดทุกขั้น:** https://project-cai.vercel.app/?unlock=all
 
 ## ลองตามนี้
 

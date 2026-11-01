@@ -6,7 +6,7 @@
 
 ## เปิดเกม
 
-- **เข้าเคส 2 ตรงๆ:** ต่อท้ายลิงก์เกมด้วย `?case=c02-rufus-scheme` เช่น https://nabaworn0.github.io/project-cai/?case=c02-rufus-scheme
+- **เข้าเคส 2 ตรงๆ:** ต่อท้ายลิงก์เกมด้วย `?case=c02-rufus-scheme` เช่น https://project-cai.vercel.app/?case=c02-rufus-scheme
 - **หรือเล่นตามลำดับ:** เล่นเคส 1 (ป้าสมศรี) จบ แล้วกด "รับลูกค้าคนถัดไป" น้องบีมจะเดินเข้ามา
 - เปิดผ่าน Wi-Fi ก่อน push ได้เหมือนเคส 1 (`npm run build` แล้ว `npm run preview -- --host`)
 

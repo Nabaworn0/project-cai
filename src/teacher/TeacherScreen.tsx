@@ -23,6 +23,7 @@ import {
 } from '../core/results';
 import { classUrl, deploymentFrom, endpoint, readRequest, sheetClasses, sheetFiles, validClassName } from '../core/sync';
 import appsScript from '../../apps-script/Code.gs?raw';
+import type { TeacherPageProps } from './PinGate';
 import './teacher.css';
 
 const content = loadContent();
@@ -71,7 +72,7 @@ async function askSheet(to: string, body: string): Promise<unknown> {
   return res.json();
 }
 
-export function TeacherScreen() {
+export function TeacherScreen({ onLock, noPin }: TeacherPageProps = {}) {
   const [settings, setSettings] = useState(loadSettings);
   const [linkText, setLinkText] = useState(settings.to);
   const [keyText, setKeyText] = useState(settings.key);
@@ -181,7 +182,17 @@ export function TeacherScreen() {
       <header class="teacher-head">
         <p>เกม WINSTALL · รายวิชา 21910-2001</p>
         <h1>หน้าครู: รวมผลการเรียน</h1>
+        {onLock && (
+          <button class="btn ghost small teacher-lock no-print" type="button" onClick={onLock}>
+            🔒 ล็อกหน้าครู
+          </button>
+        )}
       </header>
+      {noPin && (
+        <p class="teacher-warn no-print" role="note" data-testid="no-pin">
+          ยังไม่ได้ตั้งรหัสเข้าหน้าครู ใครเปิดลิงก์นี้ก็เข้าได้ ผู้ดูแลเกมตั้งรหัสได้ด้วยคำสั่ง npm run teacher-pin
+        </p>
+      )}
 
       <section class="teacher-box no-print">
         <h2>1. เชื่อมกับ Google Sheet ของครู</h2>

@@ -476,6 +476,28 @@ export const DecorSchema = z
   .strict();
 export type Decor = z.infer<typeof DecorSchema>;
 
+/** The play guide in the game (docs/guide-pin-plan.md task H): topics opened one at a time. The topic "path" also
+ *  lists the learning path's steps, from the game itself. */
+export const GuideSchema = z
+  .object({
+    draft: z.boolean(),
+    source: z.string().optional(),
+    sections: z
+      .array(
+        z
+          .object({
+            id,
+            icon: th,
+            titleTh: th.max(30),
+            linesTh: z.array(th.max(140)).min(1),
+          })
+          .strict(),
+      )
+      .min(1),
+  })
+  .strict();
+export type Guide = z.infer<typeof GuideSchema>;
+
 /** Faces each speaker has (sprites `senior-<face>.png`, `tech-<face>.png`). */
 export const CUTSCENE_FACES = { senior: ['neutral', 'happy', 'thinking'], intern: ['neutral', 'happy', 'thinking', 'surprised'] } as const;
 

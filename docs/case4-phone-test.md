@@ -6,7 +6,7 @@
 
 ## เปิดเกม
 
-- **เข้าเคส 4 ตรงๆ:** https://nabaworn0.github.io/project-cai/?case=c04-security-chip
+- **เข้าเคส 4 ตรงๆ:** https://project-cai.vercel.app/?case=c04-security-chip
   - ปิดแค่ TPM: เพิ่ม `&seed=s1` · ปิดทั้ง TPM และ Secure Boot: เพิ่ม `&seed=s3` (ไม่ใส่ seed = สุ่ม)
 - **หรือเล่นตามลำดับ:** ป้าสมศรี → น้องบีม → ลุงชัย → พี่ต้น
 
