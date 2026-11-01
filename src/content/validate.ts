@@ -44,7 +44,7 @@ import {
 import { WIN11_CHECK_IDS } from '../core/win11check';
 import { nameError } from '../core/oobe';
 import type { VoiceIndex } from '../core/lesson';
-import { STEPS, STEP_INFO } from '../core/path';
+import { PLAYABLE, STEPS, STEP_INFO } from '../core/path';
 
 export const MINIGAME_IDS = ['boot-order', 'mbr-gpt', 'win11-check', 'usb-prep', 'partition', 'drivers'] as const;
 
@@ -472,7 +472,10 @@ function checkOrder(order: Order | undefined, errors: string[], warnings: string
 
 function checkCards(parsed: ParsedContent, errors: string[], warnings: string[]): void {
   const cards = parsed.cards;
-  if (!cards) return;
+  if (!cards) {
+    errors.push('cards.json: missing');
+    return;
+  }
   dupes(
     cards.cards.map((c) => c.id),
     'cards.json: duplicate card',
@@ -480,14 +483,27 @@ function checkCards(parsed: ParsedContent, errors: string[], warnings: string[])
   );
   const setIds = new Set(cards.sets.map((s) => s.id));
   const problemIds = new Set(parsed.problems.map((p) => p.id));
+  // Every card can be got: from a lesson, the ordering game, or a case that can be played.
+  const sources = new Set<string>(['lesson-os', 'lesson-types', 'order', ...PLAYABLE]);
+  const slipIds = Object.keys(parsed.feedback?.slips ?? {});
   for (const c of cards.cards) {
     if (!setIds.has(c.set)) errors.push(`cards.json[${c.id}]: unknown set ${c.set}`);
-    for (const p of c.linkedProblems) if (!problemIds.has(p)) errors.push(`cards.json[${c.id}]: unknown problem ${p}`);
+    if (!sources.has(c.from)) errors.push(`cards.json[${c.id}]: cannot be got from "${c.from}" (a lesson, order, or a playable case)`);
+    for (const p of c.problems) if (!problemIds.has(p)) errors.push(`cards.json[${c.id}]: unknown problem ${p}`);
+    for (const s of c.slips) if (!slipIds.includes(s)) errors.push(`cards.json[${c.id}]: unknown repair mistake ${s}`);
   }
-  if (cards.draft) warnings.push('cards.json: เนื้อหาการ์ดยังเป็นร่าง');
-  if (cards.sets.length !== 6 || cards.cards.length !== 30) {
-    warnings.push(`cards.json: แผนคือ 30 ใบ 6 ชุด ตอนนี้มี ${cards.cards.length} ใบ ${cards.sets.length} ชุด`);
+  // The case summary links each repair mistake, and each case's own problems, to exactly one card.
+  for (const s of slipIds) {
+    const n = cards.cards.filter((c) => c.slips.includes(s)).length;
+    if (n !== 1) errors.push(`cards.json: repair mistake ${s} is on ${n} cards (needs exactly 1)`);
   }
+  const caseProblems = new Set(parsed.cases.filter((c) => PLAYABLE.includes(c.id)).flatMap((c) => [...c.problems.fixed, ...(c.problems.pool ?? [])]));
+  for (const p of caseProblems) {
+    const n = cards.cards.filter((c) => c.problems.includes(p)).length;
+    if (n !== 1) errors.push(`cards.json: problem ${p} is on ${n} cards (needs exactly 1)`);
+  }
+  for (const s of cards.sets) if (!cards.cards.some((c) => c.set === s.id)) errors.push(`cards.json: set ${s.id} has no cards`);
+  if (cards.draft) warnings.push('cards.json: เนื้อหาการ์ดยังเป็นร่าง รอข้อความจาก ChatGPT');
 }
 
 /** The welcome talk exists, every talk belongs to a case (or is the welcome), faces exist for their speaker. */

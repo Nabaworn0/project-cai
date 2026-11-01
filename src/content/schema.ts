@@ -381,21 +381,34 @@ export const OrderSchema = z
 export type Order = z.infer<typeof OrderSchema>;
 export type OrderStep = z.infer<typeof OrderStepSchema>;
 
-export const CardsSchema = z.object({
-  draft: z.boolean(),
-  sets: z.array(z.object({ id, nameTh: th })).min(1),
-  cards: z.array(
-    z.object({
-      id,
-      set: id,
-      nameTh: th,
-      rarity: z.enum(['common', 'rare', 'epic']),
-      /** Opening a mystery box after fixing one of these problems can drop this card. */
-      linkedProblems: z.array(id).min(1),
-      textTh: th,
-    }),
-  ),
-});
+/** The technician's book (docs/book-plan.md): knowledge cards in sets, each got from a lesson, the ordering game or
+ *  a case (`from`), and opened from the case summary for the problems (`problems`) and the repair mistakes (`slips`)
+ *  it explains. */
+export const CardsSchema = z
+  .object({
+    draft: z.boolean(),
+    source: z.string().optional(),
+    sets: z.array(z.object({ id, nameTh: th.max(30) }).strict()).min(1),
+    cards: z.array(
+      z
+        .object({
+          id,
+          set: id,
+          nameTh: th.max(28),
+          /** Shown until the card's picture (src/assets/cards/<id>.png) is there. */
+          icon: z.string().min(1).max(4),
+          summaryTh: th.max(110),
+          pointsTh: z.array(th.max(110)).min(3).max(4),
+          bookPage: z.string().min(1).optional(),
+          /** What gives the card: a lesson or the ordering game (a step id), or a case (its id). */
+          from: id,
+          problems: z.array(id).default([]),
+          slips: z.array(id).default([]),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
 
 export type Problem = z.infer<typeof ProblemSchema>;
 export type Objectives = z.infer<typeof ObjectivesSchema>;

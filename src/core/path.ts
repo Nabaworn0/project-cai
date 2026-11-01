@@ -86,6 +86,8 @@ export interface Progress {
   /** The reflection and satisfaction form as sent (docs/reflect-plan.md), and one left half way. */
   reflect: ReflectResult | null;
   reflectDraft: ReflectAnswers | null;
+  /** Knowledge cards opened in the technician's book (docs/book-plan.md); the cards got are worked out, not kept. */
+  cardsRead: string[];
 }
 
 export const EMPTY: Progress = {
@@ -101,6 +103,7 @@ export const EMPTY: Progress = {
   lessons: {},
   reflect: null,
   reflectDraft: null,
+  cardsRead: [],
 };
 
 /** What is learned before the shop: the pre-test, both lessons and the step ordering. */
@@ -211,6 +214,11 @@ export function recordLesson(p: Progress, id: StepId, r: { at: number; first: nu
   const first = r.first.map((a, i) => (old[i] !== undefined && old[i] >= 0 ? old[i] : a));
   const lessons = { ...p.lessons, [id]: { at: r.done ? 0 : r.at, first } };
   return { ...(r.done ? markDone(p, id) : p), lessons };
+}
+
+/** A card was opened in the technician's book: no longer "new". */
+export function markCardRead(p: Progress, id: string): Progress {
+  return p.cardsRead.includes(id) ? p : { ...p, cardsRead: [...p.cardsRead, id] };
 }
 
 /** A cutscene was shown, so it does not start by itself again (it can still be replayed). */
@@ -350,7 +358,8 @@ export function parseProgress(raw: string | null, oldRaw: string | null = null):
     }
   const saved = v.done;
   const done = Array.isArray(saved) ? STEPS.filter((s) => saved.includes(s)) : [];
-  const seen = Array.isArray(v.seen) ? [...new Set(v.seen.filter((x): x is string => typeof x === 'string' && x.length > 0 && x.length <= 40))] : [];
+  const ids = (a: unknown) => (Array.isArray(a) ? [...new Set(a.filter((x): x is string => typeof x === 'string' && x.length > 0 && x.length <= 40))] : []);
+  const seen = ids(v.seen);
   return {
     coins: count(v.coins) ?? 0,
     learner: learner(v.learner),
@@ -364,5 +373,6 @@ export function parseProgress(raw: string | null, oldRaw: string | null = null):
     lessons: lessonRecords(v.lessons),
     reflect: reflectResult(v.reflect),
     reflectDraft: reflectAnswers(v.reflectDraft),
+    cardsRead: ids(v.cardsRead),
   };
 }

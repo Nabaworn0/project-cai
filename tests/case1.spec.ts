@@ -126,6 +126,16 @@ test('mistakes cost stars: wrong guess, two boots into the old Windows, wrong ex
   await expect(page.locator('body')).toHaveAttribute('data-customer-mood', 'angry');
   await shot(page, info, 'm-assess');
 
+  // Each crossed row opens the card that explains it, over the summary; closing it leaves the summary as it was.
+  await repair.locator('[data-card-link="boot-order"]').click();
+  await expect(page.getByTestId('book-card')).toHaveAttribute('data-card', 'boot-order');
+  await page.getByRole('button', { name: 'ปิดสมุดช่าง', exact: true }).click();
+  await expect(page.getByTestId('book')).toHaveCount(0);
+  await summary.locator('[data-criterion="diagnose"] [data-card-link]').click();
+  await expect(page.getByTestId('book-card'), "the case's own problem").toHaveAttribute('data-card', 'boot-order');
+  await page.keyboard.press('Escape');
+  await expectStage(page, 'summary');
+
   // Trying again: Somsri comes back with a new machine, and the senior says what to watch for this time.
   await page.getByRole('button', { name: fb.retry }).click();
   await expectStage(page, 'intro');

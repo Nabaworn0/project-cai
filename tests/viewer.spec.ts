@@ -38,7 +38,7 @@ test.describe('content viewer (?view=content)', () => {
     await expect(os.locator('li').first()).toContainText(/เสียง \d+\.\d วิ/);
     await expect(os).toContainText('คำถาม: ระบบปฏิบัติการต่างจากโปรแกรมประยุกต์อย่างไร?');
     await tab('การ์ด').click();
-    await expect(page.getByText('ผู้พิทักษ์ GPT')).toBeVisible();
+    await expect(page.getByText('GPT กับ MBR')).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(0);
   });

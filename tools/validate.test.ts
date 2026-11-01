@@ -459,3 +459,24 @@ test('the reflection form: ids apart, one self-check per objective, every item i
   R(files).draft = true;
   assert.ok(run(files).warnings.includes('reflect.json: ข้อความยังเป็นร่าง'));
 });
+
+test("the technician's book: every card can be got, and each repair mistake and case problem has exactly one card", () => {
+  let files = real();
+  get(files, 'cards.json').cards[0].from = 'c99-nowhere';
+  hasError(files, 'cannot be got from "c99-nowhere"');
+  files = real();
+  get(files, 'cards.json').cards.find((c: { id: string }) => c.id === 'tpm').slips = ['legacy-boot'];
+  hasError(files, 'repair mistake legacy-boot is on 2 cards');
+  files = real();
+  get(files, 'cards.json').cards.find((c: { id: string }) => c.id === 'first-setup').slips = ['typed-for-customer'];
+  hasError(files, 'repair mistake asked-password is on 0 cards');
+  files = real();
+  get(files, 'cards.json').cards.find((c: { id: string }) => c.id === 'tpm').problems = [];
+  hasError(files, 'problem tpm-disabled is on 0 cards');
+  files = real();
+  get(files, 'cards.json').cards.find((c: { id: string }) => c.id === 'rufus').slips = ['made-up'];
+  hasError(files, 'unknown repair mistake made-up');
+  files = real();
+  files = files.filter((f) => f.path !== 'cards.json');
+  hasError(files, 'cards.json: missing');
+});

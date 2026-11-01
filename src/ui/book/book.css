@@ -1,0 +1,41 @@
+/* The technician's book (BookScreen.tsx): a cream panel over the page, cards in a grid by set, one card to read. */
+.book-backdrop { z-index: 30; }
+.book { width: min(720px, 100%); max-height: 100%; display: flex; flex-direction: column; background: var(--cream); }
+.book-head { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; padding: 8px 10px 8px 14px; background: var(--navy); color: #fff; }
+.book-head h2 { margin: 0; font-family: var(--f-head); font-size: 20px; color: var(--yellow); }
+.book-count { flex: 1; font-size: 14px; color: var(--teal); }
+.book-close { width: 40px; height: 40px; font-size: 20px; font-weight: 700; color: var(--navy); background: var(--yellow); border: 0; cursor: pointer; }
+.book-scroll { overflow-y: auto; overscroll-behavior: contain; padding: 10px 14px 16px; }
+.book-set h3 { margin: 8px 0 6px; font-family: var(--f-head); font-size: 16px; color: var(--navy); }
+.book-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.book-grid > li { display: flex; }
+.book-tile {
+  position: relative; flex: 1; display: grid; justify-items: center; align-content: start; gap: 4px; min-height: 120px; padding: 10px 8px;
+  font: inherit; text-align: center; color: var(--ink); background: #fff; border: 0; cursor: pointer;
+  box-shadow: inset 0 0 0 3px var(--navy), inset 0 -6px 0 0 var(--teal);
+}
+.book-tile:hover { background: #f1fbfa; }
+.book-tile.locked { cursor: default; color: #5f6b80; background: #e8ebf1; box-shadow: inset 0 0 0 3px #9aa3b5; }
+.book-pic { display: grid; place-items: center; width: 56px; height: 56px; font-size: 34px; line-height: 1; }
+.book-pic img { width: 100%; height: 100%; min-width: 0; min-height: 0; object-fit: contain; image-rendering: pixelated; }
+.locked .book-pic { font-family: var(--f-head); font-weight: 700; color: #9aa3b5; }
+.book-tile-name { font-family: var(--f-head); font-weight: 700; font-size: 14.5px; line-height: 1.3; }
+.book-how { font-size: 12.5px; line-height: 1.35; }
+.book-new { position: absolute; top: -6px; right: -4px; padding: 1px 6px; font-family: var(--f-head); font-weight: 700; font-size: 12px; color: var(--navy); background: var(--yellow); box-shadow: 0 0 0 2px var(--navy); }
+
+.book-card { display: grid; gap: 10px; justify-items: start; }
+.book-card-top { display: flex; align-items: center; gap: 12px; }
+.book-pic.big { width: 84px; height: 84px; font-size: 52px; background: #fff; box-shadow: inset 0 0 0 3px var(--navy); }
+.book-card-set { margin: 0; font-size: 13px; color: var(--teal-shade); font-weight: 700; }
+.book-card h3 { margin: 0; font-family: var(--f-head); font-size: 22px; line-height: 1.25; color: var(--navy); }
+.book-card-sum { margin: 0; font-size: 16px; font-weight: 600; }
+.book-points { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; width: 100%; }
+.book-points li { position: relative; padding: 6px 10px 6px 30px; font-size: 15px; background: #fff; box-shadow: inset 3px 0 0 var(--teal); }
+.book-points li::before { content: '✓'; position: absolute; left: 10px; font-weight: 700; color: var(--teal-shade); }
+.book-page { margin: 0; font-size: 13px; color: #5f6b80; }
+
+/* The way into the book: a HUD chip in the shop, a button in the menu; a dot when a card is new. */
+.book-chip { position: relative; }
+.book-dot { position: absolute; top: -5px; right: -5px; width: 12px; height: 12px; background: var(--coral); box-shadow: 0 0 0 2px var(--navy); }
+.menu-book { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; margin-bottom: 12px; text-align: left; }
+.menu-book .book-new { position: static; }

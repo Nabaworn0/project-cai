@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import type { Feedback } from '../../content/schema';
+import { cardForProblem, cardForSlip, type Card } from '../../core/book';
 import { SCORING, type Criterion, type Summary } from '../../core/session';
 import { play } from '../sound';
 
@@ -14,7 +15,17 @@ const COUNT_MS = 500;
 /** When the summary has finished counting: the HUD purse takes the coins from then on. */
 export const SUMMARY_REVEAL_MS = STAR_START_MS + SCORING.maxStars * STAR_STEP_MS + COUNT_MS;
 
-export function SummaryCard({ summary, text }: { summary: Summary; text: Feedback }) {
+interface Props {
+  summary: Summary;
+  text: Feedback;
+  /** The technician's book: a crossed row links to the card that explains it (docs/book-plan.md). */
+  cards?: readonly Card[];
+  /** The case's own problem, whose card explains a wrong guess or a wrong explanation. */
+  problem?: string;
+  onCard?: (id: string) => void;
+}
+
+export function SummaryCard({ summary, text, cards = [], problem, onCard }: Props) {
   const { stars, coins, satisfaction, mistakes, log, check, criteria, bonuses } = summary;
   const [lit, setLit] = useState(0);
   const [counted, setCounted] = useState(0);
@@ -56,7 +67,7 @@ export function SummaryCard({ summary, text }: { summary: Summary; text: Feedbac
       </div>
       <ul class="assess" aria-label="ใบประเมินงาน" data-testid="assess">
         {criteria.map((c) => (
-          <CriterionRow key={c.id} c={c} mistakes={mistakes} text={text} />
+          <CriterionRow key={c.id} c={c} mistakes={mistakes} text={text} cards={cards} problem={problem} onCard={onCard} />
         ))}
       </ul>
       {(check || bonuses.length > 0) && (
@@ -101,7 +112,14 @@ export function SummaryCard({ summary, text }: { summary: Summary; text: Feedbac
 
 /** One criterion: passed or missed (a missed one cost a star), and for the repair each kind of mistake with
  *  what to remember; for a wrong answer, its explanation. */
-function CriterionRow({ c, mistakes, text }: { c: Criterion; mistakes: number; text: Feedback }) {
+function CriterionRow({ c, mistakes, text, cards, problem, onCard }: { c: Criterion; mistakes: number; text: Feedback } & Omit<Props, 'summary' | 'text'>) {
+  const link = (card: Card | null) =>
+    card &&
+    onCard && (
+      <button class="assess-card" type="button" data-card-link={card.id} onClick={() => onCard(card.id)}>
+        📖 อ่านการ์ด: {card.nameTh}
+      </button>
+    );
   const t = text.criteria[c.id];
   // The first repair mistake is free: say so rather than "no mistakes".
   const said = c.ok ? (c.id === 'repair' && mistakes ? text.freeSlip : t.ok) : c.id === 'repair' ? `${t.miss} (${mistakes} ครั้ง)` : t.miss;
@@ -119,11 +137,13 @@ function CriterionRow({ c, mistakes, text }: { c: Criterion; mistakes: number; t
         <p key={r} class="assess-slip" data-slip={r}>
           {text.slips[r].th}
           <span class="assess-tip">จำไว้: {text.slips[r].tip}</span>
+          {link(cardForSlip(cards ?? [], r))}
         </p>
       ))}
       {c.whyTh && (
         <p class="assess-slip">
           <span class="assess-tip">จำไว้: {c.whyTh}</span>
+          {problem && link(cardForProblem(cards ?? [], problem))}
         </p>
       )}
     </li>

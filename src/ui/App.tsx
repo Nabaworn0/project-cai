@@ -5,7 +5,8 @@
 // there and is paused while they are away.
 // Each page has its own address (#/learn, #/pre, #/post, #/order, #/shop: docs/pages-plan.md), so Back, reloading
 // and links work as on any website; which page an address may open is src/core/routes.ts. Between pages the shop's
-// shutter rolls down and up (Shutter.tsx), held down the first time the shop's scene loads.
+// shutter rolls down and up (Shutter.tsx), held down the first time the shop's scene loads. The technician's book
+// (docs/book-plan.md) opens over whichever page it is opened from: the menu, the shop's HUD, or the case summary.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Game } from 'phaser';
@@ -15,6 +16,8 @@ import type { ShopLayout } from '../game/scenes/ShopScene';
 import { CaseFlow, PLAYABLE } from './case/CaseFlow';
 import { SUMMARY_REVEAL_MS } from './case/SummaryCard';
 import { MenuScreen } from './menu/MenuScreen';
+import { BookScreen } from './book/BookScreen';
+import { unlockedCards, unreadCards } from '../core/book';
 import { StartScreen } from './start/StartScreen';
 import { LessonScreen } from './lesson/LessonScreen';
 import { ReflectScreen } from './reflect/ReflectScreen';
@@ -23,7 +26,7 @@ import { ResultsScreen } from './results/ResultsScreen';
 import { OrderScreen } from './order/OrderScreen';
 import { QuizScreen } from './quiz/QuizScreen';
 import { loadProgress, saveProgress, type Progress } from './progress';
-import { EMPTY, markSeen, pathView, recordCase, recordLesson, recordOrder, recordQuiz, recordReflect, type PathOptions, type StepId } from '../core/path';
+import { EMPTY, markCardRead, markSeen, pathView, recordCase, recordLesson, recordOrder, recordQuiz, recordReflect, type PathOptions, type StepId } from '../core/path';
 import { allowedRoute, parseRoute, routeHash, type Route } from '../core/routes';
 import { prefersLessMotion } from './motion';
 import { Shutter, SHUTTER_MS, type ShutterPhase } from './Shutter';
@@ -131,6 +134,14 @@ export function App() {
   const [started, setStarted] = useState(false);
   const [about, setAbout] = useState(false);
   const [bootSeen, setBootSeen] = useState(() => readFlag(BOOT_KEY));
+  /** The technician's book, when open: on a card (a link from the case summary), or on the list. */
+  const [book, setBook] = useState<{ card?: string } | null>(null);
+  const cardsGot = unlockedCards(content.cards.cards, progress);
+  const cardsNew = unreadCards(content.cards.cards, progress).length;
+  const openBook = (card?: string) => {
+    play('key');
+    setBook({ card });
+  };
 
   // The shop's scene runs only while the shop is on screen.
   useEffect(() => {
@@ -239,6 +250,10 @@ export function App() {
             ร้านซ่อมคอม <small>รอบ 1</small>
           </h1>
           <div class="hud-right">
+            <button class="chip book-chip" type="button" aria-label="สมุดช่าง" title="สมุดช่าง: การ์ดความรู้ที่สะสมไว้" data-testid="hud-book" onClick={() => openBook()}>
+              📖
+              {cardsNew > 0 && <span class="book-dot" data-testid="book-dot" aria-hidden="true" />}
+            </button>
             <CoinChip coins={progress.coins} />
             <button
               class="chip sound-chip"
@@ -292,6 +307,7 @@ export function App() {
           roomMismatch={content.start.roomMismatch}
           coins={<CoinChip coins={progress.coins} />}
           className={sync.cls?.name}
+          book={{ got: cardsGot.size, total: content.cards.cards.length, fresh: cardsNew, onOpen: () => openBook() }}
         />
       ) : view === 'test' ? (
         <QuizScreen
@@ -350,6 +366,19 @@ export function App() {
           seen={caseLink ? null : progress.seen}
           onSeen={(id) => update((p) => markSeen(p, id))}
           replayIntro={replayIntro}
+          cardsGot={cardsGot}
+          onBook={openBook}
+        />
+      )}
+
+      {book && (
+        <BookScreen
+          book={content.cards}
+          got={cardsGot}
+          read={progress.cardsRead}
+          card={book.card}
+          onRead={(id) => update((p) => markCardRead(p, id))}
+          onClose={() => setBook(null)}
         />
       )}
 

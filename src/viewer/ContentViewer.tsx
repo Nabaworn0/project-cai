@@ -420,7 +420,7 @@ export function ContentViewer() {
           <section class="v-stack">
             {parsed.cards.draft && (
               <p class="v-lead">
-                <span class="v-badge warn">ร่าง</span> แผนคือ 30 ใบ 6 ชุด
+                <span class="v-badge warn">ร่าง</span> รอข้อความจาก ChatGPT (docs/book-prompts.md)
               </p>
             )}
             {parsed.cards.sets.map((set) => (
@@ -432,11 +432,18 @@ export function ContentViewer() {
                   {parsed
                     .cards!.cards.filter((c) => c.set === set.id)
                     .map((c) => (
-                      <div key={c.id} class={`v-gamecard ${c.rarity}`}>
-                        <b>{c.nameTh}</b>
-                        <span class="v-dim">{{ common: 'ธรรมดา', rare: 'หายาก', epic: 'หายากมาก' }[c.rarity]}</span>
-                        <p>{c.textTh}</p>
-                        <span class="v-dim">ได้หลังแก้: {c.linkedProblems.join(', ')}</span>
+                      <div key={c.id} class="v-gamecard common">
+                        <b>
+                          {c.icon} {c.nameTh}
+                        </b>
+                        <p>{c.summaryTh}</p>
+                        <ul>
+                          {c.pointsTh.map((t) => (
+                            <li key={t}>{t}</li>
+                          ))}
+                        </ul>
+                        <span class="v-dim">ได้จาก: {c.from}</span>
+                        {c.slips.length > 0 && <span class="v-dim">เปิดจากความผิดพลาด: {c.slips.join(', ')}</span>}
                       </div>
                     ))}
                 </div>

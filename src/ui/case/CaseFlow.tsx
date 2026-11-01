@@ -7,7 +7,8 @@
 // in Setup brings out the shop laptop to make it again (docs/case3-plan.md). Case 5 goes on past the install
 // to Windows' first-time setup and the desktop: the customer signs in themself (docs/case5-plan.md). The summary
 // ends with the senior's assessment, and below 3 stars the same case can be tried again, the senior saying what to
-// watch for (docs/feedback-plan.md).
+// watch for (docs/feedback-plan.md). Its crossed rows link to the card in the technician's book that explains them,
+// and a first play says which new cards it gave (docs/book-plan.md).
 
 import { PLAYABLE } from '../../core/path';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
@@ -60,6 +61,9 @@ interface Props {
   onSeen: (id: string) => void;
   /** The menu's "ดูฉากต้อนรับอีกครั้ง": the welcome talk again before the customer. */
   replayIntro?: boolean;
+  /** The technician's book: the cards the learner has, and opening it (on a card, or on the list). */
+  cardsGot: ReadonlySet<string>;
+  onBook: (card?: string) => void;
 }
 
 export { PLAYABLE };
@@ -101,7 +105,7 @@ function startPc(gc: GeneratedCase, usb: Usb): Pc {
 /** What Rufus finds on a stick whose partition Setup deleted. */
 const WIPED_LABEL = 'NO_LABEL';
 
-export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onStage, seen, onSeen, replayIntro }: Props) {
+export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onStage, seen, onSeen, replayIntro, cardsGot, onBook }: Props) {
   const [gc, setGc] = useState(() => newCase(content, null, first));
   const [s, setS] = useState<Session>(() => startSession(gc));
   const [arrived, setArrived] = useState(false);
@@ -208,6 +212,9 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
     cheered.current = true;
     bus.emit('customer:cheer', {});
   }, [simOpen, laptopOpen, s.route]);
+
+  /** The cards this case gives that the learner did not have when it started (none when trying it again). */
+  const newCards = useMemo(() => content.cards.cards.filter((c) => c.from === gc.template.id && !cardsGot.has(c.id)), [gc]);
 
   // Coins once per case, when the summary appears.
   const summary = useMemo(() => (s.stage === 'summary' ? summarize(gc, s) : null), [gc, s]);
@@ -655,7 +662,17 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
         <>
           {speaker}
           <p class="says" data-testid="goodbye">“{goodbyeLine(gc.template.customer.reactionsTh, summary!.stars)}”</p>
-          <SummaryCard summary={summary!} text={content.feedback} />
+          <SummaryCard summary={summary!} text={content.feedback} cards={content.cards.cards} problem={gc.template.problems.fixed[0]} onCard={onBook} />
+          {newCards.length > 0 && (
+            <div class="new-cards" data-testid="new-cards">
+              <p>
+                🎴 ได้การ์ดใหม่ {newCards.length} ใบ: {newCards.map((c) => c.nameTh).join(', ')}
+              </p>
+              <button class="btn small" type="button" onClick={() => onBook()}>
+                เปิดสมุดช่าง
+              </button>
+            </div>
+          )}
           {lastInPath && <p class="coach-tip">ฝึกครบทุกเคสแล้ว กลับไปที่เมนูเพื่อทำขั้นต่อไป</p>}
           <div class="actions">
             <button class={lastInPath ? 'btn' : 'btn ghost'} type="button" onClick={onMenu}>

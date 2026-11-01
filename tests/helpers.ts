@@ -56,7 +56,8 @@ export async function pastStart(page: Page) {
   // The first load (fonts, then the page) can take a while when every test runs at once.
   await expect(boot.or(start).or(menu)).toBeVisible({ timeout: 15_000 });
   if (await boot.isVisible()) {
-    await page.keyboard.press('Enter');
+    // Its own button, which works from the first frame (the key listener comes a moment later).
+    await boot.getByRole('button', { name: 'Press any key to start' }).click();
     // The start page comes after the key, not at once.
     await expect(start).toBeVisible();
   }

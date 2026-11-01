@@ -1,13 +1,300 @@
 {
-  "draft": true,
+  "draft": false,
+  "source": "ChatGPT's wording, 1 Nov 2026 (docs/book-prompts.md); icons by ChatGPT in art-source/cards/",
   "sets": [
-    { "id": "boot", "nameTh": "ชุดบูต" },
-    { "id": "disk", "nameTh": "ชุดดิสก์" }
+    {
+      "id": "os",
+      "nameTh": "รู้จักระบบปฏิบัติการ"
+    },
+    {
+      "id": "prep",
+      "nameTh": "เตรียมก่อนติดตั้ง"
+    },
+    {
+      "id": "boot",
+      "nameTh": "ทำ USB และบูต"
+    },
+    {
+      "id": "install",
+      "nameTh": "ติดตั้งและตั้งค่า"
+    }
   ],
   "cards": [
-    { "id": "gpt-guardian", "set": "disk", "nameTh": "ผู้พิทักษ์ GPT", "rarity": "common", "linkedProblems": ["uefi-mbr"], "textTh": "GPT รองรับดิสก์ใหญ่กว่า 2 TB และพาร์ทิชันได้ถึง 128 ส่วน" },
-    { "id": "mbr2gpt-magic", "set": "disk", "nameTh": "เวทมนตร์ mbr2gpt", "rarity": "rare", "linkedProblems": ["uefi-mbr"], "textTh": "แปลง MBR เป็น GPT ได้โดยไม่ลบข้อมูล ถ้าดิสก์ผ่านการตรวจ /validate" },
-    { "id": "secure-boot-shield", "set": "boot", "nameTh": "โล่ Secure Boot", "rarity": "common", "linkedProblems": ["secure-boot-off"], "textTh": "Secure Boot ยอมให้บูตเฉพาะโปรแกรมที่มีลายเซ็นถูกต้อง" },
-    { "id": "tpm-chip", "set": "boot", "nameTh": "ชิป TPM", "rarity": "rare", "linkedProblems": ["tpm-disabled"], "textTh": "TPM เก็บกุญแจเข้ารหัส ใช้กับ BitLocker และ Windows Hello" }
+    {
+      "id": "os-jobs",
+      "set": "os",
+      "nameTh": "หน้าที่ของระบบปฏิบัติการ",
+      "icon": "🧠",
+      "summaryTh": "ระบบปฏิบัติการ (OS) เป็นตัวกลางระหว่างผู้ใช้ โปรแกรม และฮาร์ดแวร์ ทำให้คอมพิวเตอร์ทำงานได้",
+      "pointsTh": [
+        "OS ช่วยให้ผู้ใช้สั่งงานโปรแกรมและใช้อุปกรณ์คอมพิวเตอร์ได้",
+        "จัดสรร CPU ให้โปรแกรมต่าง ๆ ทำงาน และจัดการพื้นที่ RAM",
+        "ควบคุมอุปกรณ์ เช่น เมาส์ คีย์บอร์ด และเครื่องพิมพ์ ผ่าน Driver",
+        "จัดการไฟล์และโฟลเดอร์ เช่น สร้าง บันทึก คัดลอก ย้าย และลบ"
+      ],
+      "from": "lesson-os"
+    },
+    {
+      "id": "os-types",
+      "set": "os",
+      "nameTh": "ประเภทของระบบปฏิบัติการ",
+      "icon": "📱",
+      "summaryTh": "ระบบปฏิบัติการแบ่งตามอุปกรณ์ที่ใช้งาน แต่ละประเภทออกแบบมาให้เหมาะกับงานต่างกัน",
+      "pointsTh": [
+        "คอมพิวเตอร์ทั่วไป: Windows, macOS และ Ubuntu ใช้ทำงาน เรียน และเล่นเกม",
+        "เซิร์ฟเวอร์: Windows Server และ Ubuntu Server ใช้ให้บริการผ่านเครือข่าย",
+        "มือถือและแท็บเล็ต: Android และ iOS ออกแบบให้ใช้งานผ่านหน้าจอสัมผัส",
+        "ระบบฝังตัว: FreeRTOS ใช้ควบคุมอุปกรณ์เฉพาะงาน เช่น เครื่องจักรและอุปกรณ์ IoT"
+      ],
+      "from": "lesson-types"
+    },
+    {
+      "id": "os-license",
+      "set": "os",
+      "nameTh": "ลิขสิทธิ์ระบบปฏิบัติการ",
+      "icon": "🔑",
+      "summaryTh": "ระบบปฏิบัติการมีเงื่อนไขการใช้งานต่างกัน ช่างต้องเลือกใช้ซอฟต์แวร์ที่ถูกลิขสิทธิ์",
+      "pointsTh": [
+        "Windows เป็นซอฟต์แวร์ที่มีลิขสิทธิ์ ต้องมีสิทธิ์ใช้งานที่ถูกต้อง",
+        "Linux เป็นระบบโอเพนซอร์ส หลายรุ่น เช่น Ubuntu ดาวน์โหลดและใช้งานได้ฟรี",
+        "โอเพนซอร์สเปิดให้ดูและแก้ไข Source Code ได้ตามเงื่อนไขของ License",
+        "ห้ามใช้คีย์เถื่อนหรือโปรแกรม Crack เพราะละเมิดลิขสิทธิ์และเสี่ยงติดมัลแวร์"
+      ],
+      "from": "lesson-types"
+    },
+    {
+      "id": "backup",
+      "set": "prep",
+      "nameTh": "สำรองข้อมูลก่อนติดตั้ง",
+      "icon": "💾",
+      "summaryTh": "ก่อนติดตั้ง Windows ต้องป้องกันข้อมูลลูกค้าสูญหาย เพราะการลบพาร์ทิชันอาจทำให้ไฟล์หายถาวร",
+      "pointsTh": [
+        "ถามลูกค้าก่อนว่ามีไฟล์สำคัญที่ต้องเก็บไว้หรือไม่ เช่น รูปภาพ เอกสาร และงานเรียน",
+        "สำรองข้อมูลลง External HDD, External SSD, USB หรือ Cloud ที่มีพื้นที่เพียงพอ",
+        "ตรวจสอบว่าเปิดไฟล์สำรองได้จริง และไม่เก็บสำเนาไว้เฉพาะดิสก์ที่จะลบ",
+        "ต้องได้รับคำยืนยันจากลูกค้าก่อนกด Delete หรือ Format พาร์ทิชันทุกครั้ง"
+      ],
+      "from": "c03-red-text",
+      "slips": [
+        "no-backup-check"
+      ]
+    },
+    {
+      "id": "win11-req",
+      "set": "prep",
+      "nameTh": "ข้อกำหนด Windows 11",
+      "icon": "📋",
+      "summaryTh": "ตรวจสเปกก่อนติดตั้ง Windows 11 เพื่อให้แน่ใจว่าเครื่องรองรับและติดตั้งได้ตามข้อกำหนด",
+      "pointsTh": [
+        "CPU 64-bit ที่ Microsoft รองรับ ความเร็วอย่างน้อย 1 GHz และมี 2 Cores ขึ้นไป",
+        "RAM อย่างน้อย 4 GB และอุปกรณ์เก็บข้อมูลขนาดอย่างน้อย 64 GB",
+        "เครื่องต้องใช้ UEFI รองรับ Secure Boot และมี TPM 2.0",
+        "ถ้าขึ้น \"This PC can't run Windows 11\" ให้อ่านเหตุผล ตรวจสเปก แล้วแก้ทีละข้อ"
+      ],
+      "from": "c04-security-chip",
+      "problems": [
+        "ram-low",
+        "storage-low"
+      ],
+      "slips": [
+        "still-cant-run"
+      ]
+    },
+    {
+      "id": "tpm",
+      "set": "prep",
+      "nameTh": "รู้จัก TPM 2.0",
+      "icon": "🔐",
+      "summaryTh": "TPM 2.0 เป็นระบบความปลอดภัยที่ช่วยปกป้องกุญแจเข้ารหัสและข้อมูลสำคัญของเครื่อง",
+      "pointsTh": [
+        "TPM ย่อจาก Trusted Platform Module เป็นส่วนความปลอดภัยที่ Windows 11 ต้องมี",
+        "TPM อาจเป็นชิปบนเมนบอร์ด หรือทำงานผ่านเฟิร์มแวร์ของเครื่อง",
+        "เครื่อง Intel อาจใช้ชื่อ Intel PTT ส่วนเครื่อง AMD อาจใช้ชื่อ AMD fTPM",
+        "เข้า BIOS/UEFI เปิด PTT หรือ fTPM แล้วกด F10 เพื่อบันทึกบนเครื่องที่ใช้ปุ่มนี้"
+      ],
+      "from": "c04-security-chip",
+      "problems": [
+        "tpm-disabled"
+      ]
+    },
+    {
+      "id": "secure-boot",
+      "set": "prep",
+      "nameTh": "รู้จัก Secure Boot",
+      "icon": "🛡️",
+      "summaryTh": "Secure Boot ช่วยตรวจสอบซอฟต์แวร์ขณะเริ่มเครื่อง ลดความเสี่ยงจากโปรแกรมอันตรายก่อนเข้า Windows",
+      "pointsTh": [
+        "Secure Boot ตรวจสอบความน่าเชื่อถือของซอฟต์แวร์ที่ใช้เริ่มระบบ",
+        "ใช้ร่วมกับการบูตแบบ UEFI ไม่ใช่ Legacy BIOS",
+        "Windows 11 กำหนดให้เครื่องรองรับ Secure Boot และควรเปิดใช้งาน",
+        "หากเปิดไม่ได้ ให้ตรวจ Boot Mode และ CSM ใน BIOS/UEFI ก่อน"
+      ],
+      "from": "c04-security-chip",
+      "problems": [
+        "secure-boot-off"
+      ]
+    },
+    {
+      "id": "boot-order",
+      "set": "boot",
+      "nameTh": "ลำดับบูตและปุ่ม F10",
+      "icon": "🔢",
+      "summaryTh": "Boot Order คือการกำหนดว่าเครื่องจะลองเริ่มระบบจากอุปกรณ์ใดก่อน เช่น USB หรือ SSD",
+      "pointsTh": [
+        "เปิดเครื่องแล้วกดปุ่มเข้า BIOS/UEFI เช่น Del หรือ F2 ขึ้นอยู่กับรุ่นเครื่อง",
+        "ไปที่เมนู Boot หรือ Boot Device Priority เพื่อจัดลำดับอุปกรณ์",
+        "เลือก USB ติดตั้ง Windows ให้เป็นลำดับแรก โดยเลือกแบบ UEFI",
+        "กด F10 เพื่อ Save & Exit ในเครื่องที่รองรับ ส่วน Esc มักใช้ย้อนกลับหรือออกโดยไม่บันทึก"
+      ],
+      "bookPage": "48–51",
+      "from": "c01-boot-order",
+      "problems": [
+        "usb-not-first",
+        "bios-not-saved"
+      ],
+      "slips": [
+        "booted-old-windows",
+        "no-boot-device"
+      ]
+    },
+    {
+      "id": "boot-menu",
+      "set": "boot",
+      "nameTh": "เลือกบูตผ่าน Boot Menu",
+      "icon": "⚡",
+      "summaryTh": "Boot Menu ช่วยเลือกอุปกรณ์บูตเฉพาะครั้ง โดยไม่ต้องเปลี่ยนลำดับบูตถาวรใน BIOS",
+      "pointsTh": [
+        "เสียบ USB ติดตั้ง Windows แล้วเปิดเครื่องหรือ Restart",
+        "กดปุ่ม Boot Menu ระหว่างเปิดเครื่อง เช่น F12, F11, F9 หรือ Esc ตามรุ่น",
+        "เลือกอุปกรณ์ USB ที่แสดงเป็น UEFI แล้วกด Enter",
+        "การเลือกผ่าน Boot Menu ใช้เฉพาะการบูตครั้งนั้น ไม่เปลี่ยน Boot Order ถาวร"
+      ],
+      "from": "c01-boot-order"
+    },
+    {
+      "id": "rufus",
+      "set": "boot",
+      "nameTh": "สร้าง USB ด้วย Rufus",
+      "icon": "🔌",
+      "summaryTh": "Rufus ใช้สร้าง USB สำหรับบูตติดตั้ง Windows 11 จากไฟล์ ISO ต้องตรวจการตั้งค่าก่อนเริ่ม",
+      "pointsTh": [
+        "เสียบ USB ที่มีพื้นที่เพียงพอ แล้วเปิด Rufus เลือกแฟลชไดรฟ์ในช่อง Device",
+        "ที่ Boot selection กด SELECT แล้วเลือกไฟล์ ISO ของ Windows 11",
+        "ตั้ง Partition scheme เป็น GPT และ Target system เป็น UEFI",
+        "กด START แล้วยืนยันการลบข้อมูลใน USB รอจนขึ้น READY จึงนำไปใช้งาน"
+      ],
+      "bookPage": "45–48",
+      "from": "c02-rufus-scheme",
+      "slips": [
+        "wrong-image"
+      ]
+    },
+    {
+      "id": "gpt-mbr",
+      "set": "boot",
+      "nameTh": "ความต่างของ GPT กับ MBR",
+      "icon": "🗂️",
+      "summaryTh": "GPT และ MBR เป็นรูปแบบการแบ่งพาร์ทิชันของดิสก์ ต้องเลือกให้เหมาะกับโหมดบูต",
+      "pointsTh": [
+        "GPT เป็นรูปแบบที่ใช้กับการบูต Windows แบบ UEFI",
+        "MBR เป็นรูปแบบเก่าที่มักใช้กับการบูตแบบ Legacy BIOS",
+        "ติดตั้ง Windows 11 แบบ UEFI ต้องใช้ GPT บนดิสก์ที่ลง Windows",
+        "เมื่อทำ USB ด้วย Rufus ให้เลือก GPT สำหรับ UEFI โดย USB แบบ UEFI ไม่ได้บังคับ GPT เสมอไป"
+      ],
+      "bookPage": "45–48, 55",
+      "from": "c02-rufus-scheme",
+      "problems": [
+        "usb-wrong-scheme",
+        "uefi-mbr"
+      ]
+    },
+    {
+      "id": "uefi-csm",
+      "set": "boot",
+      "nameTh": "UEFI, Legacy และ CSM",
+      "icon": "⚙️",
+      "summaryTh": "Windows 11 ใช้การบูตแบบ UEFI จึงต้องตรวจโหมดบูตและการตั้งค่า CSM ก่อนติดตั้ง",
+      "pointsTh": [
+        "UEFI เป็นระบบเริ่มเครื่องสมัยใหม่ รองรับ Secure Boot",
+        "Legacy BIOS เป็นระบบบูตแบบเก่า ส่วน CSM ช่วยให้ UEFI บูตแบบ Legacy ได้",
+        "ติดตั้ง Windows 11 ให้เลือก UEFI และปิด CSM เพื่อใช้โหมด UEFI เต็มรูปแบบ",
+        "ระวัง! ปิด CSM แล้ว Windows เดิมที่บูตแบบ Legacy จากดิสก์ MBR อาจเปิดไม่ขึ้น"
+      ],
+      "from": "c05-lab-upgrade",
+      "problems": [
+        "legacy-mbr"
+      ],
+      "slips": [
+        "legacy-boot"
+      ]
+    },
+    {
+      "id": "install-steps",
+      "set": "install",
+      "nameTh": "ลำดับติดตั้ง Windows 11",
+      "icon": "🪜",
+      "summaryTh": "จำขั้นตอนหลักให้แม่น จะช่วยให้ช่างติดตั้ง Windows 11 ได้เป็นระบบและลดความผิดพลาด",
+      "pointsTh": [
+        "ขั้นที่ 1: ตรวจสเปกเครื่องและสำรองข้อมูลสำคัญ โดยได้รับคำยืนยันจากลูกค้า",
+        "ขั้นที่ 2: ดาวน์โหลด ISO ที่ถูกต้อง แล้วสร้าง USB ติดตั้งด้วย Rufus",
+        "ขั้นที่ 3: บูตจาก USB แบบ UEFI เข้า Windows Setup แล้วติดตั้งลงดิสก์ที่เลือก",
+        "ขั้นที่ 4: ตั้งค่าครั้งแรก จากนั้นตรวจ Windows Update, Driver และ Activation"
+      ],
+      "from": "order"
+    },
+    {
+      "id": "partitions",
+      "set": "install",
+      "nameTh": "จัดการพาร์ทิชันใน Setup",
+      "icon": "🧩",
+      "summaryTh": "เลือกดิสก์ให้ถูกก่อนติดตั้ง เพราะการลบหรือ Format พาร์ทิชันผิดอาจทำให้ข้อมูลหาย",
+      "pointsTh": [
+        "ใน Windows Setup ให้ดูขนาดและหมายเลข Disk เพื่อระบุดิสก์เป้าหมาย",
+        "ตรวจให้แน่ใจว่าไม่ใช่ดิสก์ข้อมูลหรือ USB ติดตั้งที่อาจปรากฏในรายการ",
+        "ห้ามกด Delete หรือ Format พาร์ทิชันที่ยังมีข้อมูลสำคัญของลูกค้า",
+        "เมื่อลบพาร์ทิชันเป้าหมายตามที่ลูกค้ายืนยันแล้ว เลือก Unallocated Space และกด Next"
+      ],
+      "bookPage": "47, 55",
+      "from": "c03-red-text",
+      "slips": [
+        "deleted-installer"
+      ]
+    },
+    {
+      "id": "product-key",
+      "set": "install",
+      "nameTh": "Product Key และรุ่น Windows",
+      "icon": "🏷️",
+      "summaryTh": "Product Key ใช้เปิดใช้งาน Windows หากไม่มีคีย์ระหว่างติดตั้ง สามารถข้ามขั้นตอนแล้ว Activate ภายหลังได้",
+      "pointsTh": [
+        "Product Key เป็นรหัส 25 ตัวอักษร ใช้ Activate Windows ตามสิทธิ์ที่มี",
+        "หากยังไม่มีคีย์ ให้กด \"I don't have a product key\" เพื่อทำขั้นตอนติดตั้งต่อ",
+        "เลือก Edition ให้ตรงกับสิทธิ์เดิม เช่น Windows 11 Home หรือ Windows 11 Pro",
+        "หลังติดตั้ง ไปที่ Settings > System > Activation เพื่อตรวจสิทธิ์หรือ Activate ด้วยคีย์แท้"
+      ],
+      "bookPage": "54",
+      "from": "c03-red-text",
+      "problems": [
+        "no-product-key"
+      ]
+    },
+    {
+      "id": "first-setup",
+      "set": "install",
+      "nameTh": "ตั้งค่า Windows ครั้งแรก",
+      "icon": "👤",
+      "summaryTh": "หลังติดตั้งเสร็จ ให้ตั้งค่าพื้นฐานร่วมกับลูกค้า โดยเคารพความเป็นส่วนตัวและข้อมูลบัญชี",
+      "pointsTh": [
+        "เลือก Country or region เป็น Thailand และเพิ่มแป้นพิมพ์ภาษาไทยตามต้องการ",
+        "ให้ลูกค้าลงชื่อเข้าใช้บัญชี Microsoft และตั้ง PIN ด้วยตนเอง",
+        "ช่างไม่ถาม ไม่จด และไม่เก็บ Password หรือ PIN ของลูกค้า",
+        "ให้ลูกค้าเลือก Privacy settings เอง เช่น Location และ Diagnostic data ก่อนจบการตั้งค่า"
+      ],
+      "from": "c05-lab-upgrade",
+      "slips": [
+        "typed-for-customer",
+        "asked-password"
+      ]
+    }
   ]
 }

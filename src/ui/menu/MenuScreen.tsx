@@ -22,6 +22,8 @@ interface Props {
   className?: string | null;
   /** Opens the start page again ("เกี่ยวกับเกม"). */
   onAbout?: () => void;
+  /** The technician's book: cards got of all, those not opened yet, and opening it (docs/book-plan.md). */
+  book?: { got: number; total: number; fresh: number; onOpen: () => void };
   aboutLabel?: string;
   /** Said under the name form when the class typed is not the link's ({typed}, {class}). */
   roomMismatch?: string;
@@ -30,7 +32,7 @@ interface Props {
 const STATUS_TH = { soon: 'เร็วๆ นี้', locked: 'ยังไม่เปิด', open: 'ยังไม่ทำ', done: 'ทำแล้ว' } as const;
 const STATUS_ICON = { soon: '…', locked: '🔒', open: '▶', done: '✓' } as const;
 
-export function MenuScreen({ content, progress, options, onLearner, onReset, onEnter, coins, className = null, onAbout, aboutLabel, roomMismatch }: Props) {
+export function MenuScreen({ content, progress, options, onLearner, onReset, onEnter, coins, className = null, onAbout, aboutLabel, roomMismatch, book }: Props) {
   const view = pathView(progress, options);
   const caseName = (id: string) => {
     const t = content.cases.find((c) => c.id === id);
@@ -66,6 +68,14 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
           {nextOk && (
             <button class="btn menu-next" type="button" onClick={() => onEnter(next.step, next.caseId)}>
               ทำต่อ: {nextLabel}
+            </button>
+          )}
+          {book && (
+            <button class="btn ghost menu-book" type="button" data-testid="open-book" onClick={book.onOpen}>
+              <span>
+                📖 สมุดช่าง · สะสมแล้ว {book.got}/{book.total}
+              </span>
+              {book.fresh > 0 && <span class="book-new">ใหม่ {book.fresh}</span>}
             </button>
           )}
           <ol class="path">
