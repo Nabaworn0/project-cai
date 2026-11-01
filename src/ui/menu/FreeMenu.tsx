@@ -6,6 +6,7 @@
 import type { ComponentChildren } from 'preact';
 import type { Progress, StepId } from '../../core/path';
 import { STEP_INFO } from '../../core/path';
+import type { Rank, Step } from '../../core/rank';
 import { BookButton, LearnPage } from './MenuScreen';
 import './menu.css';
 
@@ -13,6 +14,8 @@ interface Props {
   progress: Progress;
   /** How many customer + problem pairs there are to meet. */
   pairs: number;
+  /** The technician's rank now, and the next one with what is left to do (null at the top). */
+  rank: { now: Rank; next: { rank: Rank; steps: Step[]; progress: number } | null };
   onEnter: (step: StepId, caseId?: string) => void;
   /** Back to the class mode (the start page, or the learning path if a name is given there). */
   onLeave: () => void;
@@ -23,7 +26,7 @@ interface Props {
 /** What can be gone over again: the two lessons and the ordering game. */
 const REVIEW: readonly StepId[] = ['lesson-os', 'lesson-types', 'order'];
 
-export function FreeMenu({ progress, pairs, onEnter, onLeave, coins, book }: Props) {
+export function FreeMenu({ progress, pairs, rank, onEnter, onLeave, coins, book }: Props) {
   const jobs = progress.jobs;
 
   return (
@@ -42,6 +45,8 @@ export function FreeMenu({ progress, pairs, onEnter, onLeave, coins, book }: Pro
         🏪 เปิดร้านรับลูกค้า
       </button>
       <BookButton {...book} />
+
+      <RankCard {...rank} />
 
       <h2 class="free-head">งานที่ทำแล้ว</h2>
       <dl class="free-jobs" data-testid="free-jobs">
@@ -84,5 +89,49 @@ export function FreeMenu({ progress, pairs, onEnter, onLeave, coins, book }: Pro
         </button>
       </div>
     </LearnPage>
+  );
+}
+
+const STEP_TH: Record<Step['id'], (have: number, need: number) => string> = {
+  jobs: (h, n) => `ซ่อมสำเร็จ ${h}/${n} งาน`,
+  three: (h, n) => `ได้ 3 ดาว ${h}/${n} งาน`,
+  problems: (h, n) => `เจอปัญหาครบทุกแบบ ${h}/${n} แบบ`,
+  cards: (h, n) => `สะสมการ์ดในสมุดช่าง ${h}/${n} ใบ`,
+};
+
+/** The technician's rank (docs/phase3-plan.md task C): now, and the way to the next one. */
+function RankCard({ now, next }: Props['rank']) {
+  const pct = next ? Math.round(100 * next.progress) : 100;
+  return (
+    <section class="free-rank" data-testid="free-rank" aria-label="ยศช่าง">
+      <div class="free-rank-now">
+        <span class="free-rank-icon" aria-hidden="true">
+          {now.icon}
+        </span>
+        <span>
+          <small>ยศช่างตอนนี้</small>
+          <b data-testid="rank-name">{now.nameTh}</b>
+        </span>
+      </div>
+      {next ? (
+        <>
+          <p class="free-rank-next">
+            ยศถัดไป: {next.rank.icon} {next.rank.nameTh}
+          </p>
+          <div class="free-rank-bar" role="progressbar" aria-label="ความคืบหน้าไปยศถัดไป" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+            <span style={{ width: `${pct}%` }} />
+          </div>
+          <ul class="free-rank-steps">
+            {next.steps.map((x) => (
+              <li key={x.id} data-need={x.id} class={x.have >= x.need ? 'done' : ''}>
+                <span aria-hidden="true">{x.have >= x.need ? '✓' : '•'}</span> {STEP_TH[x.id](Math.min(x.have, x.need), x.need)}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p class="free-rank-next">ยศสูงสุดแล้ว เก่งมาก!</p>
+      )}
+    </section>
   );
 }

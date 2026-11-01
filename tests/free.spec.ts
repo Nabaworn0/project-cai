@@ -4,7 +4,7 @@
 // changes the class's save.
 
 import { expect, test, type Page, type Route } from '@playwright/test';
-import { ALL_TALKS, C1_DIAGNOSIS, expectStage, LEARNED, LEARNER } from './helpers';
+import { ALL_TALKS, C1_DIAGNOSIS, expectStage, fixSomsriMixed, LEARNED, LEARNER } from './helpers';
 import problemsJson from '../src/content/data/problems.json' with { type: 'json' };
 
 const TO = 'AKfycbx_abcdefghijklmnopqrstuvwxyz0123456789-XY';
@@ -131,26 +131,8 @@ test('a finished device: free play keeps the coins; Somsri comes with a stick ma
   await page.getByRole('button', { name: /^คำใบ้/ }).click();
   await expect(page.locator('.hints li')).toContainText([hint('usb-not-first'), hint('usb-wrong-scheme')]);
 
-  // The stick she brought was made MBR: the shop's laptop is here (it never is in case 1), Rufus remakes it GPT.
-  await page.getByRole('button', { name: 'เปิดโน้ตบุ๊กร้าน' }).click();
-  await page.getByRole('button', { name: 'SELECT' }).click();
-  await page.getByRole('button', { name: 'Win11_24H2_Thai_x64.iso' }).click();
-  await page.getByRole('button', { name: 'Open' }).click();
-  await page.getByRole('group', { name: 'Rufus' }).getByLabel('Partition scheme').selectOption('GPT');
-  await page.getByRole('button', { name: 'START' }).click();
-  await page.getByRole('button', { name: 'OK' }).click();
-  await page.getByRole('button', { name: 'OK' }).click();
-  await expect(page.getByTestId('usb-note')).toBeVisible({ timeout: 8000 });
-  await page.getByRole('button', { name: 'ไปที่เครื่องลูกค้า' }).click();
-  await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'post');
-  // Then her own problem, as in case 1: USB first in the BIOS, F10 to save.
-  for (const k of ['F2', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowDown', 'ArrowDown', 'Enter', 'Enter', 'ArrowDown', 'Enter', 'F10', 'Enter', 'Enter', 'x'])
-    await page.keyboard.press(k);
-  await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'setup');
-  await page.getByRole('button', { name: 'กลับไปคุยกับลูกค้า' }).click();
-  await page.getByRole('button', { name: /เครื่องเลือกบูตตามลำดับที่ตั้งไว้ใน BIOS/ }).click();
-  await page.getByRole('button', { name: 'ต่อไป' }).click();
-  await expectStage(page, 'summary');
+  // The stick she brought was made MBR, then her own problem (tests/helpers.ts).
+  await fixSomsriMixed(page);
 
   // She is a regular now; the log explains both problems, each with its card.
   await expect(page.getByTestId('regular')).toContainText('ซ่อมให้ป้าสมศรีเป็นครั้งที่ 2');

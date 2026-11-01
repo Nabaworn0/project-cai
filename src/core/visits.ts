@@ -69,3 +69,9 @@ export function pickVisit(visits: readonly Visit[], met: readonly string[], last
   const from = other.length ? other : pool;
   return from[Math.min(from.length - 1, Math.floor(rand() * from.length))]!;
 }
+
+/** Every problem free play can bring: each customer's own and each one mixed in (the top rank needs them all met). */
+export function visitProblems(cases: readonly Case[], visits: readonly Visit[]): string[] {
+  const own = (host: string) => cases.find((c) => c.id === host)?.problems.fixed ?? [];
+  return [...new Set(visits.flatMap((v) => [...own(v.host), v.extra]))];
+}

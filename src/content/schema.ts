@@ -415,6 +415,40 @@ export type Problem = z.infer<typeof ProblemSchema>;
 export type Objectives = z.infer<typeof ObjectivesSchema>;
 export type Cards = z.infer<typeof CardsSchema>;
 
+/** Free play's technician ranks (docs/phase3-plan.md task C), lowest first: each is reached when free play's jobs
+ *  meet its needs; the first needs nothing. The praise is the senior's line on the summary at the step up. */
+export const RanksSchema = z
+  .object({
+    draft: z.boolean(),
+    source: z.string().optional(),
+    ranks: z
+      .array(
+        z
+          .object({
+            id,
+            nameTh: th.max(16),
+            /** Shown until the rank's badge picture is there. */
+            icon: z.string().min(1).max(4),
+            needs: z
+              .object({
+                /** Jobs done in free play, and those with three stars. */
+                jobs: z.number().int().nonnegative().default(0),
+                three: z.number().int().nonnegative().default(0),
+                /** Every problem free play can bring met at least once. */
+                allProblems: z.boolean().default(false),
+                /** Every card in the technician's book. */
+                allCards: z.boolean().default(false),
+              })
+              .strict(),
+            praiseTh: th.max(90).optional(),
+          })
+          .strict(),
+      )
+      .min(2),
+  })
+  .strict();
+export type Ranks = z.infer<typeof RanksSchema>;
+
 /** Faces each speaker has (sprites `senior-<face>.png`, `tech-<face>.png`). */
 export const CUTSCENE_FACES = { senior: ['neutral', 'happy', 'thinking'], intern: ['neutral', 'happy', 'thinking', 'surprised'] } as const;
 

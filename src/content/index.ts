@@ -8,6 +8,7 @@ import {
   StartSchema,
   FeedbackSchema,
   CardsSchema,
+  RanksSchema,
   OrderSchema,
   LessonsSchema,
   CustomersSchema,
@@ -22,6 +23,7 @@ import {
   type Start,
   type Feedback,
   type Cards,
+  type Ranks,
   type Order,
   type Lessons,
   type Customer,
@@ -65,6 +67,8 @@ export interface Content {
   feedback: Feedback;
   /** The technician's book of knowledge cards (docs/book-plan.md). */
   cards: Cards;
+  /** Free play's technician ranks (docs/phase3-plan.md task C). */
+  ranks: Ranks;
 }
 
 /** Parses (and so applies schema defaults to) the bundled content. Bad content fails loudly at startup. */
@@ -86,5 +90,6 @@ export function loadContent(): Content {
     start: StartSchema.parse(raw['./data/start.json']),
     feedback: FeedbackSchema.parse(raw['./data/feedback.json']),
     cards: CardsSchema.parse(raw['./data/cards.json']),
+    ranks: RanksSchema.parse(raw['./data/ranks.json']),
   };
 }

@@ -13,6 +13,7 @@ import {
   BIOS_SETTINGS,
   BrandSchema,
   CardsSchema,
+  RanksSchema,
   CUTSCENE_FACES,
   CutscenesSchema,
   Win11CheckSchema,
@@ -28,6 +29,7 @@ import {
   LessonsSchema,
   type Brand,
   type Cards,
+  type Ranks,
   type Cutscenes,
   type Win11Check,
   type Case,
@@ -69,6 +71,7 @@ export interface ParsedContent {
   customers: Customer[];
   test?: CourseTest;
   cards?: Cards;
+  ranks?: Ranks;
   win11Check?: Win11Check;
   cutscenes?: Cutscenes;
   order?: Order;
@@ -114,6 +117,7 @@ export function validateContent(files: readonly ContentFile[], opts: ValidateOpt
   else if (parsed.feedback.draft) warnings.push('feedback.json: ข้อความใบประเมินยังเป็นร่าง รอข้อความจาก ChatGPT');
   checkOrder(parsed.order, errors, warnings);
   checkCards(parsed, errors, warnings);
+  checkRanks(parsed.ranks, errors, warnings);
   checkWin11Check(parsed, errors);
   checkCutscenes(parsed, errors, warnings);
   checkLessons(parsed.lessons, opts.voice, errors, warnings);
@@ -147,6 +151,7 @@ export function parseAll(files: readonly ContentFile[], errors: string[]): Parse
     if (f.path === 'objectives.json') out.objectives = parse(ObjectivesSchema, f);
     else if (f.path === 'problems.json') out.problems = parse(ProblemsSchema, f) ?? [];
     else if (f.path === 'cards.json') out.cards = parse(CardsSchema, f);
+    else if (f.path === 'ranks.json') out.ranks = parse(RanksSchema, f);
     else if (f.path === 'customers.json') out.customers = parse(CustomersSchema, f) ?? [];
     else if (f.path === 'win11-check.json') out.win11Check = parse(Win11CheckSchema, f);
     else if (f.path === 'cutscenes.json') out.cutscenes = parse(CutscenesSchema, f);
@@ -507,6 +512,37 @@ function checkOrder(order: Order | undefined, errors: string[], warnings: string
     errors.push(`order.json: boss expands "${order.boss.expand}", not a step of the first round`);
   if (!rest.some((r) => r.id === order.boss.into)) errors.push(`order.json: boss opens into "${order.boss.into}", not a later round`);
   if (order.traps.length < 4) warnings.push(`order.json: มีการ์ดกับดักแค่ ${order.traps.length} ใบ (แผนคือ 4–6)`);
+}
+
+/** Free play's ranks, lowest first: the first needs nothing and says nothing; each next one needs more than the one
+ *  before (never less of anything) and has the senior's praise for the step up. */
+function checkRanks(ranks: Ranks | undefined, errors: string[], warnings: string[]): void {
+  if (!ranks) {
+    errors.push('ranks.json: missing');
+    return;
+  }
+  if (ranks.draft) warnings.push('ranks.json: คำชมตอนเลื่อนขั้นยังเป็นร่าง รอข้อความจาก ChatGPT');
+  dupes(
+    ranks.ranks.map((r) => r.id),
+    'ranks.json: duplicate rank',
+    errors,
+  );
+  const [first, ...rest] = ranks.ranks;
+  const n = first!.needs;
+  if (n.jobs || n.three || n.allProblems || n.allCards) errors.push(`ranks.json[${first!.id}]: the first rank is where everyone starts, so it needs nothing`);
+  if (first!.praiseTh) errors.push(`ranks.json[${first!.id}]: the first rank is never stepped up to, so it has no praise`);
+  let before = n;
+  for (const r of rest) {
+    const at = `ranks.json[${r.id}]`;
+    const m = r.needs;
+    if (!r.praiseTh) errors.push(`${at}: needs the senior's praise for the step up`);
+    if (m.three > m.jobs) errors.push(`${at}: ${m.three} three-star jobs but only ${m.jobs} jobs`);
+    const less: string[] = [...(['jobs', 'three'] as const).filter((k) => m[k] < before[k]), ...(['allProblems', 'allCards'] as const).filter((k) => before[k] && !m[k])];
+    if (less.length) errors.push(`${at}: needs less than the rank before it (${less.join(', ')})`);
+    const more = m.jobs > before.jobs || m.three > before.three || (m.allProblems && !before.allProblems) || (m.allCards && !before.allCards);
+    if (!more) errors.push(`${at}: needs nothing more than the rank before it`);
+    before = m;
+  }
 }
 
 function checkCards(parsed: ParsedContent, errors: string[], warnings: string[]): void {

@@ -165,3 +165,40 @@ export async function skipTalk(page: Page) {
   await page.getByTestId('talk').getByRole('button', { name: 'ข้าม' }).click();
   await expectStage(page, 'intro');
 }
+
+/** Free play's first job when Math.random is 0 (src/core/visits.ts): Somsri (case 1) with a stick made MBR mixed in
+ *  (case 2's problem). Her intro to the repair, guessing her own problem. */
+export async function takeSomsriMixed(page: Page) {
+  await expectStage(page, 'intro');
+  await expect(page.locator('.case-panel')).toContainText('ป้าสมศรี');
+  await page.getByRole('button', { name: 'รับเรื่อง' }).click();
+  await page.getByRole('button', { name: 'รับงาน' }).click();
+  await page.getByRole('button', { name: C1_DIAGNOSIS }).click();
+  await page.getByRole('button', { name: 'ไปซ่อมเครื่อง' }).click();
+  await expectStage(page, 'repair');
+}
+
+/** Then the repair to the summary, with no mistakes: the shop's laptop (never there in case 1) remakes her stick GPT
+ *  in Rufus, then USB first in her BIOS as in case 1, then her question. */
+export async function fixSomsriMixed(page: Page) {
+  // The stick she brought was made MBR: the shop's laptop is here (it never is in case 1), Rufus remakes it GPT.
+  await page.getByRole('button', { name: 'เปิดโน้ตบุ๊กร้าน' }).click();
+  await page.getByRole('button', { name: 'SELECT' }).click();
+  await page.getByRole('button', { name: 'Win11_24H2_Thai_x64.iso' }).click();
+  await page.getByRole('button', { name: 'Open' }).click();
+  await page.getByRole('group', { name: 'Rufus' }).getByLabel('Partition scheme').selectOption('GPT');
+  await page.getByRole('button', { name: 'START' }).click();
+  await page.getByRole('button', { name: 'OK' }).click();
+  await page.getByRole('button', { name: 'OK' }).click();
+  await expect(page.getByTestId('usb-note')).toBeVisible({ timeout: 8000 });
+  await page.getByRole('button', { name: 'ไปที่เครื่องลูกค้า' }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'post');
+  // Then her own problem, as in case 1: USB first in the BIOS, F10 to save.
+  for (const k of ['F2', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowDown', 'ArrowDown', 'Enter', 'Enter', 'ArrowDown', 'Enter', 'F10', 'Enter', 'Enter', 'x'])
+    await page.keyboard.press(k);
+  await expect(page.locator('body')).toHaveAttribute('data-pc-screen', 'setup');
+  await page.getByRole('button', { name: 'กลับไปคุยกับลูกค้า' }).click();
+  await page.getByRole('button', { name: /เครื่องเลือกบูตตามลำดับที่ตั้งไว้ใน BIOS/ }).click();
+  await page.getByRole('button', { name: 'ต่อไป' }).click();
+  await expectStage(page, 'summary');
+}

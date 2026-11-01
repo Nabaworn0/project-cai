@@ -132,7 +132,13 @@
 .hud .menu-chip { background: var(--yellow); cursor: pointer; }
 .hud:has(.menu-chip) { justify-content: flex-start; }
 .hud:has(.menu-chip) .hud-right { margin-left: auto; }
-/* The smallest phones: five chips do not fit, and the sign in the scene already names the shop. */
+/* Phones: five chips do not fit beside the menu, and the sign in the scene already names the shop, so its chip goes
+   (still read out). Free play keeps its rank's icon there down to 401px, the rank's name read out only. */
+@media (max-width: 520px) {
+  .hud:has(.menu-chip) .brand:not(.free),
+  .hud .brand.free small,
+  .hud .brand.free .rank-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+}
 @media (max-width: 400px) {
   .hud:has(.menu-chip) .brand { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
@@ -156,3 +162,14 @@ body:not([data-view='shop']) #game { visibility: hidden; }
 .free-jobs div { padding: 6px 8px; background: #fff; box-shadow: inset 0 0 0 2px var(--navy); }
 .free-jobs dt { font-size: 12.5px; color: #5f6b80; }
 .free-jobs dd { margin: 0; font-family: var(--f-head); font-weight: 700; font-size: 16px; color: var(--navy); }
+/* The technician's rank in free play (FreeMenu RankCard). */
+.free-rank { margin: 4px 0 4px; padding: 8px 10px; background: #fff; box-shadow: inset 0 0 0 2px var(--navy); }
+.free-rank-now { display: flex; align-items: center; gap: 10px; }
+.free-rank-icon { font-size: 30px; line-height: 1; }
+.free-rank-now small { display: block; font-size: 12.5px; color: #5f6b80; }
+.free-rank-now b { font-family: var(--f-head); font-size: 18px; color: var(--navy); }
+.free-rank-next { margin: 6px 0 4px; font-weight: 700; font-size: 14px; }
+.free-rank-bar { height: 10px; background: #e3e7ef; box-shadow: inset 0 0 0 2px var(--navy); }
+.free-rank-bar span { display: block; height: 100%; background: var(--teal); }
+.free-rank-steps { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; font-size: 13.5px; }
+.free-rank-steps .done { color: #2f7a3c; font-weight: 700; }

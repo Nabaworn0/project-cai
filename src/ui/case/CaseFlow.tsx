@@ -68,6 +68,8 @@ interface Props {
   visit?: (lastHost: string | null) => GeneratedCase;
   /** Free play: how many times each customer's case has been played, for "ซ่อมให้…เป็นครั้งที่ 3". */
   served?: Readonly<Record<string, { plays: number }>>;
+  /** Free play: the rank this job stepped up to (docs/phase3-plan.md task C), told on the summary. */
+  promoted?: { icon: string; nameTh: string; praiseTh?: string } | null;
 }
 
 export { PLAYABLE };
@@ -109,7 +111,7 @@ function startPc(gc: GeneratedCase, usb: Usb): Pc {
 /** What Rufus finds on a stick whose partition Setup deleted. */
 const WIPED_LABEL = 'NO_LABEL';
 
-export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onStage, seen, onSeen, replayIntro, cardsGot, onBook, visit, served }: Props) {
+export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onStage, seen, onSeen, replayIntro, cardsGot, onBook, visit, served, promoted }: Props) {
   const [gc, setGc] = useState(() => (visit ? visit(null) : newCase(content, null, first)));
   const [s, setS] = useState<Session>(() => startSession(gc));
   const [arrived, setArrived] = useState(false);
@@ -670,6 +672,18 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
         <>
           {speaker}
           <p class="says" data-testid="goodbye">“{goodbyeLine(gc.template.customer.reactionsTh, summary!.stars)}”</p>
+          {promoted && (
+            <div class="rank-up" data-testid="rank-up" role="status">
+              <p class="rank-up-title">
+                🎉 เลื่อนขั้นเป็น {promoted.icon} {promoted.nameTh}!
+              </p>
+              {promoted.praiseTh && (
+                <p class="says">
+                  <span class="speaker">พี่ช่าง</span> “{promoted.praiseTh}”
+                </p>
+              )}
+            </div>
+          )}
           {served && (served[gc.template.id]?.plays ?? 0) >= 2 && (
             <p class="regular" data-testid="regular">
               🧾 ลูกค้าประจำ: ซ่อมให้{name}เป็นครั้งที่ {served[gc.template.id]!.plays}

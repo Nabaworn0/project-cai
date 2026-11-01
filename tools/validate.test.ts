@@ -100,6 +100,33 @@ test('the post-test is a parallel form: one pair for each pre-test question, on 
   hasError(files, 'test.json[os-mobile-b]: answer 7 is out of range');
 });
 
+test("free play's ranks: the first needs nothing, each next needs more and has the senior's praise", () => {
+  let files = real();
+  const ranks = () => get(files, 'ranks.json').ranks as { id: string; needs: Record<string, unknown>; praiseTh?: string }[];
+  ranks()[0]!.needs = { jobs: 1 };
+  hasError(files, 'ranks.json[intern]: the first rank is where everyone starts, so it needs nothing');
+  files = real();
+  ranks()[0]!.praiseTh = 'เก่งมาก';
+  hasError(files, 'ranks.json[intern]: the first rank is never stepped up to, so it has no praise');
+  files = real();
+  delete ranks()[1]!.praiseTh;
+  hasError(files, "ranks.json[assistant]: needs the senior's praise for the step up");
+  files = real();
+  ranks()[2]!.needs = { jobs: 4, three: 4 };
+  hasError(files, 'ranks.json[regular]: needs less than the rank before it (jobs)');
+  files = real();
+  ranks()[2]!.needs = { jobs: 5 };
+  hasError(files, 'ranks.json[regular]: needs nothing more than the rank before it');
+  files = real();
+  ranks()[3]!.needs = { jobs: 30, three: 40, allProblems: true, allCards: true };
+  hasError(files, 'ranks.json[head]: 40 three-star jobs but only 30 jobs');
+  files = real();
+  ranks()[2]!.id = 'assistant';
+  hasError(files, 'duplicate rank "assistant"');
+  files = real().filter((f) => f.path !== 'ranks.json');
+  hasError(files, 'ranks.json: missing');
+});
+
 test('the course test: answers in range, choices differ, objectives 1-3 each tested', () => {
   let files = real();
   get(files, 'test.json').items[0].answer = 4;

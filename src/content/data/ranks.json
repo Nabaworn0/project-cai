@@ -1,0 +1,33 @@
+{
+  "draft": true,
+  "source": "Claude's draft, 1 Nov 2026 (docs/phase3-plan.md task C): the praise to be replaced by ChatGPT's wording (task F)",
+  "ranks": [
+    {
+      "id": "intern",
+      "nameTh": "เด็กฝึกงาน",
+      "icon": "🧰",
+      "needs": {}
+    },
+    {
+      "id": "assistant",
+      "nameTh": "ช่างผู้ช่วย",
+      "icon": "🔧",
+      "needs": { "jobs": 5 },
+      "praiseTh": "ห้าเครื่องแล้วนะ ต่อไปนี้พี่ให้เป็นช่างผู้ช่วย รับลูกค้าเองได้เลย"
+    },
+    {
+      "id": "regular",
+      "nameTh": "ช่างประจำร้าน",
+      "icon": "🛠️",
+      "needs": { "jobs": 15, "three": 5 },
+      "praiseTh": "งานเรียบร้อยจนลูกค้าถามหาชื่อแล้ว ยินดีด้วย ช่างประจำร้านคนใหม่ของเรา"
+    },
+    {
+      "id": "head",
+      "nameTh": "หัวหน้าช่าง",
+      "icon": "🏆",
+      "needs": { "jobs": 30, "three": 15, "allProblems": true, "allCards": true },
+      "praiseTh": "เจอมาครบทุกปัญหา สมุดก็ครบเล่ม ร้านนี้ฝากหัวหน้าช่างคนใหม่ด้วยนะ"
+    }
+  ]
+}

@@ -30,7 +30,8 @@ import { OrderScreen } from './order/OrderScreen';
 import { QuizScreen } from './quiz/QuizScreen';
 import { loadFree, loadMode, loadProgress, saveFree, saveMode, saveProgress, type Progress } from './progress';
 import { classFinished, freeRoute, freeStart, type Mode } from '../core/free';
-import { mixedCase, mixedVisits, pickVisit, visitKey } from '../core/visits';
+import { mixedCase, mixedVisits, pickVisit, visitKey, visitProblems } from '../core/visits';
+import { rankIndex, rankStats, toNext, type Rank } from '../core/rank';
 import type { GeneratedCase } from '../core/cases';
 import { EMPTY, markCardRead, markSeen, pathView, recordCase, recordJob, recordLesson, recordOrder, recordQuiz, recordReflect, type PathOptions, type StepId } from '../core/path';
 import { allowedRoute, parseRoute, routeHash, type Route } from '../core/routes';
@@ -50,6 +51,9 @@ const freeOptions: PathOptions = { ...pathOptions, unlockAll: true };
 /** Free play's customers: each with a problem mixed in from another case (src/core/visits.ts). */
 const freeCases = content.cases.filter((c) => PLAYABLE.includes(c.id));
 const VISITS = mixedVisits(freeCases, content.problems);
+/** Free play's ranks (docs/phase3-plan.md task C), and every problem it can bring (the top rank needs them met). */
+const RANKS = content.ranks.ranks;
+const PROBLEMS_ALL = visitProblems(freeCases, VISITS);
 
 /** The shop scene, started once on the first visit. */
 let game: Promise<Game> | null = null;
@@ -159,6 +163,17 @@ export function App() {
   const [book, setBook] = useState<{ card?: string } | null>(null);
   const cardsGot = unlockedCards(content.cards.cards, progress);
   const cardsNew = unreadCards(content.cards.cards, progress).length;
+  // Free play's rank, worked out from its save; -1 in the class mode, which has none.
+  const stats = rankStats(progress, PROBLEMS_ALL, cardsGot.size, content.cards.cards.length);
+  const rank = free ? rankIndex(RANKS, stats) : -1;
+  /** The rank just stepped up to, for the case summary; gone once the summary is left. */
+  const [promoted, setPromoted] = useState<Rank | null>(null);
+  const lastRank = useRef(rank);
+  useEffect(() => {
+    // Coming into free play is not a step up (from -1); a higher rank afterwards is.
+    if (rank > lastRank.current && lastRank.current >= 0) setPromoted(RANKS[rank]!);
+    lastRank.current = rank;
+  }, [rank]);
   const openBook = (card?: string) => {
     play('key');
     setBook({ card });
@@ -300,8 +315,16 @@ export function App() {
           <button class="chip menu-chip" type="button" onClick={menuTapped}>
             ☰ เมนู
           </button>
-          <h1 class="chip brand">
-            ร้านซ่อมคอม <small data-testid="hud-mode">{free ? 'เล่นอิสระ' : 'รอบ 1'}</small>
+          <h1 class={`chip brand${free ? ' free' : ''}`}>
+            {/* Free play: the rank in the shop's place (the sign above says the shop), so it shows on the smallest phones. */}
+            {free ? (
+              <span data-testid="hud-rank" title={`ยศช่าง: ${RANKS[rank]!.nameTh}`}>
+                {RANKS[rank]!.icon} <span class="rank-name">{RANKS[rank]!.nameTh}</span>
+              </span>
+            ) : (
+              'ร้านซ่อมคอม'
+            )}{' '}
+            <small data-testid="hud-mode">{free ? 'เล่นอิสระ' : 'รอบ 1'}</small>
           </h1>
           <div class="hud-right">
             <button class="chip book-chip" type="button" aria-label="สมุดช่าง" title="สมุดช่าง: การ์ดความรู้ที่สะสมไว้" data-testid="hud-book" onClick={() => openBook()}>
@@ -350,6 +373,7 @@ export function App() {
         <FreeMenu
           progress={progress}
           pairs={VISITS.length}
+          rank={{ now: RANKS[Math.max(0, rank)]!, next: toNext(RANKS, stats) }}
           onEnter={(step, caseId) => enter(step, caseId)}
           onLeave={leaveFree}
           coins={<CoinChip coins={progress.coins} />}
@@ -428,7 +452,10 @@ export function App() {
           inPath={!caseLink && !free}
           onFinish={finish}
           onMenu={toMenu}
-          onStage={(st) => (stage.current = st)}
+          onStage={(st) => {
+            stage.current = st;
+            if (st !== 'summary') setPromoted(null);
+          }}
           seen={caseLink ? null : progress.seen}
           onSeen={(id) => update((p) => markSeen(p, id))}
           replayIntro={replayIntro}
@@ -436,6 +463,7 @@ export function App() {
           onBook={openBook}
           visit={free && !caseLink ? nextVisit : undefined}
           served={free ? progress.cases : undefined}
+          promoted={promoted}
         />
       )}
 

@@ -189,3 +189,7 @@
 .new-cards p { margin: 0; flex: 1 1 14em; font-weight: 700; }
 .regular { margin: 6px 0; font-weight: 700; color: var(--teal-shade); }
 .techlog .assess-card { margin-left: 4px; }
+/* Free play: the rank this job stepped up to (CaseFlow, docs/phase3-plan.md task C). */
+.rank-up { margin: 6px 0 8px; padding: 8px 10px; background: #fff7d6; box-shadow: inset 0 0 0 2px var(--yellow); }
+.rank-up-title { margin: 0 0 4px; font-family: var(--f-head); font-weight: 700; font-size: 17px; color: var(--navy); }
+.rank-up .says { margin: 0; }
