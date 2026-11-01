@@ -3,7 +3,7 @@
 // keeping it all. The class mode has no decorating.
 
 import { expect, test, type Page } from '@playwright/test';
-import { ALL_TALKS, hudFits, openShop } from './helpers';
+import { ALL_TALKS, hasBadge, hudFits, openShop } from './helpers';
 
 const free = (page: Page) => page.getByTestId('free-menu');
 const decor = (page: Page) => page.getByTestId('decor');
@@ -40,7 +40,8 @@ test('buying from free play\'s menu: asked first, coins taken, put out; switchin
 
   // Needs a rank: says which, however many coins there are.
   await expect(tile(page, 'counter-trophy')).toHaveAttribute('data-offer', 'locked');
-  await expect(tile(page, 'counter-trophy')).toContainText('🔒 ต้องเป็น 🏆 หัวหน้าช่าง');
+  await expect(tile(page, 'counter-trophy')).toContainText('🔒 ต้องเป็น หัวหน้าช่าง');
+  await hasBadge(tile(page, 'counter-trophy'), 'head');
   await expect(tile(page, 'counter-trophy').getByRole('button')).toHaveCount(0);
   await shot(page, 'decor', info.project.name);
 
@@ -65,14 +66,14 @@ test('buying from free play\'s menu: asked first, coins taken, put out; switchin
   await expect(tile(page, 'counter-plant')).toHaveAttribute('data-offer', 'owned');
   // Short of coins: how many more.
   await expect(tile(page, 'sign-gold')).toHaveAttribute('data-offer', 'locked');
-  await expect(tile(page, 'floor-cabinet')).toContainText('ต้องเป็น 🔧 ช่างผู้ช่วย');
+  await expect(tile(page, 'floor-cabinet')).toContainText('ต้องเป็น ช่างผู้ช่วย');
   await tile(page, 'wall-award').scrollIntoViewIfNeeded();
   await expect(tile(page, 'wall-clock')).toHaveAttribute('data-offer', 'buy');
   await tile(page, 'wall-clock').getByRole('button', { name: 'ซื้อ 🪙 250' }).click();
   await tile(page, 'wall-clock').getByRole('button', { name: 'ซื้อเลย' }).click();
   await expect(decor(page).getByTestId('decor-coins')).toHaveText('มีเหรียญ 🪙 100');
-  await expect(tile(page, 'floor-mat')).toHaveAttribute('data-offer', 'short');
-  await expect(tile(page, 'floor-mat')).toContainText('🪙 150 · ขาดอีก 50');
+  await expect(tile(page, 'floor-water')).toHaveAttribute('data-offer', 'short');
+  await expect(tile(page, 'floor-water')).toContainText('🪙 150 · ขาดอีก 50');
 
   // Back to the first: free.
   await tile(page, 'counter-plant').getByRole('button', { name: 'วางในร้าน' }).click();
@@ -173,7 +174,7 @@ const holds = (a: Box, [x, y]: number[]) => x! >= a.x && x! <= a.x + a.width && 
  *  its own place: on the sign, on the counter left of the PC, on the wall above the counter, in front of the counter. */
 async function checkPlaces(page: Page) {
   const d = await drawn(page);
-  expect(Object.fromEntries(Object.entries(d).map(([s, x]) => [s, x.id]))).toEqual({ sign: 'sign-neon', counter: 'counter-cat', wall: 'wall-clock', floor: 'floor-bench' });
+  expect(Object.fromEntries(Object.entries(d).map(([s, x]) => [s, x.id]))).toEqual({ sign: 'sign-led', counter: 'counter-trophy', wall: 'wall-clock', floor: 'floor-bench' });
   await expect(page.locator('body')).toHaveAttribute('data-decor-drawn', '4');
   const view = page.viewportSize()!;
   const chips = await Promise.all((await page.locator('.hud .chip').all()).map((c) => c.boundingBox()));
@@ -198,6 +199,16 @@ async function checkPlaces(page: Page) {
   for (const c of chips) if (c && c.width > 1) expect(overlaps(sign, c), 'the sign under a HUD chip').toBe(false);
   expect(d.sign!.x).toBeGreaterThanOrEqual(sign.x);
   expect(d.sign!.x + d.sign!.width).toBeLessThanOrEqual(sign.x + sign.width / 4);
+  // The shop's name keeps right of it, whole.
+  const name = await page.locator('.sign-label').evaluate((el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const r = range.getBoundingClientRect();
+    return { x: r.x, width: r.width, clipped: el.scrollWidth > el.clientWidth };
+  });
+  expect(name.x, 'the shop name over the sign decoration').toBeGreaterThan(d.sign!.x + d.sign!.width);
+  expect(name.x + name.width).toBeLessThanOrEqual(sign.x + sign.width);
+  expect(name.clipped, 'the shop name cut off').toBe(false);
   expect(d.sign!.y).toBeGreaterThanOrEqual(sign.y);
   expect(d.sign!.y + d.sign!.height).toBeLessThanOrEqual(sign.y + sign.height + 1);
   const counterY = Number(await page.locator('body').getAttribute('data-counter-y'));
@@ -222,7 +233,8 @@ async function shopWithAll(page: Page) {
   await seedFree(page, 0);
   await page.evaluate(() => {
     const save = JSON.parse(localStorage.getItem('shop.free.v1')!);
-    const placed = { sign: 'sign-neon', counter: 'counter-cat', wall: 'wall-clock', floor: 'floor-bench' };
+    // The widest picture in each place.
+    const placed = { sign: 'sign-led', counter: 'counter-trophy', wall: 'wall-clock', floor: 'floor-bench' };
     localStorage.setItem('shop.free.v1', JSON.stringify({ ...save, decor: { owned: Object.values(placed), placed } }));
   });
   await page.reload();

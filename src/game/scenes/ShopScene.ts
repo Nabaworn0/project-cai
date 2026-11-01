@@ -39,6 +39,8 @@ const HUD_CHIP = { width: 170, height: 56 };
 export interface ShopLayout {
   /** Sign board rectangle in CSS px, for the HTML shop name drawn over it. */
   sign: { x: number; y: number; w: number; h: number };
+  /** How far in from the sign's left edge free play's sign decoration reaches (0 without one): the name keeps right of it. */
+  signDecor: number;
 }
 
 export class ShopScene extends Phaser.Scene {
@@ -325,7 +327,11 @@ export class ShopScene extends Phaser.Scene {
     if (this.senior) document.body.dataset.seniorAt = `${css(this.seniorSpot.x + this.senior.width / 2)},${css(this.seniorSpot.y + this.senior.height * 0.25)}`;
     document.body.dataset.pcAt = `${css(mx + this.monitor.width / 2)},${css(this.monitor.y + 6)}`;
     if (this.laptop) document.body.dataset.laptopAt = `${css(this.laptop.x + this.laptop.width / 2)},${css(this.laptop.y + 6)}`;
-    const layout: ShopLayout = { sign: { x: css(signX), y: css(signY), w: css(signW), h: css(signH) } };
+    const signDecor = this.decor.get('sign');
+    const layout: ShopLayout = {
+      sign: { x: css(signX), y: css(signY), w: css(signW), h: css(signH) },
+      signDecor: signDecor ? css(signDecor.x + signDecor.width - signX) : 0,
+    };
     bus.emit('layout:shop', layout);
   }
 

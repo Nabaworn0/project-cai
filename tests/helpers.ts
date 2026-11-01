@@ -1,6 +1,6 @@
 // Shared steps for the Playwright tests: open the shop, play case 1 up to the repair, open the PC.
 
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 export const LEARNER = { name: 'สมชาย ใจดี', room: 'ปวช.1/2', no: '7' };
 
@@ -204,6 +204,14 @@ export async function fixSomsriMixed(page: Page) {
 }
 
 /** The HUD's chips stay apart and inside the screen (the brand's chip may be read out only, on phones). */
+/** The rank's badge picture (src/assets/ranks/<id>.png) is shown here, loaded and in view. */
+export async function hasBadge(where: Locator, rank: string) {
+  const img = where.locator(`img.rank-badge[data-rank="${rank}"]`);
+  await expect(img).toBeVisible();
+  await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
+  expect((await img.boundingBox())!.height).toBeGreaterThanOrEqual(14);
+}
+
 export async function hudFits(page: Page) {
   const brand = (await page.locator('.hud .brand').boundingBox())!;
   const right = (await page.locator('.hud-right').boundingBox())!;

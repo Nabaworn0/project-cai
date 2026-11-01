@@ -40,6 +40,7 @@ import { play } from '../sound';
 import { ChoiceList, Feedback } from './parts';
 import { SummaryCard } from './SummaryCard';
 import { Win11CheckTable } from './Win11Check';
+import { RankBadge } from '../menu/RankBadge';
 import { TalkBox } from './TalkBox';
 import { TicketCard } from './TicketCard';
 
@@ -69,7 +70,7 @@ interface Props {
   /** Free play: how many times each customer's case has been played, for "ซ่อมให้…เป็นครั้งที่ 3". */
   served?: Readonly<Record<string, { plays: number }>>;
   /** Free play: the rank this job stepped up to (docs/phase3-plan.md task C), told on the summary. */
-  promoted?: { icon: string; nameTh: string; praiseTh?: string } | null;
+  promoted?: { id: string; icon: string; nameTh: string; praiseTh?: string } | null;
 }
 
 export { PLAYABLE };
@@ -675,7 +676,7 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
           {promoted && (
             <div class="rank-up" data-testid="rank-up" role="status">
               <p class="rank-up-title">
-                🎉 เลื่อนขั้นเป็น {promoted.icon} {promoted.nameTh}!
+                🎉 เลื่อนขั้นเป็น <RankBadge rank={promoted} /> {promoted.nameTh}!
               </p>
               {promoted.praiseTh && (
                 <p class="says">

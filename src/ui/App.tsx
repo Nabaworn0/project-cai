@@ -39,6 +39,7 @@ import type { GeneratedCase } from '../core/cases';
 import { EMPTY, markCardRead, markSeen, pathView, recordCase, recordJob, recordLesson, recordOrder, recordQuiz, recordReflect, type PathOptions, type StepId } from '../core/path';
 import { allowedRoute, parseRoute, routeHash, type Route } from '../core/routes';
 import { prefersLessMotion } from './motion';
+import { RankBadge } from './menu/RankBadge';
 import { Shutter, SHUTTER_MS, type ShutterPhase } from './Shutter';
 import { isMuted, onMuted, play, setMuted, unlockOnGesture } from './sound';
 import './case/case.css';
@@ -106,7 +107,9 @@ const shutterMs = fade ? SHUTTER_MS.fade : SHUTTER_MS.roll;
 
 export function App() {
   const [ready, setReady] = useState(false);
-  const [sign, setSign] = useState<ShopLayout['sign'] | null>(null);
+  const [shopLayout, setShopLayout] = useState<ShopLayout | null>(null);
+  const sign = shopLayout?.sign;
+  const signDecor = shopLayout?.signDecor ?? 0;
   const [mode, setMode] = useState<Mode>(loadMode);
   const free = mode === 'free';
   const [classProgress, setClassProgress] = useState(loadProgress);
@@ -246,11 +249,11 @@ export function App() {
 
   useEffect(() => {
     unlockOnGesture();
-    const offs = [bus.on('scene:ready', () => setReady(true)), bus.on('layout:shop', (l) => setSign(l.sign)), onMuted(setMutedState)];
+    const offs = [bus.on('scene:ready', () => setReady(true)), bus.on('layout:shop', setShopLayout), onMuted(setMutedState)];
     // Effects run after paint, so the scene may already have announced itself.
     if (bus.last('scene:ready')) setReady(true);
     const l = bus.last('layout:shop');
-    if (l) setSign(l.sign);
+    if (l) setShopLayout(l);
     return () => offs.forEach((off) => off());
   }, []);
 
@@ -332,7 +335,15 @@ export function App() {
         <div
           class="sign-label"
           aria-hidden="true"
-          style={{ left: `${sign.x}px`, top: `${sign.y}px`, width: `${sign.w}px`, height: `${sign.h}px`, fontSize: `${Math.round(sign.h * 0.6)}px` }}
+          style={{
+            left: `${sign.x}px`,
+            top: `${sign.y}px`,
+            width: `${sign.w}px`,
+            height: `${sign.h}px`,
+            fontSize: `${Math.round(sign.h * 0.6)}px`,
+            // Centred in the room right of a sign decoration (free play), clear of it.
+            paddingLeft: `${signDecor && signDecor + Math.round(sign.h * 0.15)}px`,
+          }}
         >
           ร้านซ่อมคอม
         </div>
@@ -347,7 +358,7 @@ export function App() {
             {/* Free play: the rank in the shop's place (the sign above says the shop), so it shows on the smallest phones. */}
             {free ? (
               <span data-testid="hud-rank" title={`ยศช่าง: ${RANKS[rank]!.nameTh}`}>
-                {RANKS[rank]!.icon} <span class="rank-name">{RANKS[rank]!.nameTh}</span>
+                <RankBadge rank={RANKS[rank]!} /> <span class="rank-name">{RANKS[rank]!.nameTh}</span>
               </span>
             ) : (
               'ร้านซ่อมคอม'

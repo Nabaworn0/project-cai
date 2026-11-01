@@ -4,7 +4,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 import ranksJson from '../src/content/data/ranks.json' with { type: 'json' };
-import { ALL_TALKS, expectStage, fixSomsriMixed, hudFits, openShop, takeSomsriMixed } from './helpers';
+import { ALL_TALKS, expectStage, fixSomsriMixed, hasBadge, hudFits, openShop, takeSomsriMixed } from './helpers';
 
 const free = (page: Page) => page.getByTestId('free-menu');
 const shot = async (page: Page, name: string, project: string) => {
@@ -28,7 +28,10 @@ test('the rank on free play\'s menu with the way to the next one, and in the HUD
   await seedFree(page, { count: 7, three: 2 });
   const card = free(page).getByTestId('free-rank');
   await expect(card.getByTestId('rank-name')).toHaveText('ช่างผู้ช่วย');
-  await expect(card).toContainText('ยศถัดไป: 🛠️ ช่างประจำร้าน');
+  await expect(card).toContainText('ยศถัดไป: ช่างประจำร้าน');
+  await hasBadge(card.locator('.free-rank-now'), 'assistant');
+  expect((await card.locator('.free-rank-now .rank-badge').boundingBox())!.height).toBeGreaterThanOrEqual(40);
+  await hasBadge(card.locator('.free-rank-next'), 'regular');
   await expect(card.locator('[data-need="jobs"]')).toContainText('ซ่อมสำเร็จ 7/15 งาน');
   await expect(card.locator('[data-need="three"]')).toContainText('ได้ 3 ดาว 2/5 งาน');
   // (7/15 + 2/5) / 2, as a percentage.
@@ -45,9 +48,10 @@ test('the rank on free play\'s menu with the way to the next one, and in the HUD
   await expect(free(page).getByTestId('free-rank').locator('[data-need]')).toHaveCount(4);
   await free(page).getByRole('button', { name: /เปิดร้านรับลูกค้า/ }).click();
   await expect(page.locator('body')).toHaveAttribute('data-scene', 'shop', { timeout: 15_000 });
-  await expect(page.getByTestId('hud-rank')).toHaveText('🛠️ ช่างประจำร้าน');
+  await expect(page.getByTestId('hud-rank')).toHaveText('ช่างประจำร้าน');
   await expect(page.getByTestId('hud-rank')).toBeVisible();
-  // The rank's chip and the chips on the right stay apart, inside the screen; on phones the rank shows as its icon.
+  await hasBadge(page.getByTestId('hud-rank'), 'regular');
+  // The rank's chip and the chips on the right stay apart, inside the screen; on phones the rank shows as its badge.
   await expect(page.locator('body')).toHaveAttribute('data-shutter', 'idle', { timeout: 15_000 });
   await hudFits(page);
   const w = page.viewportSize()!.width;
@@ -63,14 +67,16 @@ test('the job that earns a rank tells it on the summary, with the senior\'s prai
   await seedFree(page, { count: 4, three: 0 });
   await expect(free(page).getByTestId('rank-name')).toHaveText('เด็กฝึกงาน');
   await free(page).getByRole('button', { name: /เปิดร้านรับลูกค้า/ }).click();
-  await expect(page.getByTestId('hud-rank')).toHaveText('🧰 เด็กฝึกงาน', { timeout: 15_000 });
+  await expect(page.getByTestId('hud-rank')).toHaveText('เด็กฝึกงาน', { timeout: 15_000 });
+  await hasBadge(page.getByTestId('hud-rank'), 'intern');
   await takeSomsriMixed(page);
   await fixSomsriMixed(page);
 
   const up = page.getByTestId('rank-up');
-  await expect(up).toContainText('เลื่อนขั้นเป็น 🔧 ช่างผู้ช่วย!');
+  await expect(up).toContainText('เลื่อนขั้นเป็น ช่างผู้ช่วย!');
+  await hasBadge(up, 'assistant');
   await expect(up).toContainText(ranksJson.ranks[1]!.praiseTh!);
-  await expect(page.getByTestId('hud-rank')).toHaveText('🔧 ช่างผู้ช่วย');
+  await expect(page.getByTestId('hud-rank')).toHaveText('ช่างผู้ช่วย');
   await shot(page, 'rank-up', info.project.name);
 
   // The next customer (Beam, with Somsri's problem mixed in): his job earns no rank, so his summary tells none.
@@ -107,7 +113,7 @@ test('the job that earns a rank tells it on the summary, with the senior\'s prai
   await page.getByRole('button', { name: 'ต่อไป' }).click();
   await expectStage(page, 'summary');
   await expect(page.getByTestId('rank-up')).toHaveCount(0);
-  await expect(page.getByTestId('hud-rank')).toHaveText('🔧 ช่างผู้ช่วย');
+  await expect(page.getByTestId('hud-rank')).toHaveText('ช่างผู้ช่วย');
 });
 
 test('the class mode has no rank, and its HUD fits at every size', async ({ page }, info) => {

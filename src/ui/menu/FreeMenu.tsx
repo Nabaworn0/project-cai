@@ -8,6 +8,7 @@ import type { Progress, StepId } from '../../core/path';
 import { STEP_INFO } from '../../core/path';
 import type { Rank, Step } from '../../core/rank';
 import { BookButton, LearnPage } from './MenuScreen';
+import { RankBadge } from './RankBadge';
 import '../decor/decor.css';
 import './menu.css';
 
@@ -111,9 +112,7 @@ function RankCard({ now, next }: Props['rank']) {
   return (
     <section class="free-rank" data-testid="free-rank" aria-label="ยศช่าง">
       <div class="free-rank-now">
-        <span class="free-rank-icon" aria-hidden="true">
-          {now.icon}
-        </span>
+        <RankBadge rank={now} big />
         <span>
           <small>ยศช่างตอนนี้</small>
           <b data-testid="rank-name">{now.nameTh}</b>
@@ -122,7 +121,7 @@ function RankCard({ now, next }: Props['rank']) {
       {next ? (
         <>
           <p class="free-rank-next">
-            ยศถัดไป: {next.rank.icon} {next.rank.nameTh}
+            ยศถัดไป: <RankBadge rank={next.rank} /> {next.rank.nameTh}
           </p>
           <div class="free-rank-bar" role="progressbar" aria-label="ความคืบหน้าไปยศถัดไป" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
             <span style={{ width: `${pct}%` }} />

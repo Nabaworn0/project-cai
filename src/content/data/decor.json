@@ -1,6 +1,6 @@
 {
-  "draft": true,
-  "source": "Claude's draft, 1 Nov 2026 (docs/phase3-plan.md task D): names and descriptions to be replaced by ChatGPT's wording, icons by its pictures (task F)",
+  "draft": false,
+  "source": "ChatGPT, 1 Nov 2026 (docs/phase3-prompts.md part 1A); prices, ranks and icons by Claude (task D)",
   "slots": [
     { "id": "sign", "nameTh": "ป้ายร้าน" },
     { "id": "counter", "nameTh": "บนเคาน์เตอร์" },
@@ -8,17 +8,17 @@
     { "id": "floor", "nameTh": "พื้นหน้าเคาน์เตอร์" }
   ],
   "items": [
-    { "id": "sign-neon", "slot": "sign", "nameTh": "ไฟนีออนรอบป้าย", "descTh": "ไฟสีฟ้ารอบป้าย มองเห็นร้านได้แต่ไกล", "icon": "💡", "price": 200 },
-    { "id": "sign-led", "slot": "sign", "nameTh": "ป้ายไฟวิ่ง", "descTh": "ตัวอักษรไฟวิ่งบอกว่าร้านเปิดอยู่", "icon": "🚥", "price": 350, "rank": "assistant" },
-    { "id": "sign-gold", "slot": "sign", "nameTh": "ป้ายทอง", "descTh": "ป้ายขอบทองของร้านที่ลูกค้าไว้ใจ", "icon": "🪧", "price": 600, "rank": "regular" },
-    { "id": "counter-plant", "slot": "counter", "nameTh": "กระถางต้นไม้", "descTh": "ต้นไม้เล็กๆ ช่วยให้เคาน์เตอร์ดูสดชื่น", "icon": "🪴", "price": 150 },
-    { "id": "counter-cat", "slot": "counter", "nameTh": "แมวกวัก", "descTh": "แมวกวักนำโชค เรียกลูกค้าเข้าร้าน", "icon": "🐱", "price": 300 },
-    { "id": "counter-trophy", "slot": "counter", "nameTh": "ถ้วยรางวัล", "descTh": "ถ้วยของหัวหน้าช่างที่ซ่อมมาแล้วทุกปัญหา", "icon": "🏆", "price": 600, "rank": "head" },
-    { "id": "wall-poster", "slot": "wall", "nameTh": "โปสเตอร์ Windows 11", "descTh": "โปสเตอร์ขั้นตอนติดตั้ง ไว้ให้ลูกค้าดู", "icon": "🖼️", "price": 150 },
-    { "id": "wall-clock", "slot": "wall", "nameTh": "นาฬิกาแขวน", "descTh": "นาฬิกาบอกเวลานัดรับเครื่อง", "icon": "🕰️", "price": 250 },
-    { "id": "wall-award", "slot": "wall", "nameTh": "ใบประกาศช่างดีเด่น", "descTh": "ใบประกาศสำหรับช่างที่งานเรียบร้อย", "icon": "📜", "price": 450, "rank": "regular" },
-    { "id": "floor-mat", "slot": "floor", "nameTh": "พรมหน้าร้าน", "descTh": "พรมเช็ดเท้า ร้านสะอาดลูกค้าก็สบายใจ", "icon": "🟫", "price": 150 },
-    { "id": "floor-bench", "slot": "floor", "nameTh": "ม้านั่งรอคิว", "descTh": "ที่นั่งให้ลูกค้ารอระหว่างซ่อม", "icon": "🪑", "price": 300 },
-    { "id": "floor-cabinet", "slot": "floor", "nameTh": "ตู้โชว์อะไหล่", "descTh": "ตู้กระจกโชว์ USB และอะไหล่ในร้าน", "icon": "🗄️", "price": 500, "rank": "assistant" }
+    { "id": "sign-neon", "slot": "sign", "nameTh": "ไฟนีออนล้อมป้าย", "descTh": "ป้ายร้านสว่างสะดุดตา ลูกค้ามองเห็นร้านได้ง่ายขึ้น", "icon": "💡", "price": 200 },
+    { "id": "sign-led", "slot": "sign", "nameTh": "ป้ายไฟวิ่งทักทาย", "descTh": "ข้อความไฟวิ่งสุดเท่ ดึงดูดลูกค้าให้แวะมาที่ร้าน", "icon": "🚥", "price": 350, "rank": "assistant" },
+    { "id": "sign-gold", "slot": "sign", "nameTh": "กรอบป้ายทองหรู", "descTh": "ขอบป้ายสีทองสุดพรีเมียม ทำให้ร้านดูหรูและน่าเชื่อถือ", "icon": "🪧", "price": 600, "rank": "regular" },
+    { "id": "counter-plant", "slot": "counter", "nameTh": "กระถางไม้จิ๋ว", "descTh": "เติมสีเขียวให้เคาน์เตอร์ ลูกค้าเห็นแล้วรู้สึกสดชื่น", "icon": "🪴", "price": 150 },
+    { "id": "counter-cat", "slot": "counter", "nameTh": "แมวกวักนำโชค", "descTh": "แมวกวักตัวน้อย เพิ่มความน่ารักและเรียกลูกค้าเข้าร้าน", "icon": "🐱", "price": 300 },
+    { "id": "counter-trophy", "slot": "counter", "nameTh": "ถ้วยรางวัลช่างเทพ", "descTh": "โชว์ฝีมือระดับหัวหน้าช่าง ให้ลูกค้ามั่นใจในร้าน", "icon": "🏆", "price": 600, "rank": "head" },
+    { "id": "wall-poster", "slot": "wall", "nameTh": "โปสเตอร์ Windows 11", "descTh": "แต่งผนังให้ดูทันสมัย ลูกค้าเห็นแล้วรู้ว่าร้านนี้เชี่ยวชาญ", "icon": "🖼️", "price": 150 },
+    { "id": "wall-clock", "slot": "wall", "nameTh": "นาฬิกาแขวนสุดเท่", "descTh": "ช่วยให้ลูกค้าดูเวลาระหว่างรอรับเครื่องได้สะดวก", "icon": "🕰️", "price": 250 },
+    { "id": "wall-award", "slot": "wall", "nameTh": "ใบประกาศช่างดีเด่น", "descTh": "โชว์ความสามารถของช่าง เพิ่มความมั่นใจให้ลูกค้า", "icon": "📜", "price": 450, "rank": "regular" },
+    { "id": "floor-water", "slot": "floor", "nameTh": "ตู้กดน้ำเย็นชื่นใจ", "descTh": "มีน้ำเย็นให้ลูกค้าดื่มฟรี ระหว่างรอซ่อมคอม", "icon": "🚰", "price": 150 },
+    { "id": "floor-bench", "slot": "floor", "nameTh": "ม้านั่งรอคิวแสนสบาย", "descTh": "ลูกค้ามีที่นั่งพัก ไม่ต้องยืนรอจนเมื่อย", "icon": "🪑", "price": 300 },
+    { "id": "floor-cabinet", "slot": "floor", "nameTh": "ตู้โชว์อะไหล่พรีเมียม", "descTh": "จัดโชว์อะไหล่คอมอย่างเป็นระเบียบ ร้านดูเป็นมืออาชีพ", "icon": "🗄️", "price": 500, "rank": "assistant" }
   ]
 }

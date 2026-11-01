@@ -105,3 +105,9 @@ button { font: inherit; cursor: pointer; }
 /* Boot splash shown until fonts and the first scene are ready */
 .splash { position: fixed; inset: 0; display: grid; place-items: center; background: var(--navy); color: var(--yellow); font-family: var(--f-head); font-size: 22px; transition: opacity 0.3s; }
 .splash.gone { opacity: 0; pointer-events: none; }
+
+/* A rank's badge beside its name (menu/RankBadge.tsx): a line high inline, larger on free play's rank card. Downscaled
+   smoothly, since the pictures are drawn on a finer grid than the line is tall on a 1x screen. */
+.rank-badge { display: inline-block; height: 1.3em; width: auto; vertical-align: -0.3em; line-height: 1; }
+span.rank-badge { height: auto; vertical-align: baseline; }
+.rank-badge.big { height: 44px; font-size: 30px; vertical-align: middle; }

@@ -1,6 +1,6 @@
 {
-  "draft": true,
-  "source": "Claude's draft, 1 Nov 2026 (docs/phase3-plan.md task C): the praise to be replaced by ChatGPT's wording (task F)",
+  "draft": false,
+  "source": "ChatGPT, 1 Nov 2026 (docs/phase3-prompts.md part 1B); thresholds and icons by Claude (task C)",
   "ranks": [
     {
       "id": "intern",
@@ -13,21 +13,21 @@
       "nameTh": "ช่างผู้ช่วย",
       "icon": "🔧",
       "needs": { "jobs": 5 },
-      "praiseTh": "ห้าเครื่องแล้วนะ ต่อไปนี้พี่ให้เป็นช่างผู้ช่วย รับลูกค้าเองได้เลย"
+      "praiseTh": "เก่งมาก! ซ่อมสำเร็จตั้ง 5 งานแล้ว พี่ภูมิใจในตัวเรา ยินดีต้อนรับช่างผู้ช่วยคนใหม่!"
     },
     {
       "id": "regular",
       "nameTh": "ช่างประจำร้าน",
       "icon": "🛠️",
       "needs": { "jobs": 15, "three": 5 },
-      "praiseTh": "งานเรียบร้อยจนลูกค้าถามหาชื่อแล้ว ยินดีด้วย ช่างประจำร้านคนใหม่ของเรา"
+      "praiseTh": "สุดยอดเลย! ฝีมือเราเก่งขึ้นมาก พี่ภูมิใจจริง ๆ พร้อมเป็นช่างประจำร้านเต็มตัวแล้ว!"
     },
     {
       "id": "head",
       "nameTh": "หัวหน้าช่าง",
       "icon": "🏆",
       "needs": { "jobs": 30, "three": 15, "allProblems": true, "allCards": true },
-      "praiseTh": "เจอมาครบทุกปัญหา สมุดก็ครบเล่ม ร้านนี้ฝากหัวหน้าช่างคนใหม่ด้วยนะ"
+      "praiseTh": "พี่ภูมิใจในตัวเราสุด ๆ! ผ่านมาทุกปัญหา เก็บความรู้ครบทุกใบ สมแล้วที่เป็นหัวหน้าช่าง!"
     }
   ]
 }

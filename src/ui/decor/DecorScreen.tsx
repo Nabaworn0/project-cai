@@ -7,6 +7,7 @@ import type { Decor } from '../../content/schema';
 import { offer, type DecorItem } from '../../core/decor';
 import type { Progress } from '../../core/path';
 import type { Rank } from '../../core/rank';
+import { RankBadge } from '../menu/RankBadge';
 import '../book/book.css';
 import './decor.css';
 
@@ -118,7 +119,7 @@ function Tile({ item, offer: o, asking, onAsk, onCancel, onBuy, onPlace, onTakeO
           <span class="decor-why">
             🔒 ต้องเป็น{' '}
             <span class="decor-rank">
-              {o.rank.icon} {o.rank.nameTh}
+              <RankBadge rank={o.rank} /> {o.rank.nameTh}
             </span>
           </span>
         ) : o.kind === 'short' ? (
