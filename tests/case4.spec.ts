@@ -4,6 +4,7 @@
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { expectStage } from './helpers';
+import fb from '../src/content/data/feedback.json' with { type: 'json' };
 
 const shot = (page: Page, info: TestInfo, name: string) => page.screenshot({ path: info.outputPath(`${info.project.name}-${name}.png`) });
 const body = (page: Page) => page.locator('body');
@@ -107,7 +108,7 @@ test('TPM and Secure Boot off: TPM alone leaves one reason (progress, no mistake
   await expect(body(page)).toHaveAttribute('data-pc-screen', 'setup');
   await finish(page);
   await expect(stars(page)).toHaveAttribute('aria-label', '3 ดาว จาก 3');
-  await expect(page.locator('.lost').first()).toHaveText('ซ่อมได้ไม่พลาดเลย');
+  await expect(page.locator('[data-criterion="repair"] .assess-said')).toHaveText(fb.criteria.repair.ok);
 });
 
 test('the traps: TPM left unsaved (same reason again) and CSM turned on (old Windows); two mistakes cost a star', async ({ page }) => {
@@ -139,7 +140,8 @@ test('the traps: TPM left unsaved (same reason again) and CSM turned on (old Win
   await expect(body(page)).toHaveAttribute('data-pc-screen', 'setup');
   await finish(page);
   await expect(stars(page)).toHaveAttribute('aria-label', '2 ดาว จาก 3');
-  await expect(page.locator('.lost').first()).toContainText('ลงมือพลาด 2 ครั้ง');
+  await expect(page.locator('[data-criterion="repair"]')).toContainText(`${fb.criteria.repair.miss} (2 ครั้ง)`);
+  await expect(page.locator('[data-criterion="repair"] [data-slip]')).toHaveCount(2);
   // Wrong rows in the table cost no star, only their coins.
   await expect(page.getByTestId('check-score')).toHaveText('เทียบข้อกำหนด Windows 11 ถูก 3/5 ข้อ (+30 เหรียญ)');
 });

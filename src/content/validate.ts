@@ -22,6 +22,7 @@ import {
   CourseTestSchema,
   ReflectSchema,
   StartSchema,
+  FeedbackSchema,
   OrderSchema,
   LessonsSchema,
   type Brand,
@@ -36,6 +37,7 @@ import {
   type CourseTest,
   type Reflect,
   type Start,
+  type Feedback,
   type Order,
   type Lessons,
 } from './schema';
@@ -72,6 +74,7 @@ export interface ParsedContent {
   lessons?: Lessons;
   reflect?: Reflect;
   start?: Start;
+  feedback?: Feedback;
 }
 
 export interface ValidateOptions {
@@ -106,6 +109,8 @@ export function validateContent(files: readonly ContentFile[], opts: ValidateOpt
   checkTest(parsed.test, errors, warnings);
   checkReflect(parsed.reflect, errors, warnings);
   if (!parsed.start) errors.push('start.json: missing');
+  if (!parsed.feedback) errors.push('feedback.json: missing');
+  else if (parsed.feedback.draft) warnings.push('feedback.json: ข้อความใบประเมินยังเป็นร่าง รอข้อความจาก ChatGPT');
   checkOrder(parsed.order, errors, warnings);
   checkCards(parsed, errors, warnings);
   checkWin11Check(parsed, errors);
@@ -151,9 +156,10 @@ export function parseAll(files: readonly ContentFile[], errors: string[]): Parse
     else if (f.path === 'lessons.json') out.lessons = parse(LessonsSchema, f);
     else if (f.path === 'reflect.json') out.reflect = parse(ReflectSchema, f);
     else if (f.path === 'start.json') out.start = parse(StartSchema, f);
+    else if (f.path === 'feedback.json') out.feedback = parse(FeedbackSchema, f);
     else
       errors.push(
-        `${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, test, order, lessons, reflect, start, brands/, cases/)`,
+        `${f.path}: not a known content file (expected objectives, problems, customers, cards, win11-check, cutscenes, test, order, lessons, reflect, start, feedback, brands/, cases/)`,
       );
   }
   return out;

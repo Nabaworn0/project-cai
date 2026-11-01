@@ -5,7 +5,9 @@
 // goes back into the customer's PC (docs/case2-plan.md). From case 3 the job goes on through Windows Setup
 // to the install: the player asks the customer about a backup before wiping the disk, and a stick wiped
 // in Setup brings out the shop laptop to make it again (docs/case3-plan.md). Case 5 goes on past the install
-// to Windows' first-time setup and the desktop: the customer signs in themself (docs/case5-plan.md).
+// to Windows' first-time setup and the desktop: the customer signs in themself (docs/case5-plan.md). The summary
+// ends with the senior's assessment, and below 3 stars the same case can be tried again, the senior saying what to
+// watch for (docs/feedback-plan.md).
 
 import { PLAYABLE } from '../../core/path';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
@@ -19,6 +21,7 @@ import {
   currentQuestion,
   customerMood,
   hasCheck,
+  SCORING,
   shownHints,
   startSession,
   step,
@@ -26,6 +29,7 @@ import {
   type Answer,
   type Session,
   type SessionEvent,
+  type Summary,
 } from '../../core/session';
 import type { Content } from '../../content';
 import type { Cutscenes } from '../../content/schema';
@@ -124,6 +128,8 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
   const installedRef = useRef<{ wrongEdition: boolean } | null>(null);
   /** The customer is walking out: further "next customer" taps are ignored. */
   const leaving = useRef(false);
+  /** Trying the case again: what went wrong last time, said at the start, and what to remember before the repair. */
+  const [focus, setFocus] = useState<{ items: string; tips: string[] } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const latest = useRef({ gc, s });
   latest.current = { gc, s };
@@ -294,7 +300,7 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
       return;
     }
     const bypassedChecks = pcRef.current?.machine.usbBypassChecks;
-    if (e.type === 'mistake') act({ type: 'mistake' });
+    if (e.type === 'mistake') act({ type: 'mistake', reason: e.reason });
     else if (e.type === 'reached-setup') act({ type: 'repaired', route: e.route, bypassedChecks: e.bypassedChecks });
     else if (e.type === 'desktop')
       act({ type: 'repaired', route: 'desktop', bypassedChecks, wrongEdition: installedRef.current?.wrongEdition, oobe: e.result });
@@ -324,13 +330,16 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
     setFeedback(a);
   };
 
-  const nextCustomer = () => {
+  /** The next customer, or with `again` the same case once more on a new machine. */
+  const nextCustomer = (again?: Summary) => {
     if (leaving.current) return;
     leaving.current = true;
     const off = bus.on('customer:left', () => {
       off();
       leaving.current = false;
-      const g = newCase(content, latest.current.gc.template.id);
+      const done = latest.current.gc;
+      const g = again ? generateCase(done.template, content, `${Date.now()}`) : newCase(content, done.template.id);
+      setFocus(again ? focusOf(again, content.feedback) : null);
       pcRef.current = undefined;
       rufusRef.current = undefined;
       usbRef.current = usbOf(g);
@@ -480,6 +489,11 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
         <>
           {speaker}
           <p class="says">“{gc.template.customer.lineTh}”</p>
+          {focus && (
+            <p class="coach-tip" data-testid="retry-focus">
+              <span class="speaker">พี่ช่าง</span> {content.feedback.retryFocus.replace('{items}', focus.items)}
+            </p>
+          )}
           <div class="actions">
             {seen && content.cutscenes.scenes.some((sc) => sc.id === gc.template.id) && (
               <button class="btn ghost small" type="button" onClick={() => setTalk(talkFor([gc.template.id], false))}>
@@ -574,6 +588,12 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
                   : 'แตะคอมบนเคาน์เตอร์เพื่อเปิดเครื่องของลูกค้า แล้วทำให้เครื่องบูตจาก USB'}
           </p>
           {coach && !opened && !s.route && tip(coach.beforePcTh)}
+          {focus && !opened && !s.route &&
+            focus.tips.map((t) => (
+              <p key={t} class="coach-tip" data-testid="retry-tip">
+                <span class="speaker">พี่ช่าง</span> จำไว้: {t}
+              </p>
+            ))}
           {saying}
           {nudge && tip(nudge)}
           {hintList}
@@ -635,14 +655,19 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
         <>
           {speaker}
           <p class="says" data-testid="goodbye">“{goodbyeLine(gc.template.customer.reactionsTh, summary!.stars)}”</p>
-          <SummaryCard summary={summary!} />
+          <SummaryCard summary={summary!} text={content.feedback} />
           {lastInPath && <p class="coach-tip">ฝึกครบทุกเคสแล้ว กลับไปที่เมนูเพื่อทำขั้นต่อไป</p>}
           <div class="actions">
             <button class={lastInPath ? 'btn' : 'btn ghost'} type="button" onClick={onMenu}>
               กลับเมนู
             </button>
+            {summary!.stars < SCORING.maxStars && (
+              <button class="btn ghost" type="button" onClick={() => nextCustomer(summary!)}>
+                {content.feedback.retry}
+              </button>
+            )}
             {!lastInPath && (
-              <button class="btn" type="button" onClick={nextCustomer}>
+              <button class="btn" type="button" onClick={() => nextCustomer()}>
                 รับลูกค้าคนถัดไป
               </button>
             )}
@@ -659,4 +684,13 @@ export function CaseFlow({ content, ready, first, inPath, onFinish, onMenu, onSt
       </div>
     </section>
   );
+}
+
+/** What to watch for when trying a case again: each criterion missed, by name, and the "remember" tips of the
+ *  repair mistakes (shown before the PC is opened). */
+function focusOf(summary: Summary, text: Content['feedback']) {
+  const missed = summary.criteria.filter((c) => !c.ok);
+  const items = missed.map((c) => (c.id === 'repair' ? text.criteria.repair.title : text.focusLabels[c.id]));
+  const tips = missed.flatMap((c) => (c.id === 'repair' ? c.slips.map((r) => text.slips[r].tip) : []));
+  return { items: items.join(', '), tips: [...new Set(tips)] };
 }

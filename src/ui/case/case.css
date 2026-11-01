@@ -93,7 +93,20 @@
 @media (prefers-reduced-motion: reduce) {
   .summary .star-on { animation: none; }
 }
-.summary .lost { margin: 6px 0; padding: 0; list-style: none; font-size: 14px; }
+/* The senior's assessment: a row per criterion, ticked or crossed; under a cross, what happened and what to remember. */
+.assess, .bonus { margin: 8px 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.assess > li { padding: 5px 10px; background: #fff; box-shadow: inset 4px 0 0 var(--teal); }
+.assess > li.miss { background: #fff1ee; box-shadow: inset 4px 0 0 var(--coral); }
+.assess-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: 14.5px; }
+.assess-mark { font-weight: 700; color: var(--teal-shade); }
+.miss .assess-mark { color: #b83232; }
+.assess-said { flex: 1 1 12em; }
+.assess-cost { margin-left: auto; padding: 0 6px; font-size: 13px; font-weight: 700; color: var(--navy); background: var(--coral); }
+.assess-slip { margin: 4px 0 0; font-size: 14px; }
+.assess-tip { display: block; color: var(--navy-mid); }
+.assess-tip::before { content: '💡 '; }
+.bonus li { font-size: 14px; }
+.bonus li::before { content: '+ '; font-weight: 700; color: var(--teal-shade); }
 .summary-stats { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; margin: 6px 0; }
 .summary-stats dt { font-weight: 700; }
 .summary-stats dd { margin: 0; }

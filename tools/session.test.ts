@@ -5,7 +5,8 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { generateCase, nextCase } from '../src/core/cases';
 import { BYPASS_NOTE_TH, EDITION_NOTE_TH, OOBE_NOTES_TH, oobeNotes, blockedNext, currentQuestion, customerMood, SCORING, shownHints, startSession, step, summarize, type Session, type SessionEvent } from '../src/core/session';
-import { BrandSchema, CaseSchema, ProblemsSchema } from '../src/content/schema';
+import { BrandSchema, CaseSchema, FeedbackSchema, ProblemsSchema } from '../src/content/schema';
+import type { MistakeReason } from '../src/core/pc';
 
 const data = (path: string) => JSON.parse(readFileSync(new URL(`../src/content/data/${path}`, import.meta.url), 'utf8'));
 const lib = { problems: ProblemsSchema.parse(data('problems.json')), brands: [BrandSchema.parse(data('brands/classic.json'))] };
@@ -19,14 +20,15 @@ const NEXT: SessionEvent = { type: 'next' };
 
 /** A whole case. Repair mistakes and hints are inserted before the repair finishes. */
 function playCase(
-  o: { diagnosis?: number; mistakes?: number; hints?: number; route?: string; bypassedChecks?: boolean; wrongEdition?: boolean; answers?: number[] } = {},
+  o: { diagnosis?: number; mistakes?: number; slips?: MistakeReason[]; hints?: number; route?: string; bypassedChecks?: boolean; wrongEdition?: boolean; answers?: number[] } = {},
 ) {
   return play([
     NEXT, // intro -> ticket
     NEXT, // ticket -> diagnose
     { type: 'diagnose', choice: o.diagnosis ?? right.diagnosis },
     NEXT, // -> repair
-    ...Array.from({ length: o.mistakes ?? 0 }, (): SessionEvent => ({ type: 'mistake' })),
+    ...Array.from({ length: o.mistakes ?? 0 }, (): SessionEvent => ({ type: 'mistake', reason: 'booted-old-windows' })),
+    ...(o.slips ?? []).map((reason): SessionEvent => ({ type: 'mistake', reason })),
     ...Array.from({ length: o.hints ?? 0 }, (): SessionEvent => ({ type: 'hint' })),
     { type: 'repaired', route: o.route ?? 'bios', bypassedChecks: o.bypassedChecks, wrongEdition: o.wrongEdition },
     NEXT, // -> explain
@@ -111,14 +113,14 @@ test('a stage cannot be skipped: guess first, fix the PC first, answer the custo
 
 test('actions outside their stage are refused (UI bugs surface instead of corrupting the score)', () => {
   const start = startSession(gc);
-  assert.throws(() => step(gc, start, { type: 'mistake' }), /not repairing/);
+  assert.throws(() => step(gc, start, { type: 'mistake', reason: 'no-boot-device' }), /not repairing/);
   assert.throws(() => step(gc, start, { type: 'answer', choice: 0 }), /wrong stage/);
   const atDiagnose = play([NEXT, NEXT]);
   assert.throws(() => step(gc, atDiagnose, { type: 'diagnose', choice: 99 }), /no choice 99/);
   const answered = step(gc, atDiagnose, { type: 'diagnose', choice: 0 });
   assert.throws(() => step(gc, answered, { type: 'diagnose', choice: 1 }), /already answered/);
   const fixed = play([NEXT, { type: 'repaired', route: 'bios' }], answered);
-  assert.throws(() => step(gc, fixed, { type: 'mistake' }), /not repairing/, 'no mistakes after the fix');
+  assert.throws(() => step(gc, fixed, { type: 'mistake', reason: 'no-boot-device' }), /not repairing/, 'no mistakes after the fix');
   assert.throws(() => step(gc, fixed, { type: 'repaired', route: 'bios' }), /not repairing/);
   const atRepair = play([NEXT], answered);
   assert.throws(() => step(gc, atRepair, { type: 'repaired', route: '' }), /no route given/);
@@ -235,4 +237,52 @@ test('case 5 content: Windows 11 Pro on the ticket, the PC name, and no backup q
   assert.equal(c05.deviceName, 'LAB-PC01');
   assert.equal(c05.customer.filesNotNeeded, true);
   assert.equal(c05.goal, 'desktop');
+});
+
+test('the assessment: a row per criterion, crossed exactly where a star was lost', () => {
+  for (const d of [true, false])
+    for (const mistakes of [0, 1, 2])
+      for (const a of [true, false]) {
+        const sum = summarize(gc, playCase({ diagnosis: d ? right.diagnosis : wrong(c01.diagnosis), mistakes, answers: a ? right.answers : c01.customerQuestions.map(wrong) }));
+        assert.deepEqual(sum.criteria.map((c) => c.id), ['diagnose', 'repair', 'explain']);
+        assert.deepEqual(sum.criteria.map((c) => c.ok), [d, mistakes <= SCORING.freeMistakes, a], `diagnosis ${d}, ${mistakes} mistakes, answers ${a}`);
+        assert.equal(sum.stars, Math.max(SCORING.minStars, SCORING.maxStars - sum.criteria.filter((c) => !c.ok).length));
+        assert.equal(sum.lostTh.length, sum.criteria.filter((c) => !c.ok).length);
+      }
+});
+
+test('the repair row names each kind of mistake once, in the order first made, even the free one', () => {
+  const s = playCase({ slips: ['no-boot-device', 'booted-old-windows', 'no-boot-device'] });
+  assert.deepEqual(s.slips, ['no-boot-device', 'booted-old-windows', 'no-boot-device']);
+  assert.equal(s.mistakes, 3);
+  const repair = summarize(gc, s).criteria[1]!;
+  assert.equal(repair.ok, false);
+  assert.deepEqual(repair.slips, ['no-boot-device', 'booted-old-windows']);
+  const once = summarize(gc, playCase({ slips: ['legacy-boot'] })).criteria[1]!;
+  assert.equal(once.ok, true, 'the first mistake is free');
+  assert.deepEqual(once.slips, ['legacy-boot']);
+  assert.deepEqual(summarize(gc, playCase()).criteria[1]!.slips, []);
+});
+
+test('a missed question carries its explanation; passed rows carry none', () => {
+  const missed = summarize(gc, playCase({ diagnosis: wrong(c01.diagnosis), answers: c01.customerQuestions.map(wrong) })).criteria;
+  assert.equal(missed[0]!.whyTh, c01.diagnosis.explainTh);
+  assert.equal(missed[2]!.whyTh, c01.customerQuestions[0]!.explainTh);
+  for (const c of summarize(gc, playCase()).criteria) assert.equal(c.whyTh, undefined, c.id);
+});
+
+test('bonus lines: no hints, one hint, two hints (none); they add up to the coins', () => {
+  const [none, one, two] = [0, 1, 2].map((hints) => summarize(gc, playCase({ hints })));
+  assert.deepEqual(none!.bonuses, [{ id: 'noHints', coins: SCORING.hintBonus[0] }]);
+  assert.deepEqual(one!.bonuses, [{ id: 'oneHint', coins: SCORING.hintBonus[1] }]);
+  assert.deepEqual(two!.bonuses, []);
+  for (const sum of [none!, one!, two!]) assert.equal(sum.coins, SCORING.repairCoins + sum.bonuses.reduce((n, b) => n + b.coins, 0));
+});
+
+test("feedback.json: the assessment's wording fits its schema, with the {items} slot", () => {
+  const fb = FeedbackSchema.parse(data('feedback.json'));
+  assert.ok(fb.retryFocus.includes('{items}'));
+  assert.throws(() => FeedbackSchema.parse({ ...fb, retryFocus: 'no slot' }));
+  const { 'asked-password': _, ...short } = fb.slips;
+  assert.throws(() => FeedbackSchema.parse({ ...fb, slips: short }), 'every kind of mistake needs its tip');
 });

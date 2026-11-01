@@ -5,6 +5,7 @@
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { ALL_TALKS, expectStage, LEARNED } from './helpers';
+import fb from '../src/content/data/feedback.json' with { type: 'json' };
 
 const shot = (page: Page, info: TestInfo, name: string) => page.screenshot({ path: info.outputPath(`${info.project.name}-${name}.png`) });
 const body = (page: Page) => page.locator('body');
@@ -175,6 +176,7 @@ test("Teacher Wilai's whole job: UEFI, a GPT stick, the red text, install, first
   await finish(page);
   await expect(stars(page)).toHaveAttribute('aria-label', '3 ดาว จาก 3');
   await expect(page.locator('.techlog')).toContainText('ถามลูกค้าก่อนตั้งค่าความเป็นส่วนตัว');
+  await expect(page.locator('[data-bonus="privacy"]')).toHaveText(`${fb.bonus.privacy} (+10 เหรียญ)`);
   await expect(page.locator('.techlog')).toContainText('ช่างยื่นเครื่องให้ลูกค้าพิมพ์เอง');
   await expect(page.locator('.techlog')).not.toContainText('ไม่ได้เพิ่มแป้นพิมพ์ภาษาไทย');
   await shot(page, info, 'g5-summary');
@@ -203,7 +205,11 @@ test('traps on first-time setup: typing her account and asking her password each
   await finish(page);
   // Two account mistakes: one is free, the second costs a star.
   await expect(stars(page)).toHaveAttribute('aria-label', '2 ดาว จาก 3');
-  await expect(page.locator('.lost').first()).toContainText('ลงมือพลาด 2 ครั้ง');
+  const repair = page.locator('[data-criterion="repair"]');
+  await expect(repair).toContainText(`${fb.criteria.repair.miss} (2 ครั้ง)`);
+  await expect(repair.locator('[data-slip="typed-for-customer"]')).toContainText(fb.slips['typed-for-customer'].tip);
+  await expect(repair.locator('[data-slip="asked-password"]')).toContainText(fb.slips['asked-password'].tip);
+  await expect(page.locator('[data-bonus="privacy"]'), 'not asked about privacy: no bonus').toHaveCount(0);
   const log = page.locator('.techlog');
   await expect(log).toContainText('ไม่ได้เพิ่มแป้นพิมพ์ภาษาไทย');
   await expect(log).toContainText('PC-ROOM1 ไม่ตรงกับใบงาน (LAB-PC01)');

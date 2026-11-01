@@ -519,3 +519,35 @@ export const LessonsSchema = z
   .strict();
 export type Lessons = z.infer<typeof LessonsSchema>;
 export type Lesson = Lessons['lessons'][number];
+
+const SlipSchema = z.object({ th: th.max(45), tip: th.max(110) }).strict();
+const CriterionTextSchema = z.object({ title: th.max(20), ok: th.max(40), miss: th.max(40) }).strict();
+/** The senior's assessment on the case summary (docs/feedback-plan.md): the three criteria, a "remember" tip
+ *  for each kind of mistake, the bonus lines, and the try-again button with what to watch for. */
+export const FeedbackSchema = z
+  .object({
+    draft: z.boolean(),
+    source: z.string().optional(),
+    criteria: z.object({ diagnose: CriterionTextSchema, repair: CriterionTextSchema, explain: CriterionTextSchema }).strict(),
+    freeSlip: th.max(45),
+    /** One per kind of repair mistake the simulated screens report (src/core/pc.ts MistakeReason). */
+    slips: z
+      .object({
+        'booted-old-windows': SlipSchema,
+        'no-boot-device': SlipSchema,
+        'wrong-image': SlipSchema,
+        'legacy-boot': SlipSchema,
+        'still-cant-run': SlipSchema,
+        'no-backup-check': SlipSchema,
+        'deleted-installer': SlipSchema,
+        'typed-for-customer': SlipSchema,
+        'asked-password': SlipSchema,
+      })
+      .strict(),
+    bonus: z.object({ noHints: th.max(30), oneHint: th.max(30), privacy: th.max(35) }).strict(),
+    retry: th.max(22),
+    retryFocus: withSlot(70 + '{items}'.length, 'items'),
+    focusLabels: z.object({ diagnose: th.max(25), explain: th.max(25) }).strict(),
+  })
+  .strict();
+export type Feedback = z.infer<typeof FeedbackSchema>;

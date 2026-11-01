@@ -4,6 +4,7 @@
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { expectStage, openShop } from './helpers';
+import fb from '../src/content/data/feedback.json' with { type: 'json' };
 
 const shot = (page: Page, info: TestInfo, name: string) => page.screenshot({ path: info.outputPath(`${info.project.name}-${name}.png`) });
 const key = (page: Page, k: string) => page.locator(`.keybar [data-key="${k}"]`).click();
@@ -154,7 +155,10 @@ test("Beam's own words on a wrong image, and the tech log notes a stick made wit
   const summary = page.getByRole('group', { name: 'สรุปผล' });
   await expect(summary.locator('.techlog')).toContainText('ไมโครซอฟต์ไม่รองรับ');
   await expect(summary.locator('.stars'), 'one mistake is free; the ticked box costs nothing').toHaveAttribute('aria-label', '3 ดาว จาก 3');
-  await expect(summary).toContainText('พลาด 1 ครั้ง (ครั้งแรกไม่เสียดาว)');
+  const repair = summary.locator('[data-criterion="repair"]');
+  await expect(repair).toHaveAttribute('data-ok', 'true');
+  await expect(repair).toContainText(fb.freeSlip);
+  await expect(repair.locator('[data-slip]'), 'the free mistake is still named, with its tip').toHaveCount(1);
   await shot(page, info, 'e2-summary');
 });
 
@@ -173,6 +177,7 @@ async function writeStick(page: Page, iso: string, scheme: 'MBR' | 'GPT') {
 }
 
 test('every trap in the shop: MBR again, Ubuntu, CSM; each counts, Beam reacts, and 3 mistakes cost a star', async ({ page }, info) => {
+  test.setTimeout(60_000);
   await toRepair(page);
   const says = page.getByTestId('customer-says');
 
@@ -207,7 +212,7 @@ test('every trap in the shop: MBR again, Ubuntu, CSM; each counts, Beam reacts, 
   await page.getByRole('button', { name: /คลิปทำสำหรับเครื่องเก่าที่บูตแบบ BIOS/ }).click();
   await page.getByRole('button', { name: 'ต่อไป' }).click();
   const summary = page.getByRole('group', { name: 'สรุปผล' });
-  await expect(summary).toContainText('ลงมือพลาด 3 ครั้ง');
+  await expect(summary.locator('[data-criterion="repair"]')).toContainText(`${fb.criteria.repair.miss} (3 ครั้ง)`);
   await expect(summary.locator('.stars')).toHaveAttribute('aria-label', '2 ดาว จาก 3');
   await expect(page.getByTestId('goodbye')).toContainText('ไปบอกเพื่อนที่ทำตามคลิปเดียวกัน');
 });

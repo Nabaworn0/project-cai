@@ -4,6 +4,8 @@
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { C1_DIAGNOSIS, expectStage, openShop, playToRepair } from './helpers';
+import fb from '../src/content/data/feedback.json' with { type: 'json' };
+import c01 from '../src/content/data/cases/c01-boot-order.json' with { type: 'json' };
 
 const shot = (page: Page, info: TestInfo, name: string) => page.screenshot({ path: info.outputPath(`${info.project.name}-${name}.png`) });
 const panel = (page: Page) => page.locator('.case-panel');
@@ -71,7 +73,13 @@ test('a perfect run: three stars, full coins, Somsri leaves happy, and the next 
   await expectStage(page, 'summary');
   const summary = page.getByRole('group', { name: 'สรุปผล' });
   await expect(summary.locator('.stars')).toHaveAttribute('aria-label', '3 ดาว จาก 3');
-  await expect(summary).toContainText('ซ่อมได้ไม่พลาดเลย');
+  // The assessment: every criterion ticked, no star lost anywhere.
+  await expect(summary.locator('[data-criterion]')).toHaveCount(3);
+  await expect(summary.locator('[data-criterion][data-ok="true"]')).toHaveCount(3);
+  await expect(summary.locator('[data-criterion="repair"]')).toContainText(fb.criteria.repair.ok);
+  await expect(summary.locator('.assess-cost')).toHaveCount(0);
+  await expect(summary.locator('[data-bonus="noHints"]')).toContainText(`${fb.bonus.noHints} (+50 เหรียญ)`);
+  await expect(page.getByRole('button', { name: fb.retry }), 'nothing to try again at 3 stars').toHaveCount(0);
   await expect(summary).toContainText('+150');
   await expect(summary).toContainText('หนังสือ น.48–51');
   await expect(page.getByTestId('goodbye')).toContainText('ไว้ป้าจะเอาขนมมาฝาก');
@@ -85,7 +93,7 @@ test('a perfect run: three stars, full coins, Somsri leaves happy, and the next 
   await expect(page.getByTestId('coins'), 'coins are kept for the next customer').toContainText('150');
 });
 
-test('mistakes cost stars: wrong guess, two boots into the old Windows, wrong explanation; never below one star', async ({ page }) => {
+test('mistakes cost stars: wrong guess, two boots into the old Windows, wrong explanation; never below one star; then trying again', async ({ page }, info) => {
   await playToRepair(page, 'แฟลชไดรฟ์เสีย');
   await page.getByRole('button', { name: 'เปิดเครื่องลูกค้า' }).click();
   // Two mistakes: Enter at POST boots the old Windows, twice. Somsri says something different each time.
@@ -105,11 +113,44 @@ test('mistakes cost stars: wrong guess, two boots into the old Windows, wrong ex
 
   const summary = page.getByRole('group', { name: 'สรุปผล' });
   await expect(summary.locator('.stars')).toHaveAttribute('aria-label', '1 ดาว จาก 3');
-  await expect(summary).toContainText('เดาสาเหตุผิด');
-  await expect(summary).toContainText('ลงมือพลาด 2 ครั้ง');
-  await expect(summary).toContainText('อธิบายให้ลูกค้าฟังไม่ถูก');
+  // Each criterion crossed, a star each, with what went wrong and what to remember.
+  await expect(summary.locator('[data-criterion][data-ok="false"]')).toHaveCount(3);
+  await expect(summary.locator('.assess-cost')).toHaveCount(3);
+  await expect(summary.locator('[data-criterion="diagnose"]')).toContainText(c01.diagnosis.explainTh);
+  const repair = summary.locator('[data-criterion="repair"]');
+  await expect(repair).toContainText(`${fb.criteria.repair.miss} (2 ครั้ง)`);
+  await expect(repair.locator('[data-slip]'), 'the same mistake twice is named once').toHaveCount(1);
+  await expect(repair.locator('[data-slip="booted-old-windows"]')).toContainText(fb.slips['booted-old-windows'].tip);
+  await expect(summary.locator('[data-criterion="explain"]')).toContainText(c01.customerQuestions[0]!.explainTh);
   await expect(page.getByTestId('goodbye')).toContainText('ใจหายใจคว่ำ');
   await expect(page.locator('body')).toHaveAttribute('data-customer-mood', 'angry');
+  await shot(page, info, 'm-assess');
+
+  // Trying again: Somsri comes back with a new machine, and the senior says what to watch for this time.
+  await page.getByRole('button', { name: fb.retry }).click();
+  await expectStage(page, 'intro');
+  await expect(panel(page)).toContainText('ป้าสมศรี');
+  const items = [fb.focusLabels.diagnose, fb.criteria.repair.title, fb.focusLabels.explain].join(', ');
+  await expect(page.getByTestId('retry-focus')).toHaveText(`พี่ช่าง ${fb.retryFocus.replace('{items}', items)}`);
+  await shot(page, info, 'm-retry');
+  await page.getByRole('button', { name: 'รับเรื่อง' }).click();
+  await page.getByRole('button', { name: 'รับงาน' }).click();
+  await page.getByRole('button', { name: C1_DIAGNOSIS }).click();
+  await page.getByRole('button', { name: 'ไปซ่อมเครื่อง' }).click();
+  await expect(page.getByTestId('retry-tip')).toHaveText(`พี่ช่าง จำไว้: ${fb.slips['booted-old-windows'].tip}`);
+  await repairWithBios(page);
+  await page.getByRole('button', { name: 'กลับไปคุยกับลูกค้า' }).click();
+  await page.getByRole('button', { name: /เครื่องเลือกบูตตามลำดับที่ตั้งไว้ใน BIOS/ }).click();
+  await page.getByRole('button', { name: 'ต่อไป' }).click();
+  await expect(summary.locator('.stars')).toHaveAttribute('aria-label', '3 ดาว จาก 3');
+  await expect(page.getByRole('button', { name: fb.retry })).toHaveCount(0);
+  // The best stars are kept, and the first try's for the teacher.
+  const kept = await page.evaluate(() => JSON.parse(localStorage.getItem('shop.progress.v2')!).cases['c01-boot-order']);
+  expect(kept).toEqual({ stars: 3, plays: 2, first: 1 });
+  // The next customer is a new case: nothing said about the last one.
+  await page.getByRole('button', { name: 'รับลูกค้าคนถัดไป' }).click();
+  await expectStage(page, 'intro');
+  await expect(page.getByTestId('retry-focus')).toHaveCount(0);
 });
 
 test('hints: two per case, shown in the panel and on the PC, costing bonus coins but no stars', async ({ page }) => {

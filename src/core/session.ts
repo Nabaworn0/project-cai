@@ -5,6 +5,7 @@
 import type { GeneratedCase } from './cases';
 import { checkAnswer, WIN11_CHECK_IDS, type CheckAnswer, type CheckId } from './win11check';
 import type { OobeResult } from './oobe';
+import type { MistakeReason } from './pc';
 
 export type Stage = 'intro' | 'ticket' | 'diagnose' | 'repair' | 'explain' | 'summary';
 export const STAGES: readonly Stage[] = ['intro', 'ticket', 'diagnose', 'repair', 'explain', 'summary'];
@@ -43,6 +44,8 @@ export interface Session {
   questionCount: number;
   /** Wrong moves on the simulated screen (e.g. leaving the BIOS with Esc). Not counted: waiting too long at "Press any key". */
   mistakes: number;
+  /** What each of those mistakes was, in order (for the summary's assessment, docs/feedback-plan.md). */
+  slips: MistakeReason[];
   /** How the machine was fixed, e.g. "bios" or "boot-menu"; both earn full marks. */
   route: string | null;
   /** The working USB was made with Rufus' Windows 11 checks removed: noted in the log, never scored (case2-plan decision 4). */
@@ -67,7 +70,7 @@ export type SessionEvent =
   /** Move to the next stage; only allowed once the current stage is finished. */
   | { type: 'next' }
   | { type: 'diagnose'; choice: number }
-  | { type: 'mistake' }
+  | { type: 'mistake'; reason: MistakeReason }
   | { type: 'hint' }
   | { type: 'repaired'; route: string; bypassedChecks?: boolean; wrongEdition?: boolean; oobe?: OobeResult }
   | { type: 'answer'; choice: number }
@@ -91,6 +94,22 @@ export interface Summary {
   log: LogEntry[];
   /** Right answers in the requirements table, when the case has one. */
   check: { correct: number; total: number } | null;
+  /** The assessment: one row per criterion that can cost a star, in play order. */
+  criteria: Criterion[];
+  /** Coins on top of the repair's, and what earned them (the requirements table has its own line). */
+  bonuses: { id: 'noHints' | 'oneHint' | 'privacy'; coins: number }[];
+}
+
+export type CriterionId = 'diagnose' | 'repair' | 'explain';
+
+export interface Criterion {
+  id: CriterionId;
+  /** Passed: no star lost here. */
+  ok: boolean;
+  /** Repair: each kind of mistake made, once, in the order first made (one mistake still passes). */
+  slips: MistakeReason[];
+  /** Diagnose and explain, when missed: the explanation of the (first) question answered wrongly. */
+  whyTh?: string;
 }
 
 export function startSession(gc: GeneratedCase): Session {
@@ -101,6 +120,7 @@ export function startSession(gc: GeneratedCase): Session {
     answers: [],
     questionCount: gc.template.customerQuestions.length,
     mistakes: 0,
+    slips: [],
     route: null,
     bypassedChecks: false,
     wrongEdition: false,
@@ -151,7 +171,7 @@ export function step(gc: GeneratedCase, s: Session, e: SessionEvent): Session {
     }
     case 'mistake': {
       if (s.stage !== 'repair' || s.route) fail('not repairing');
-      return { ...s, mistakes: s.mistakes + 1 };
+      return { ...s, mistakes: s.mistakes + 1, slips: [...s.slips, e.reason] };
     }
     case 'hint': {
       if (s.stage !== 'repair' || s.route) fail('not repairing');
@@ -193,29 +213,38 @@ export function currentQuestion(gc: GeneratedCase, s: Session) {
 }
 
 export function summarize(gc: GeneratedCase, s: Session): Summary {
+  const t = gc.template;
+  const wrongAt = s.answers.findIndex((a) => !a.correct);
+  const criteria: Criterion[] = [
+    { id: 'diagnose', ok: !s.diagnosis || s.diagnosis.correct, slips: [] },
+    { id: 'repair', ok: s.mistakes <= SCORING.freeMistakes, slips: [...new Set(s.slips)] },
+    // One star for the explanation step as a whole, even when a case asks more than one question.
+    { id: 'explain', ok: wrongAt < 0, slips: [] },
+  ];
+  if (!criteria[0]!.ok) criteria[0]!.whyTh = t.diagnosis.explainTh;
+  if (wrongAt >= 0) criteria[2]!.whyTh = t.customerQuestions[wrongAt]!.explainTh;
   const lostTh: string[] = [];
-  if (s.diagnosis && !s.diagnosis.correct) lostTh.push('เดาสาเหตุผิด');
-  if (s.mistakes > SCORING.freeMistakes) lostTh.push(`ลงมือพลาด ${s.mistakes} ครั้ง`);
-  // One star for the explanation step as a whole, even when a case asks more than one question.
-  if (s.answers.some((a) => !a.correct)) lostTh.push('อธิบายให้ลูกค้าฟังไม่ถูก');
+  if (!criteria[0]!.ok) lostTh.push('เดาสาเหตุผิด');
+  if (!criteria[1]!.ok) lostTh.push(`ลงมือพลาด ${s.mistakes} ครั้ง`);
+  if (!criteria[2]!.ok) lostTh.push('อธิบายให้ลูกค้าฟังไม่ถูก');
   const stars = Math.max(SCORING.minStars, SCORING.maxStars - lostTh.length);
 
   const wrongAnswers = [s.diagnosis, ...s.answers].filter((a) => a && !a.correct).length;
   const { perHint, perMistake, perWrongAnswer } = SCORING.satisfaction;
   const satisfaction = clamp(100 - s.hintsUsed * perHint - s.mistakes * perMistake - wrongAnswers * perWrongAnswer, 0, 100);
   const right = s.checks.filter((c) => c.correct).length;
-  const coins =
-    SCORING.repairCoins +
-    (SCORING.hintBonus[Math.min(s.hintsUsed, SCORING.hintBonus.length - 1)] ?? 0) +
-    right * SCORING.checkCoin +
-    (s.oobe?.privacyAsked ? SCORING.privacyCoin : 0);
+  const hintCoins = SCORING.hintBonus[Math.min(s.hintsUsed, SCORING.hintBonus.length - 1)] ?? 0;
+  const bonuses: Summary['bonuses'] = [];
+  if (hintCoins) bonuses.push({ id: s.hintsUsed === 0 ? 'noHints' : 'oneHint', coins: hintCoins });
+  if (s.oobe?.privacyAsked) bonuses.push({ id: 'privacy', coins: SCORING.privacyCoin });
+  const coins = SCORING.repairCoins + right * SCORING.checkCoin + bonuses.reduce((n, b) => n + b.coins, 0);
 
   const log: LogEntry[] = gc.problems.map((p) => ({ textTh: p.explainTh, bookPage: p.bookPage }));
   if (s.bypassedChecks) log.push({ textTh: BYPASS_NOTE_TH });
   if (s.wrongEdition) log.push({ textTh: EDITION_NOTE_TH });
   if (s.oobe) log.push(...oobeNotes(s.oobe, gc.template.deviceName));
   const check = hasCheck(gc) ? { correct: right, total: WIN11_CHECK_IDS.length } : null;
-  return { stars, lostTh, coins, satisfaction, mistakes: s.mistakes, log, check };
+  return { stars, lostTh, coins, satisfaction, mistakes: s.mistakes, log, check, criteria, bonuses };
 }
 
 /** How the customer looks: worried until the PC is fixed, pleased while asking, then by the result. */

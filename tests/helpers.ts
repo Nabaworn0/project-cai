@@ -55,7 +55,11 @@ export async function pastStart(page: Page) {
   const menu = page.getByTestId('menu');
   // The first load (fonts, then the page) can take a while when every test runs at once.
   await expect(boot.or(start).or(menu)).toBeVisible({ timeout: 15_000 });
-  if (await boot.isVisible()) await page.keyboard.press('Enter');
+  if (await boot.isVisible()) {
+    await page.keyboard.press('Enter');
+    // The start page comes after the key, not at once.
+    await expect(start).toBeVisible();
+  }
   if (await start.isVisible()) await start.getByRole('button', { name: 'เริ่มฝึกงาน!' }).click();
   await expect(menu).toBeVisible();
 }

@@ -4,6 +4,7 @@
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { expectStage } from './helpers';
+import fb from '../src/content/data/feedback.json' with { type: 'json' };
 
 const shot = (page: Page, info: TestInfo, name: string) => page.screenshot({ path: info.outputPath(`${info.project.name}-${name}.png`) });
 const body = (page: Page) => page.locator('body');
@@ -121,7 +122,7 @@ test('no key: "I don\'t have a product key", the edition from the ticket, asked 
   await install(page);
   await finish(page);
   await expect(stars(page)).toHaveAttribute('aria-label', '3 ดาว จาก 3');
-  await expect(page.locator('.lost')).toHaveText('ซ่อมได้ไม่พลาดเลย');
+  await expect(page.locator('[data-criterion="repair"] .assess-said')).toHaveText(fb.criteria.repair.ok);
   await expect(page.locator('.techlog')).toContainText("I don't have a product key");
 });
 
@@ -176,7 +177,12 @@ test('both traps: wiping before asking, then deleting the stick; Lung reacts, th
   await install(page);
   await finish(page);
   await expect(stars(page)).toHaveAttribute('aria-label', '2 ดาว จาก 3');
-  await expect(page.locator('.lost')).toContainText('ลงมือพลาด 2 ครั้ง');
+  const repair = page.locator('[data-criterion="repair"]');
+  await expect(repair).toContainText(`${fb.criteria.repair.miss} (2 ครั้ง)`);
+  // Both traps by name, each with what to remember.
+  await expect(repair.locator('[data-slip]')).toHaveCount(2);
+  await expect(repair.locator('[data-slip="no-backup-check"]')).toContainText(fb.slips['no-backup-check'].tip);
+  await expect(repair.locator('[data-slip="deleted-installer"]')).toContainText(fb.slips['deleted-installer'].tip);
 });
 
 test('Setup in the shop fits: the partition page, the ask and hint buttons all reachable without sideways scrolling', async ({ page }, info) => {
