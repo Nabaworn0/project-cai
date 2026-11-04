@@ -2,7 +2,7 @@
    room to scroll on to the questions; the review questions under it. */
 .lesson { display: grid; gap: 10px; }
 .lesson-video {
-  display: block; width: min(100%, calc((100dvh - 200px) * 16 / 9)); min-width: min(100%, 300px); margin: 0 auto; aspect-ratio: 16 / 9;
+  display: block; width: min(100%, calc((100dvh / var(--ui) - 200px) * 16 / 9)); min-width: min(100%, 300px); margin: 0 auto; aspect-ratio: 16 / 9;
   background: var(--navy); box-shadow: 0 0 0 3px var(--navy);
 }
 .menu-scroll .lesson-hint { margin: 0; padding: 8px 12px; text-align: center; font-weight: 700; background: #fff4e0; box-shadow: 0 0 0 2px var(--navy); }

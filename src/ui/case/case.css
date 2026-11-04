@@ -32,7 +32,7 @@
   display: flex; flex-direction: column; align-items: stretch; padding: 0;
   left: 0; right: 0; margin-inline: auto; transform: none;
   /* At most the bottom part of the screen: the customer and technician stand above it (ShopScene). */
-  max-height: min(46dvh, 520px);
+  max-height: min(calc(46dvh / var(--ui)), 520px);
 }
 /* The scrolling happens inside: a scrolling box that also has the pixel-box shadow made Chrome paint
    its scrolled-off part as a white block over the scene. */
@@ -52,7 +52,7 @@
   .narration.case-panel {
     left: auto; right: max(12px, var(--safe-r)); transform: none;
     top: auto; bottom: calc(10px + var(--safe-b));
-    width: min(44%, 460px); max-height: calc(100dvh - 76px - var(--safe-t) - var(--safe-b));
+    width: min(44%, 460px); max-height: calc(100dvh / var(--ui) - 76px - var(--safe-t) - var(--safe-b));
   }
 }
 

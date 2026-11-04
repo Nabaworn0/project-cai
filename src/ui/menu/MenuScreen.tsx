@@ -54,6 +54,7 @@ export function MenuScreen({ content, progress, options, onLearner, onReset, onE
     <LearnPage
       title="เส้นทางเด็กฝึกงาน"
       testid="menu"
+      home
       who={
         progress.learner && (
           <p class="menu-who" data-testid="learner">
@@ -194,6 +195,8 @@ export function LearnPage(props: {
   tall?: boolean;
   /** A wider board (the lesson cartoons). */
   wide?: boolean;
+  /** The learning path itself: on a big screen its board is drawn bigger still (src/ui/scale.ts). */
+  home?: boolean;
   /** The picture behind the board: the shop's entrance (the sign in it says the shop's name), or the back room. */
   scene?: 'entrance' | 'room';
   children: ComponentChildren;
@@ -201,7 +204,7 @@ export function LearnPage(props: {
   const scene = props.scene ?? 'entrance';
   return (
     <main
-      class={`learn-page${props.tall ? ' tall' : ''}${props.wide ? ' wide' : ''}`}
+      class={`learn-page${props.tall ? ' tall' : ''}${props.wide ? ' wide' : ''}${props.home ? ' home' : ''}`}
       aria-labelledby="menu-title"
       data-testid={props.testid}
       data-backdrop={scene}

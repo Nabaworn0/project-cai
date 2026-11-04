@@ -6,6 +6,7 @@ import './ui/theme.css';
 
 import { h, render } from 'preact';
 import { registerPwa } from './pwa';
+import { watchUiScale } from './ui/scale';
 
 async function bootGame(): Promise<void> {
   // The learning page comes first; the shop scene (Phaser) is loaded when the learner goes to the shop (src/ui/App.tsx).
@@ -16,6 +17,7 @@ async function bootGame(): Promise<void> {
     () => undefined,
   );
 
+  watchUiScale();
   render(h(App, {}), document.getElementById('ui')!);
   const splash = document.getElementById('splash');
   splash?.classList.add('gone');

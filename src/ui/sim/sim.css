@@ -10,7 +10,7 @@
   container-type: inline-size;
   position: relative; overflow: hidden;
   /* 4:3, and never taller than the room left beside the bars (phones in landscape): the width gives way. */
-  width: min(100%, calc((100dvh - var(--pc-chrome) - var(--safe-t) - var(--safe-b)) * 4 / 3));
+  width: min(100%, calc((100dvh / var(--ui) - var(--pc-chrome) - var(--safe-t) - var(--safe-b)) * 4 / 3));
   aspect-ratio: 4 / 3;
   margin-inline: auto;
   background: #000; color: #c8c8c8;
@@ -152,7 +152,7 @@
   .monitor.pc-monitor {
     --pc-chrome: 88px; /* backdrop and monitor padding + the top bar */
     /* An explicit height: a percentage does not resolve inside the backdrop grid, and 1fr rows need it. */
-    width: 100%; height: calc(100dvh - 24px - var(--safe-t) - var(--safe-b)); padding: 6px 10px 8px;
+    width: 100%; height: calc(100dvh / var(--ui) - 24px - var(--safe-t) - var(--safe-b)); padding: 6px 10px 8px;
     display: grid; grid-template-columns: minmax(0, 1fr) auto 196px; column-gap: 12px;
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas: 'bar bar bar' 'status screen keys';
@@ -161,7 +161,7 @@
   /* Sized from the height (an auto column cannot give it a %); capped so the message column keeps ~140px. */
   .pc-monitor .pc {
     grid-area: screen; align-self: center;
-    width: min(calc((100dvh - var(--pc-chrome) - var(--safe-t) - var(--safe-b)) * 4 / 3), calc(100vw - 404px - var(--safe-l) - var(--safe-r)));
+    width: min(calc((100dvh / var(--ui) - var(--pc-chrome) - var(--safe-t) - var(--safe-b)) * 4 / 3), calc(100vw / var(--ui) - 404px - var(--safe-l) - var(--safe-r)));
   }
   .pc-monitor .pc-status-row { grid-area: status; margin: 0; min-height: 0; align-self: stretch; }
   .pc-monitor .pc-status { font-size: 13px; }
@@ -197,7 +197,7 @@
    A Windows desktop with the Rufus window on it, in real px rather than the PC screen's scaled em: it is
    used by tapping, so controls keep a phone-friendly size, and the desktop scrolls if the window is taller. */
 /* An explicit height cap, so the desktop (not the buttons under it) gives way on short screens. */
-.laptop-monitor { width: min(560px, 100%); max-height: calc(100dvh - 24px - var(--safe-t) - var(--safe-b)); }
+.laptop-monitor { width: min(560px, 100%); max-height: calc(100dvh / var(--ui) - 24px - var(--safe-t) - var(--safe-b)); }
 .desktop-wrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 .desktop {
   min-height: 0; flex: 1 1 auto; overflow: auto; overscroll-behavior: contain;
@@ -268,7 +268,7 @@
    buttons get a column of their own on the right. */
 @media (orientation: landscape) and (max-height: 520px) {
   .monitor.laptop-monitor {
-    display: grid; width: 100%; height: calc(100dvh - 24px - var(--safe-t) - var(--safe-b)); padding: 6px 10px 8px; column-gap: 12px;
+    display: grid; width: 100%; height: calc(100dvh / var(--ui) - 24px - var(--safe-t) - var(--safe-b)); padding: 6px 10px 8px; column-gap: 12px;
     grid-template-columns: minmax(0, 1fr) 220px; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: 'bar bar' 'screen side';
   }
   .laptop-monitor .desktop-wrap { grid-area: screen; }
@@ -285,7 +285,7 @@
 .pc-monitor.setup-mode { --pc-chrome: 170px; }
 .setup-mode .pc:is([data-screen='setup'], [data-screen='cant-run']) {
   aspect-ratio: auto; width: 100%;
-  height: min(calc(100dvh - var(--pc-chrome) - var(--safe-t) - var(--safe-b)), 640px); min-height: 300px;
+  height: min(calc(100dvh / var(--ui) - var(--pc-chrome) - var(--safe-t) - var(--safe-b)), 640px); min-height: 300px;
 }
 .w11-screen {
   height: 100%; display: flex; overflow: auto; overscroll-behavior: contain; padding: 1em;
@@ -451,7 +451,7 @@ input.setup-input { cursor: pointer; }
    it shares Setup's tall screen without the key bar. Narrow screens stack the card and drop the picture. */
 .setup-mode .pc[data-screen='oobe'] {
   aspect-ratio: auto; width: 100%;
-  height: min(calc(100dvh - var(--pc-chrome) - var(--safe-t) - var(--safe-b)), 640px); min-height: 300px;
+  height: min(calc(100dvh / var(--ui) - var(--pc-chrome) - var(--safe-t) - var(--safe-b)), 640px); min-height: 300px;
 }
 .pc > .oobe-screen, .pc > .w11-desktop { font-size: clamp(13px, 1.55cqw, 15px); }
 .oobe-screen {

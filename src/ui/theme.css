@@ -19,6 +19,9 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
+  /* How much bigger the HTML over the game is drawn on a big screen (src/ui/scale.ts sets it). */
+  --ui: 1;
+  --ui-home: 1;
   color-scheme: light;
 }
 
@@ -33,6 +36,9 @@ button { font: inherit; cursor: pointer; }
 #game { position: fixed; inset: 0; touch-action: none; background: var(--wall); }
 #game canvas { display: block; image-rendering: pixelated; }
 #ui { position: fixed; inset: 0; pointer-events: none; }
+/* Big screens: every layer grows but the sign's name (placed on the canvas in its pixels) and the start page (sized
+   to the screen already). Inside a zoomed layer a vw or dvh is zoomed too, so those are divided by --ui. */
+#ui > :not(.sign-label, .boot, .start-page) { zoom: var(--ui); }
 /* Only the overlay's own panels take taps; everything else falls through to the canvas. */
 #ui > :not(.hud, .sign-label), .hud > * { pointer-events: auto; }
 

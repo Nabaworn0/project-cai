@@ -35,7 +35,7 @@
   background: #fff; border: 0; box-shadow: inset 0 0 0 2px var(--navy); cursor: pointer;
 }
 .reflect-levels b { font-family: var(--f-head); font-size: 17px; line-height: 1.1; }
-.reflect-levels small { font-size: clamp(10px, 3vw, 11.5px); line-height: 1.2; color: #3c475c; white-space: nowrap; }
+.reflect-levels small { font-size: clamp(10px, calc(3vw / var(--ui)), 11.5px); line-height: 1.2; color: #3c475c; white-space: nowrap; }
 .reflect-levels button[aria-checked='true'] { background: var(--yellow); box-shadow: inset 0 0 0 3px var(--navy); }
 
 .reflect-send { display: grid; gap: 6px; }

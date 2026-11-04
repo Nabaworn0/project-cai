@@ -7,7 +7,7 @@
   --ar: calc(263 / 148);
   /* Where the bottom of the sign board falls on screen: the picture covers the screen, centred sideways and
      kept to the top, so on very wide screens the pavement is cut off rather than the sign. */
-  --pic-h: max(100dvh, 100vw / var(--ar));
+  --pic-h: max(100dvh, 100vw / var(--ar)) / var(--ui);
   --sign-bottom: calc(0.29 * var(--pic-h));
   /* clip, not hidden: a hidden box can still be scrolled (by focus), which slid the picture sideways. */
   position: absolute; inset: 0; overflow: hidden; overflow: clip; display: flex; align-items: flex-start; justify-content: center;
@@ -16,7 +16,7 @@
 }
 .entrance {
   position: absolute; left: 50%; top: 0; transform: translateX(-50%);
-  width: max(100vw, 100dvh * var(--ar)); aspect-ratio: 263 / 148;
+  width: calc(max(100vw, 100dvh * var(--ar)) / var(--ui)); aspect-ratio: 263 / 148;
   background: url('../../assets/scenes/entrance-wide.png') center / 100% 100% no-repeat;
   image-rendering: pixelated;
   container-type: inline-size;
@@ -48,6 +48,8 @@
 }
 /* The test needs the room: the board rises over the sign (its own header names the shop). */
 .learn-page.tall { padding-top: calc(16px + var(--safe-t)); }
+/* The learning path on a big screen: its board grows a little more than the others (src/ui/scale.ts). */
+.learn-page.home .menu { zoom: var(--ui-home); }
 /* The lesson cartoons want the room. */
 .learn-page.wide .menu { width: min(860px, 100%); }
 /* The notice board: a wood frame with a dark edge, and a coral pin at the top. */
