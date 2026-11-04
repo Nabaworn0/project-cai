@@ -68,6 +68,20 @@
   }
   /* Wide enough for the choices two by two: four of them fit without scrolling, under the faces. */
   .case-panel .choices { grid-template-columns: 1fr 1fr; }
+  /* The work ticket is read, not talked over: it comes up as a big sheet in the middle of the screen, the shop
+     dimmed behind it, and goes back down once the job is taken. */
+  #ui > .narration.case-panel[data-stage='ticket'] {
+    top: 50%; bottom: auto; transform: translateY(-50%);
+    width: min(780px, 90%); max-height: calc(92dvh / (var(--ui) * var(--ui-big)));
+    box-shadow:
+      0 0 0 var(--px) var(--navy),
+      0 calc(2 * var(--px)) 0 var(--px) rgba(27, 42, 74, 0.35),
+      0 0 0 100vmax rgba(27, 42, 74, 0.55);
+  }
+  .case-panel[data-stage='ticket'] .case-scroll { padding: 16px 20px; }
+  .case-panel[data-stage='ticket'] .says { font-size: 18px; }
+  .case-panel[data-stage='ticket'] .ticket-head { padding: 8px 14px; font-size: 20px; }
+  .case-panel[data-stage='ticket'] .ticket dl { gap: 8px 20px; padding: 14px; font-size: 19px; }
 }
 
 /* ---- multiple choice ---- */

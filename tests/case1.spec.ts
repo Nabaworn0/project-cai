@@ -41,7 +41,11 @@ test('a perfect run: three stars, full coins, Somsri leaves happy, and the next 
   await expect(ticket).toContainText('ลง Windows 11');
   await expect(ticket).toContainText('BIOS คลาสสิก (AMI)');
   await expect(ticket, 'the ticket shows symptoms, never the cause').not.toContainText('Boot Device Priority');
-  await facesVisible(page);
+  // On a computer or a tablet on its side the ticket is a big sheet over the shop (case.css), read and then put away;
+  // on phones it stays under the faces.
+  const view = page.viewportSize()!;
+  if (view.width > view.height && view.height > 520) await expect(ticket).toBeInViewport({ ratio: 1 });
+  else await facesVisible(page);
   await shot(page, info, '2-ticket');
 
   await page.getByRole('button', { name: 'รับงาน' }).click();

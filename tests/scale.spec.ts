@@ -89,6 +89,14 @@ test('the shop: the HUD and the customer talk are bigger and fit, the talk in th
   expect(panel.width).toBeCloseTo(1920 * 0.65, -1);
   expect(panel.y).toBeGreaterThan(1080 * 0.6 - 1);
   await page.getByRole('button', { name: 'รับเรื่อง' }).click();
+  // The work ticket comes up as a big sheet in the middle of the screen, all of it and its button in sight.
+  const sheet = page.locator('.case-panel[data-stage="ticket"]');
+  const ticket = (await sheet.boundingBox())!;
+  expect(ticket.x + ticket.width / 2).toBeCloseTo(960, -1);
+  expect(ticket.y + ticket.height / 2).toBeCloseTo(540, -1);
+  expect(ticket.width).toBeGreaterThan(1500);
+  await expect(sheet.getByRole('button', { name: 'รับงาน' })).toBeInViewport({ ratio: 1 });
+  await shot(page, 'scale-ticket');
   await page.getByRole('button', { name: 'รับงาน' }).click();
   // The four guesses two by two: all in sight without scrolling the panel.
   for (const c of await page.locator('.case-panel .choice').all()) await expect(c).toBeInViewport({ ratio: 1 });
