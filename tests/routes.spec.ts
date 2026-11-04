@@ -36,9 +36,9 @@ test('taps change the address; Back and Forward move between the pages', async (
 test('a reload stays on the page: the ordering game, and the shop with the case that is due', async ({ page }) => {
   await seed(page, { learner: LEARNER, ...LEARNED, seen: ALL_TALKS });
   await page.goto('/#/order');
-  await expect(page.getByTestId('order').getByRole('button', { name: 'เริ่มรอบ 1' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('order').getByRole('button', { name: 'เริ่มเรียงขั้นตอน' })).toBeVisible({ timeout: 15_000 });
   await page.reload();
-  await expect(page.getByTestId('order').getByRole('button', { name: 'เริ่มรอบ 1' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('order').getByRole('button', { name: 'เริ่มเรียงขั้นตอน' })).toBeVisible({ timeout: 15_000 });
   await at(page, 'order');
   await page.goto('/#/shop');
   await expectStage(page, 'intro');

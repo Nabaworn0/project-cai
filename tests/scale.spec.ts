@@ -68,7 +68,7 @@ test('a lesson and the ordering game fit on the big screen', async ({ page }) =>
   await shot(page, 'scale-lesson');
   await page.getByTestId('lesson').getByRole('button', { name: '☰ เมนู' }).click();
   await menu(page).getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' }).click();
-  await page.getByTestId('order').getByRole('button', { name: 'เริ่มรอบ 1' }).click();
+  await page.getByTestId('order').getByRole('button', { name: 'เริ่มเรียงขั้นตอน' }).click();
   await onScreen(page, '.learn-page .menu');
   await shot(page, 'scale-order');
 });

@@ -1,5 +1,5 @@
-// The step-ordering game on the learning page (docs/order-plan.md task B): two rounds of putting the steps of a
-// Windows 11 install in order with colour hints, the senior's hint after two misses and his answer with reasons,
+// The step-ordering game on the learning page (docs/order-plan.md task B): putting the steps of a Windows 11
+// install in order with colour hints (one round since 4 Nov 2026: the Setup screens; more rounds still work), the senior's hint after two misses and his answer with reasons,
 // then the stars. The rules are src/core/order.ts; this only draws them.
 // A play is short, so it is not saved half way: leaving starts it over.
 
@@ -44,6 +44,8 @@ export function OrderScreen({ order, seed, onFinish, onBack }: Props) {
   const [rounds, setRounds] = useState<Round[]>(() => answers.map((a, k) => deal(a, `${play}:${k}`)));
   const [phase, setPhase] = useState<Phase>({ at: 'intro' });
   const last = order.rounds.length - 1;
+  /** A single round says nothing of rounds. */
+  const one = order.rounds.length === 1;
 
   // Each tap builds on the latest round, so quick taps in a row all count.
   const change = (k: number, f: (r: Round) => Round) => setRounds((all) => all.map((x, i) => (i === k ? f(x) : x)));
@@ -57,7 +59,8 @@ export function OrderScreen({ order, seed, onFinish, onBack }: Props) {
   const who =
     phase.at === 'round' || phase.at === 'answer' ? (
       <p class="menu-who" data-testid="order-round">
-        รอบ {phase.k + 1}/{order.rounds.length} · {order.rounds[phase.k]!.titleTh}
+        {order.rounds.length > 1 && `รอบ ${phase.k + 1}/${order.rounds.length} · `}
+        {order.rounds[phase.k]!.titleTh}
       </p>
     ) : null;
 
@@ -78,7 +81,9 @@ export function OrderScreen({ order, seed, onFinish, onBack }: Props) {
       {phase.at === 'intro' && (
         <div class="order-intro">
           <Senior face="happy">
-            {`ก่อนเข้าร้าน มาลองเรียงขั้นตอนลง Windows 11 กันก่อน ${order.rounds.length} รอบ: ${order.rounds.map((r) => r.titleTh).join(' แล้วก็ ')}`}
+            {order.rounds.length > 1
+              ? `ก่อนเข้าร้าน มาลองเรียงขั้นตอนลง Windows 11 กันก่อน ${order.rounds.length} รอบ: ${order.rounds.map((r) => r.titleTh).join(' แล้วก็ ')}`
+              : `ก่อนเข้าร้าน มาลองเรียงขั้นตอนลง Windows 11 ${order.rounds[0]!.titleTh} กันก่อน`}
           </Senior>
           <p>แตะการ์ดเพื่อวางลงช่องว่างถัดไป แตะการ์ดในช่องเพื่อเอาออก วางครบแล้วกด "ตรวจลำดับ" แต่ละช่องจะบอกว่า</p>
           <ul class="order-legend">
@@ -91,10 +96,12 @@ export function OrderScreen({ order, seed, onFinish, onBack }: Props) {
               </li>
             ))}
           </ul>
-          <p class="order-note">ตรวจได้รอบละ {MAX_TRIES} ครั้ง ผิดสองครั้งแล้วพี่ช่างจะใบ้ให้</p>
+          <p class="order-note">
+            ตรวจได้{one ? '' : 'รอบละ'} {MAX_TRIES} ครั้ง ผิดสองครั้งแล้วพี่ช่างจะใบ้ให้
+          </p>
           <div class="actions">
             <button class="btn" type="button" onClick={() => setPhase({ at: 'round', k: 0 })}>
-              เริ่มรอบ 1
+              {one ? 'เริ่มเรียงขั้นตอน' : 'เริ่มรอบ 1'}
             </button>
           </div>
         </div>
@@ -257,11 +264,15 @@ function Result({ result, titles, onAgain, onBack }: { result: OrderResult; titl
       <ul class="order-summary">
         {titles.map((t, k) => (
           <li key={t}>
-            รอบ {k + 1} {t}: {result.solved[k] ? `เรียงถูกในครั้งที่ ${result.tries[k]}` : `ครบ ${MAX_TRIES} ครั้ง พี่ช่างเฉลย`}
+            {titles.length > 1 ? `รอบ ${k + 1} ${t}` : t}: {result.solved[k] ? `เรียงถูกในครั้งที่ ${result.tries[k]}` : `ครบ ${MAX_TRIES} ครั้ง พี่ช่างเฉลย`}
           </li>
         ))}
       </ul>
-      <p class="order-note">ดาวดวงที่ 2: เรียงถูกเองทุกรอบ ไม่ต้องให้พี่ช่างเฉลย · ดวงที่ 3: ทุกรอบเรียงถูกภายใน 3 ครั้ง</p>
+      <p class="order-note">
+        {titles.length > 1
+          ? 'ดาวดวงที่ 2: เรียงถูกเองทุกรอบ ไม่ต้องให้พี่ช่างเฉลย · ดวงที่ 3: ทุกรอบเรียงถูกภายใน 3 ครั้ง'
+          : 'ดาวดวงที่ 2: เรียงถูกเอง ไม่ต้องให้พี่ช่างเฉลย · ดวงที่ 3: เรียงถูกภายใน 3 ครั้ง'}
+      </p>
       <div class="actions">
         <button class="btn ghost" type="button" onClick={onAgain}>
           เล่นอีกครั้ง

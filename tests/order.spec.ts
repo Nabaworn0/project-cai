@@ -1,14 +1,14 @@
 // The step-ordering game on the learning page (docs/order-plan.md task B, src/ui/order/): tap cards into slots,
-// check for colour marks, the senior's hint after two misses, his answer with reasons, two rounds, then the stars,
-// which open the shop.
+// check for colour marks, the senior's hint after two misses, his answer with reasons, then the stars, which open
+// the shop. One round since 4 Nov 2026: the steps on the Windows Setup screens.
 
 import { expect, test, type Page } from '@playwright/test';
 import orderData from '../src/content/data/order.json' with { type: 'json' };
 import { marks } from '../src/core/order';
 import { LEARNED, LEARNER, PRE_DONE } from './helpers';
 
-const [overview, setup] = orderData.rounds.map((r) => r.steps);
-const ids = (steps: typeof overview) => steps!.map((s) => s.id);
+const [setup] = orderData.rounds.map((r) => r.steps);
+const ids = (steps: typeof setup) => steps!.map((s) => s.id);
 const textOf = (id: string) => orderData.rounds.flatMap((r) => r.steps).find((s) => s.id === id)!.th;
 /** Both lessons watched, so the ordering game is what "ทำต่อ" opens next (the lessons: tests/lesson.spec.ts). */
 const LESSONS = ['lesson-os', 'lesson-types'];
@@ -37,7 +37,11 @@ async function arrange(page: Page, row: readonly string[]) {
 const checkRow = (page: Page) => box(page).getByRole('button', { name: 'ตรวจลำดับ' }).click();
 /** The answer with two neighbouring steps swapped. */
 const swapped = (a: readonly string[], k: number) => a.map((id, i) => (i === k ? a[k + 1]! : i === k + 1 ? a[k]! : id));
-
+/** From the learning page into the game, to its first empty row. */
+async function start(page: Page) {
+  await menu(page).getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' }).click();
+  await box(page).getByRole('button', { name: 'เริ่มเรียงขั้นตอน' }).click();
+}
 
 async function fits(page: Page) {
   const r = await page.evaluate(() => {
@@ -52,7 +56,7 @@ async function fits(page: Page) {
   expect(r).toEqual({ page: 0, inner: 0, inside: true });
 }
 
-test('two rounds: tap into slots, colour marks, a hint after two misses, the answer with reasons; the stars open the shop', async ({
+test('one round: tap into slots, colour marks, a hint after two misses, the answer with reasons; the stars open the shop', async ({
   page,
 }, info) => {
   const errors: string[] = [];
@@ -61,33 +65,35 @@ test('two rounds: tap into slots, colour marks, a hint after two misses, the ans
   await page.goto('/?seed=t1');
   await expect(step(page, 'cases')).toHaveAttribute('data-status', 'locked');
   await menu(page).getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' }).click();
-  await expect(box(page).getByTestId('senior-says')).toContainText('2 รอบ: ภาพรวมทั้งงาน แล้วก็ ในหน้า Windows Setup');
+  await expect(box(page).getByTestId('senior-says')).toContainText('มาลองเรียงขั้นตอนลง Windows 11 ในหน้า Windows Setup กันก่อน');
+  await expect(box(page).getByTestId('senior-says')).not.toContainText('รอบ');
   await expect(box(page).locator('.order-legend li')).toHaveText([/ถูกตำแหน่ง/, /ห่างไป 1 ช่อง/, /ยังห่าง/]);
+  await expect(box(page)).toContainText('ตรวจได้ 5 ครั้ง');
   // The page stands in the back room, not outside the shop.
   await expect(box(page)).toHaveAttribute('data-backdrop', 'room');
   await expect(box(page).locator('.room-scene')).toHaveCSS('background-image', /order-room/);
   await expect(box(page).locator('.entrance')).toHaveCount(0);
   await fits(page);
   await shot(page, 'order-intro', info.project.name);
-  await box(page).getByRole('button', { name: 'เริ่มรอบ 1' }).click();
+  await box(page).getByRole('button', { name: 'เริ่มเรียงขั้นตอน' }).click();
 
-  // Round 1: eight empty slots and eight cards; nothing to check yet.
-  const answer1 = ids(overview);
-  await expect(box(page).getByTestId('order-round')).toHaveText('รอบ 1/2 · ภาพรวมทั้งงาน');
-  await expect(box(page).locator('.order-slot')).toHaveCount(8);
+  // Seven empty slots and seven cards; nothing to check yet.
+  const answer1 = ids(setup);
+  await expect(box(page).getByTestId('order-round')).toHaveText('ในหน้า Windows Setup');
+  await expect(box(page).locator('.order-slot')).toHaveCount(7);
   await expect(box(page).locator('.order-slot.filled')).toHaveCount(0);
-  await expect(box(page).locator('.order-card')).toHaveCount(8);
+  await expect(box(page).locator('.order-card')).toHaveCount(7);
   await expect(box(page).getByRole('button', { name: 'ตรวจลำดับ' })).toBeDisabled();
   // The board rises over the shop's sign for the room (as in the test).
   expect((await box(page).locator('.menu').boundingBox())!.y).toBeLessThan(40);
   // A card goes to the first empty slot, and back to the deck when its slot is tapped.
   await box(page)
-    .locator('.order-card', { hasText: textOf('backup') })
+    .locator('.order-card', { hasText: textOf('setup-license') })
     .click();
-  await expect(box(page).locator('.order-slot').first()).toContainText(textOf('backup'));
-  await expect(box(page).locator('.order-card')).toHaveCount(7);
+  await expect(box(page).locator('.order-slot').first()).toContainText(textOf('setup-license'));
+  await expect(box(page).locator('.order-card')).toHaveCount(6);
   await box(page).locator('.order-slot').first().click();
-  await expect(box(page).locator('.order-card')).toHaveCount(8);
+  await expect(box(page).locator('.order-card')).toHaveCount(7);
 
   // First check: the steps turned round by one; each slot marked as the rules say.
   const first = [...answer1.slice(1), answer1[0]!];
@@ -115,104 +121,103 @@ test('two rounds: tap into slots, colour marks, a hint after two misses, the ans
   // Second miss: the senior hints at the first slot still wrong.
   await arrange(page, swapped(answer1, 2));
   await checkRow(page);
-  await expect(box(page).getByTestId('senior-says')).toHaveText(`พี่ช่าง: ${overview![2]!.hintTh}`);
+  await expect(box(page).getByTestId('senior-says')).toHaveText(`พี่ช่าง: ${setup![2]!.hintTh}`);
   await fits(page);
   await shot(page, 'order-hint', info.project.name);
 
-  // Third: right. The senior goes through every step's reason.
+  // Third: right. The senior goes through every step's reason, then the stars.
   await arrange(page, answer1);
   await checkRow(page);
   const answer = box(page).getByTestId('order-answer');
   await expect(answer).toContainText('เรียงถูกหมดในครั้งที่ 3');
-  await expect(answer.locator('.order-why li')).toHaveCount(8);
-  await expect(answer.locator('.order-why li').nth(1)).toContainText(overview![1]!.whyTh);
+  await expect(answer.locator('.order-why li')).toHaveCount(7);
+  await expect(answer.locator('.order-why li').nth(1)).toContainText(setup![1]!.whyTh);
   await fits(page);
   await shot(page, 'order-answer', info.project.name);
-  await answer.getByRole('button', { name: 'ไปรอบ 2' }).click();
-
-  // Round 2: five misses, then the answer is shown anyway.
-  const answer2 = ids(setup);
-  await expect(box(page).getByTestId('order-round')).toHaveText('รอบ 2/2 · ในหน้า Windows Setup');
-  for (const k of [0, 1, 2, 3, 4]) {
-    await arrange(page, swapped(answer2, k));
-    await checkRow(page);
-  }
-  await expect(answer).toContainText('ครบ 5 ครั้งแล้ว');
-  await expect(answer.locator('.order-why li')).toHaveCount(7);
   await answer.getByRole('button', { name: 'ดูผล' }).click();
 
   const result = box(page).getByTestId('order-result');
-  // Round 2 was not solved: no second star, so no third either.
-  await expect(result.locator('.order-stars')).toHaveAttribute('aria-label', 'ได้ 1 ดาว จาก 3');
-  await expect(result).toContainText('รอบ 1 ภาพรวมทั้งงาน: เรียงถูกในครั้งที่ 3');
-  await expect(result).toContainText('รอบ 2 ในหน้า Windows Setup: ครบ 5 ครั้ง พี่ช่างเฉลย');
-  await expect(result).not.toContainText('สายพาน');
+  // Solved by itself, within 3 checks: three stars.
+  await expect(result.locator('.order-stars')).toHaveAttribute('aria-label', 'ได้ 3 ดาว จาก 3');
+  await expect(result.locator('.order-summary li')).toHaveText(['ในหน้า Windows Setup: เรียงถูกในครั้งที่ 3']);
+  await expect(result).toContainText('ดาวดวงที่ 2: เรียงถูกเอง ไม่ต้องให้พี่ช่างเฉลย · ดวงที่ 3: เรียงถูกภายใน 3 ครั้ง');
   await fits(page);
   await shot(page, 'order-result', info.project.name);
 
   const p = await saved(page);
   expect(p.done).toContain('order');
-  expect(p.order).toEqual({ stars: 1, plays: 1, first: { tries: [3, 5], solved: [true, false] } });
+  expect(p.order).toEqual({ stars: 3, plays: 1, first: { tries: [3], solved: [true] } });
   await result.getByRole('button', { name: 'กลับเส้นทางเรียน' }).click();
   await expect(step(page, 'order')).toHaveAttribute('data-status', 'done');
-  await expect(step(page, 'order').getByLabel('ได้ 1 ดาว')).toBeVisible();
+  await expect(step(page, 'order').getByLabel('ได้ 3 ดาว')).toBeVisible();
   await expect(step(page, 'cases')).toHaveAttribute('data-status', 'open');
   await expect(menu(page).getByRole('button', { name: 'ทำต่อ: ฝึกงานที่ร้าน · เคส 1 ป้าสมศรี' })).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('five misses: the senior shows the answer anyway; one star', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'the screen itself is checked at every size above');
+  await seed(page, { learner: LEARNER, pre: PRE_DONE, done: LESSONS });
+  await page.goto('/?seed=t5');
+  await start(page);
+  const a = ids(setup);
+  for (const k of [0, 1, 2, 3, 4]) {
+    await arrange(page, swapped(a, k));
+    await checkRow(page);
+  }
+  const answer = box(page).getByTestId('order-answer');
+  await expect(answer).toContainText('ครบ 5 ครั้งแล้ว');
+  await expect(answer.locator('.order-why li')).toHaveCount(7);
+  await answer.getByRole('button', { name: 'ดูผล' }).click();
+  await expect(box(page).locator('.order-stars')).toHaveAttribute('aria-label', 'ได้ 1 ดาว จาก 3');
+  await expect(box(page).getByTestId('order-result')).toContainText('ในหน้า Windows Setup: ครบ 5 ครั้ง พี่ช่างเฉลย');
+  expect((await saved(page)).order).toEqual({ stars: 1, plays: 1, first: { tries: [5], solved: [false] } });
 });
 
 test('quick taps in a row all land', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'the screen itself is checked at every size above');
   await seed(page, { learner: LEARNER, pre: PRE_DONE, done: LESSONS });
   await page.goto('/?seed=t2');
-  await menu(page).getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' }).click();
-  await box(page).getByRole('button', { name: 'เริ่มรอบ 1' }).click();
+  await start(page);
   // Every card clicked within one moment, before the screen redraws.
   await box(page)
     .locator('.order-card')
     .evaluateAll((cards) => cards.forEach((c) => (c as HTMLElement).click()));
-  await expect(box(page).locator('.order-slot.filled')).toHaveCount(8);
+  await expect(box(page).locator('.order-slot.filled')).toHaveCount(7);
   await expect(box(page).getByRole('button', { name: 'ตรวจลำดับ' })).toBeEnabled();
 });
 
 test('played again from its card: the best stars stay, the first play is kept as it went', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'the screen itself is checked at every size above');
-  // A play saved before the boss belt was taken out (4 Nov 2026) still holds its hearts lost; it loads all the same.
+  // A play saved while the game had two rounds and the boss belt (before 4 Nov 2026) loads all the same; its hearts
+  // lost are dropped.
   await seed(page, { learner: LEARNER, ...LEARNED, order: { stars: 3, plays: 1, first: { tries: [1, 1], solved: [true, true], lost: 0 } } });
   await page.goto('/?seed=t3');
   await expect(step(page, 'order').getByLabel('ได้ 3 ดาว')).toBeVisible();
   await step(page, 'order').locator('.path-row').click();
-  await box(page).getByRole('button', { name: 'เริ่มรอบ 1' }).click();
-  for (const [k, a] of [ids(overview), ids(setup)].entries()) {
-    // Four misses each, then right: both solved (the second star) but not within 3 checks.
-    for (const row of [swapped(a, 0), swapped(a, 1), swapped(a, 2), swapped(a, 3)]) {
-      await arrange(page, row);
-      await checkRow(page);
-    }
-    await arrange(page, a);
+  await box(page).getByRole('button', { name: 'เริ่มเรียงขั้นตอน' }).click();
+  const a = ids(setup);
+  // Four misses, then right: solved (the second star) but not within 3 checks.
+  for (const row of [swapped(a, 0), swapped(a, 1), swapped(a, 2), swapped(a, 3)]) {
+    await arrange(page, row);
     await checkRow(page);
-    await box(page)
-      .getByRole('button', { name: k === 0 ? 'ไปรอบ 2' : 'ดูผล' })
-      .click();
   }
+  await arrange(page, a);
+  await checkRow(page);
+  await box(page).getByRole('button', { name: 'ดูผล' }).click();
   await expect(box(page).locator('.order-stars')).toHaveAttribute('aria-label', 'ได้ 2 ดาว จาก 3');
   expect((await saved(page)).order).toEqual({ stars: 3, plays: 2, first: { tries: [1, 1], solved: [true, true] } });
 });
 
-test('both rounds right at the first check: three stars, straight after round 2', async ({ page }, info) => {
+test('right at the first check: three stars', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'the screen itself is checked at every size above');
   await seed(page, { learner: LEARNER, pre: PRE_DONE, done: LESSONS });
   await page.goto('/?seed=t4');
-  await menu(page).getByRole('button', { name: 'ทำต่อ: เรียงขั้นตอนการติดตั้ง' }).click();
-  await box(page).getByRole('button', { name: 'เริ่มรอบ 1' }).click();
-  for (const [k, a] of [ids(overview), ids(setup)].entries()) {
-    await arrange(page, a);
-    await checkRow(page);
-    await box(page)
-      .getByRole('button', { name: k === 0 ? 'ไปรอบ 2' : 'ดูผล' })
-      .click();
-  }
+  await start(page);
+  await arrange(page, ids(setup));
+  await checkRow(page);
+  await box(page).getByRole('button', { name: 'ดูผล' }).click();
   await expect(box(page).locator('.order-stars')).toHaveAttribute('aria-label', 'ได้ 3 ดาว จาก 3');
-  await expect(box(page).locator('.order-summary li')).toHaveCount(2);
-  expect((await saved(page)).order).toEqual({ stars: 3, plays: 1, first: { tries: [1, 1], solved: [true, true] } });
+  await expect(box(page).locator('.order-summary li')).toHaveCount(1);
+  expect((await saved(page)).order).toEqual({ stars: 3, plays: 1, first: { tries: [1], solved: [true] } });
 });

@@ -180,16 +180,16 @@ test('the course test: answers in range, choices differ, objectives 1-3 each tes
   );
 });
 
-test('the ordering game: cards told apart by id and text, the boss opens a real step into a later round', () => {
+test('the ordering game: cards and rounds told apart by id, cards by their text', () => {
   let files = real();
-  get(files, 'order.json').rounds[1].steps[0].id = 'backup';
-  hasError(files, 'duplicate card id "backup"');
+  get(files, 'order.json').rounds[0].steps[1].id = 'setup-language';
+  hasError(files, 'duplicate card id "setup-language"');
   files = real();
-  get(files, 'order.json').rounds[1].steps[0].th = get(files, 'order.json').rounds[0].steps[2].th;
+  get(files, 'order.json').rounds[0].steps[1].th = get(files, 'order.json').rounds[0].steps[2].th;
   hasError(files, 'order.json: duplicate card text');
   files = real();
-  get(files, 'order.json').rounds[1].id = 'overview';
-  hasError(files, 'duplicate round "overview"');
+  get(files, 'order.json').rounds.push({ ...get(files, 'order.json').rounds[0] });
+  hasError(files, 'duplicate round "setup"');
   hasError(
     real().filter((f) => f.path !== 'order.json'),
     'order.json: missing',

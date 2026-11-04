@@ -8,14 +8,15 @@ import { check, deal, full, hintFor, lift, marks, MAX_TRIES, orderStars, over, p
 import { EMPTY, parseProgress, recordOrder } from '../src/core/path';
 
 const order = OrderSchema.parse(JSON.parse(readFileSync(new URL('../src/content/data/order.json', import.meta.url), 'utf8')));
-const overview = order.rounds[0]!.steps.map((s) => s.id);
-const setup = order.rounds[1]!.steps.map((s) => s.id);
+const setup = order.rounds[0]!.steps.map((s) => s.id);
+/** An eight-step row for the rules (the whole job, as the game's first round once had it). */
+const overview = ['check-spec', 'backup', 'make-usb', 'bios-boot', 'run-setup', 'restart', 'oobe', 'update'];
 
 const fill = (r: Round, ids: readonly string[]) => ids.reduce(place, r);
 const fresh = (r: Round) => r.slots.reduce<Round>((acc, _, k) => lift(acc, k), r);
 
-test('the real content: 8 overview steps and 7 Setup steps', () => {
-  assert.equal(overview.length, 8);
+test('the real content: one round, the 7 steps on the Windows Setup screens', () => {
+  assert.equal(order.rounds.length, 1);
   assert.equal(setup.length, 7);
 });
 
