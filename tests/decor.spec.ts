@@ -221,10 +221,15 @@ async function checkPlaces(page: Page) {
   // On the wall: under the sign, above the counter.
   expect(d.wall!.y).toBeGreaterThan(sign.y + sign.height);
   expect(d.wall!.y + d.wall!.height).toBeLessThan(counterY);
-  // Standing on the floor in front of the counter, under the intern.
+  // Standing on the floor in front of the counter: under the intern, or, where the panel stands in the middle at the
+  // bottom (computers and tablets on their side, case.css), left of the panel.
   expect(Math.abs(d.floor!.y + d.floor!.height - floorY)).toBeLessThanOrEqual(12);
-  expect(d.floor!.x).toBeLessThan(tech[0]!);
-  expect(d.floor!.x + d.floor!.width).toBeGreaterThan(tech[0]!);
+  const centred = view.width > view.height && view.height > 520;
+  if (centred) expect(d.floor!.x + d.floor!.width).toBeLessThanOrEqual(panel.x);
+  else {
+    expect(d.floor!.x).toBeLessThan(tech[0]!);
+    expect(d.floor!.x + d.floor!.width).toBeGreaterThan(tech[0]!);
+  }
 }
 
 /** Free play with one of each place's items put out, at the counter with Somsri's words in the panel. */

@@ -46,14 +46,28 @@
 .case-panel .ask { font-family: var(--f-head); font-weight: 700; }
 .case-panel .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 8px; }
 
-/* Landscape (PCs and phones on their side): the panel goes to the right, beside the customer and the
-   technician (who stand left of centre), so their faces stay in view. */
-@media (orientation: landscape) {
+/* Phones on their side: too short for the panel under the customer and the technician (who stand left of
+   centre), so it goes to the right, beside them, and their faces stay in view. */
+@media (orientation: landscape) and (max-height: 520px) {
   .narration.case-panel {
     left: auto; right: max(12px, var(--safe-r)); transform: none;
     top: auto; bottom: calc(10px + var(--safe-b));
     width: min(44%, 460px); max-height: calc(100dvh / var(--ui) - 76px - var(--safe-t) - var(--safe-b));
   }
+}
+/* Computers and tablets on their side: the panel stands in the middle at the bottom, over the counter, under the
+   faces, and grows a little more than the rest on a big screen (--ui-big, src/ui/scale.ts). A dvh in it is zoomed
+   by both, so it is divided by both. */
+@media (orientation: landscape) and (min-height: 521px) {
+  /* #ui's own rule zooms it by --ui; this one, more specific, zooms it by both. */
+  #ui > .narration.case-panel {
+    zoom: calc(var(--ui) * var(--ui-big));
+    /* At most 65% of the width: the floor beside it keeps room for free play's floor decoration (ShopScene). */
+    width: min(640px, 65%); bottom: calc(12px + var(--safe-b));
+    max-height: min(calc(40dvh / (var(--ui) * var(--ui-big))), 520px);
+  }
+  /* Wide enough for the choices two by two: four of them fit without scrolling, under the faces. */
+  .case-panel .choices { grid-template-columns: 1fr 1fr; }
 }
 
 /* ---- multiple choice ---- */

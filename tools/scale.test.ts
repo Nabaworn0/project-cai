@@ -2,7 +2,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { BASE, HOME_BOOST, homeBoost, MAX_UI, uiScale } from '../src/ui/scale';
+import { BASE, BIG_BOOST, bigBoost, MAX_UI, uiScale } from '../src/ui/scale';
 
 test('phones and laptops up to the base size are drawn as they are', () => {
   for (const [w, h] of [
@@ -29,9 +29,9 @@ test('never more than MAX_UI, however big the screen', () => {
 });
 
 test('the learning path grows a little more: none on a laptop-sized screen, 2× in all on 1920×1080, never past MAX_UI', () => {
-  assert.equal(homeBoost(1), 1);
-  assert.equal(homeBoost(uiScale(1920, 1080)), HOME_BOOST);
-  assert.ok(Math.abs(uiScale(1920, 1080) * homeBoost(uiScale(1920, 1080)) - 2) < 0.01);
-  assert.ok(homeBoost(1.2) > 1 && homeBoost(1.2) < HOME_BOOST);
-  assert.equal(homeBoost(MAX_UI), 1);
+  assert.equal(bigBoost(1), 1);
+  assert.equal(bigBoost(uiScale(1920, 1080)), BIG_BOOST);
+  assert.ok(Math.abs(uiScale(1920, 1080) * bigBoost(uiScale(1920, 1080)) - 2) < 0.01);
+  assert.ok(bigBoost(1.2) > 1 && bigBoost(1.2) < BIG_BOOST);
+  assert.equal(bigBoost(MAX_UI), 1);
 });

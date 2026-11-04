@@ -35,7 +35,7 @@ test('the learning page drawn twice as big, the test about 1.7 times; both fit',
   await page.goto('/');
   await expect(menu(page)).toBeVisible({ timeout: 15_000 });
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ui').trim())).toBe('1.69');
-  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ui-home').trim())).toBe('1.18');
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ui-big').trim())).toBe('1.18');
   // 560 px wide on a laptop.
   const board = (await page.locator('.learn-page .menu').boundingBox())!;
   expect(board.width).toBeCloseTo(560 * 1.69 * 1.18, -1);
@@ -73,7 +73,7 @@ test('a lesson and the ordering game fit on the big screen', async ({ page }) =>
   await shot(page, 'scale-order');
 });
 
-test('the shop: the HUD and the customer talk are bigger and fit; the sign keeps its name', async ({ page }) => {
+test('the shop: the HUD and the customer talk are bigger and fit, the talk in the middle; the sign keeps its name', async ({ page }) => {
   await openShop(page);
   await expect(page.getByRole('button', { name: 'รับเรื่อง' })).toBeVisible();
   const chip = (await page.locator('.hud .menu-chip').boundingBox())!;
@@ -82,6 +82,16 @@ test('the shop: the HUD and the customer talk are bigger and fit; the sign keeps
   await hudFits(page);
   await onScreen(page, '.hud');
   await onScreen(page, '.case-panel');
+  // The customer's talk stands in the middle at the bottom, under the faces: 640 px wide on a laptop, drawn 2× here
+  // but kept to 65% of the screen's width.
+  const panel = (await page.locator('.case-panel').boundingBox())!;
+  expect(panel.x + panel.width / 2).toBeCloseTo(960, -1);
+  expect(panel.width).toBeCloseTo(1920 * 0.65, -1);
+  expect(panel.y).toBeGreaterThan(1080 * 0.6 - 1);
+  await page.getByRole('button', { name: 'รับเรื่อง' }).click();
+  await page.getByRole('button', { name: 'รับงาน' }).click();
+  // The four guesses two by two: all in sight without scrolling the panel.
+  for (const c of await page.locator('.case-panel .choice').all()) await expect(c).toBeInViewport({ ratio: 1 });
   // The name sits on the sign drawn in the canvas, not zoomed off it.
   const label = (await page.locator('.sign-label').boundingBox())!;
   expect(label.x + label.width / 2).toBeCloseTo(960, -1);

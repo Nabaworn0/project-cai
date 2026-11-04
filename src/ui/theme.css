@@ -21,7 +21,7 @@
   --safe-r: env(safe-area-inset-right, 0px);
   /* How much bigger the HTML over the game is drawn on a big screen (src/ui/scale.ts sets it). */
   --ui: 1;
-  --ui-home: 1;
+  --ui-big: 1;
   color-scheme: light;
 }
 

@@ -48,8 +48,8 @@
 }
 /* The test needs the room: the board rises over the sign (its own header names the shop). */
 .learn-page.tall { padding-top: calc(16px + var(--safe-t)); }
-/* The learning path on a big screen: its board grows a little more than the others (src/ui/scale.ts). */
-.learn-page.home .menu { zoom: var(--ui-home); }
+/* The learning path on a big screen: its board grows a little more than the others (--ui-big, src/ui/scale.ts). */
+.learn-page.home .menu { zoom: var(--ui-big); }
 /* The lesson cartoons want the room. */
 .learn-page.wide .menu { width: min(860px, 100%); }
 /* The notice board: a wood frame with a dark edge, and a coral pin at the top. */

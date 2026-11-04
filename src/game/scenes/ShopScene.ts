@@ -43,6 +43,18 @@ export interface ShopLayout {
   signDecor: number;
 }
 
+/** Where the case panel stands over the canvas in landscape (case.css), in art px: its left edge, and `top`, from
+ *  where down things keep clear of it. A phone on its side (520 CSS px tall or less) has it at the right, the whole
+ *  height. */
+function casePanel(W: number, H: number, zoom: number, top: number): { left: number; top: number } {
+  if (H * zoom <= 520) return { left: Math.floor(W - (Math.min(W * zoom * 0.44, 460) + 12) / zoom), top: 0 };
+  const css = getComputedStyle(document.documentElement);
+  const z = (parseFloat(css.getPropertyValue('--ui')) || 1) * (parseFloat(css.getPropertyValue('--ui-big')) || 1);
+  const vw = W * zoom;
+  const width = Math.min(640 * z, 0.65 * vw);
+  return { left: Math.floor((vw - width) / 2 / zoom), top };
+}
+
 export class ShopScene extends Phaser.Scene {
   private bg!: Phaser.GameObjects.Graphics;
   private front!: Phaser.GameObjects.Graphics;
@@ -302,13 +314,17 @@ export class ShopScene extends Phaser.Scene {
       this.laptop.setPosition(lx, counterTop - this.laptop.height + 1);
     }
 
-    // Decorations, each in its place and clear of the case panel (landscape: its left edge, case.css).
-    const panelLeft = portrait ? W : Math.floor(W - (Math.min(W * zoom * 0.44, 460) + 12) / zoom);
+    // Decorations, each in its place and clear of the case panel (case.css): on a phone on its side the panel
+    // stands at the right, the whole height; on a computer it stands in the middle at the bottom, over the counter's
+    // front and the floor, so whatever stands below the counter's top moves left of it.
+    const panel = portrait ? null : casePanel(W, H, zoom, counterTop + 4);
     const gapL = showWindow ? margin + winW : margin;
     const gapR = W - margin - shelfW;
     const at = (slot: string, x: number, y: number) => {
       const img = this.decor.get(slot);
-      if (img) img.setPosition(Math.round(Math.max(2, Math.min(x, panelLeft - img.width - 2))), Math.round(y));
+      if (!img) return;
+      const under = panel && y + img.height > panel.top;
+      img.setPosition(Math.round(Math.max(2, under ? Math.min(x, panel.left - img.width - 2) : x)), Math.round(y));
     };
     const size = (slot: string) => this.decor.get(slot)?.height ?? 0;
     at('sign', signX + 3, signY + Math.floor((signH - size('sign')) / 2));
