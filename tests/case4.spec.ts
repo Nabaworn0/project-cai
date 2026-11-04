@@ -3,7 +3,7 @@
 // in the BIOS, and the traps. ?seed= fixes his PC: s1 has TPM off, s3 has TPM and Secure Boot off.
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { expectStage } from './helpers';
+import { answerCheck, expectStage } from './helpers';
 import fb from '../src/content/data/feedback.json' with { type: 'json' };
 
 const shot = (page: Page, info: TestInfo, name: string) => page.screenshot({ path: info.outputPath(`${info.project.name}-${name}.png`) });
@@ -27,7 +27,7 @@ const SAVE = ['F10', 'Enter'];
 async function answerTable(page: Page, wrong: string[] = []) {
   for (const [id, right] of Object.entries(RIGHT)) {
     const answer = wrong.includes(id) ? (right === 'ผ่าน' ? 'ไม่ผ่าน' : 'ผ่าน') : right;
-    await page.locator(`[data-check="${id}"]`).getByRole('button', { name: answer, exact: true }).click();
+    await answerCheck(page, id, answer);
   }
 }
 
@@ -146,21 +146,32 @@ test('the traps: TPM left unsaved (same reason again) and CSM turned on (old Win
   await expect(page.getByTestId('check-score')).toHaveText('เทียบข้อกำหนด Windows 11 ถูก 3/5 ข้อ (+30 เหรียญ)');
 });
 
-test('the job cannot be taken until every row of the table is answered; each row answers once', async ({ page }, info) => {
+test('the table comes a row at a time; the job cannot be taken until every row is answered; each row answers once', async ({ page }, info) => {
   await page.goto('/?case=c04-security-chip&seed=s1');
   await expectStage(page, 'intro');
   await page.getByRole('button', { name: 'รับเรื่อง' }).click();
   const take = page.getByRole('button', { name: 'รับงาน' });
   await expect(take).toBeDisabled();
+  // One card at a time, the strip naming all five.
+  await expect(page.locator('.w11check-row')).toHaveCount(1);
+  await expect(page.getByTestId('check-count')).toHaveText('ข้อ 1 จาก 5');
+  await expect(page.locator('.w11check-strip li')).toHaveText(['CPU', 'RAM', 'ความจุ', 'Secure Boot', 'TPM']);
+  for (const id of ['cpu', 'ram', 'storage', 'secure-boot']) {
+    const card = page.locator(`[data-check="${id}"]`);
+    // The next row waits until this one is answered and its reason shown.
+    await expect(card.getByRole('button', { name: 'ข้อต่อไป →' })).toHaveCount(0);
+    await answerCheck(page, id, RIGHT[id]!);
+  }
+  await expect(page.getByTestId('check-count')).toHaveText('ข้อ 5 จาก 5');
+  await expect(page.locator('.w11check-strip li').first()).toHaveText('✔ CPU');
+  await expect(take).toBeDisabled();
   const tpm = page.locator('[data-check="tpm"]');
   await tpm.getByRole('button', { name: 'ผ่าน', exact: true }).click();
   await expect(tpm).toContainText('คำตอบคือ "ต้องดูใน BIOS"');
   await expect(tpm.getByRole('button', { name: 'ต้องดูใน BIOS' })).toBeDisabled();
-  await expect(take).toBeDisabled();
+  await expect(page.locator('.w11check-strip li').last()).toHaveText('✘ TPM');
+  await expect(tpm).toContainText('ตอบครบ 5 ข้อแล้ว');
   await shot(page, info, 'f5-table-wrong');
-  for (const id of ['cpu', 'ram', 'storage', 'secure-boot']) {
-    await page.locator(`[data-check="${id}"]`).getByRole('button', { name: RIGHT[id], exact: true }).click();
-  }
   await expect(take).toBeEnabled();
   const sideways = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(sideways).toBeLessThanOrEqual(0);

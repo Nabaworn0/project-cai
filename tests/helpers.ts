@@ -234,3 +234,12 @@ export async function openTeacher(page: Page) {
   await gate.getByRole('button', { name: 'เข้าหน้าครู' }).click();
   await expect(page.getByTestId('teacher')).toBeVisible({ timeout: 15_000 });
 }
+
+/** One row of the Windows 11 requirements table (src/ui/case/Win11Check.tsx), which shows a row at a time: the
+ *  answer on that row's card, then "ข้อต่อไป" when there is a next row. */
+export async function answerCheck(page: Page, id: string, answer: string) {
+  const card = page.locator(`[data-check="${id}"]`);
+  await card.getByRole('button', { name: answer, exact: true }).click();
+  const next = card.getByRole('button', { name: 'ข้อต่อไป →' });
+  if (await next.isVisible()) await next.click();
+}

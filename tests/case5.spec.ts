@@ -4,7 +4,7 @@
 // ?seed= fixes her PC: s1 legacy only, s3 no product key too, s5 TPM off too.
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { ALL_TALKS, expectStage, LEARNED } from './helpers';
+import { ALL_TALKS, answerCheck, expectStage, LEARNED } from './helpers';
 import fb from '../src/content/data/feedback.json' with { type: 'json' };
 
 const shot = (page: Page, info: TestInfo, name: string) => page.screenshot({ path: info.outputPath(`${info.project.name}-${name}.png`) });
@@ -30,7 +30,7 @@ async function toRepair(page: Page, seed: string, info?: TestInfo, ticketHas?: s
   await expect(page.getByRole('group', { name: 'ใบรับงาน' })).toContainText('LAB-PC01');
   await expect(page.getByRole('group', { name: 'ใบรับงาน' })).toContainText('Windows 11 Pro');
   if (ticketHas) await expect(page.getByRole('group', { name: 'ใบรับงาน' })).toContainText(ticketHas);
-  for (const [id, a] of Object.entries(RIGHT)) await page.locator(`[data-check="${id}"]`).getByRole('button', { name: a, exact: true }).click();
+  for (const [id, a] of Object.entries(RIGHT)) await answerCheck(page, id, a);
   if (info) await shot(page, info, 'g1-ticket');
   await page.getByRole('button', { name: 'รับงาน' }).click();
   await expect(page.getByTestId('error-photo')).toContainText("This PC doesn't currently meet Windows 11 system requirements.");
@@ -311,7 +311,7 @@ test('the order of customers: after Ton (case 4) comes Teacher Wilai (case 5)', 
   await page.goto('/?case=c04-security-chip&seed=s1');
   await expectStage(page, 'intro');
   await page.getByRole('button', { name: 'รับเรื่อง' }).click();
-  for (const [id, a] of Object.entries(RIGHT)) await page.locator(`[data-check="${id}"]`).getByRole('button', { name: a, exact: true }).click();
+  for (const [id, a] of Object.entries(RIGHT)) await answerCheck(page, id, a);
   await page.getByRole('button', { name: 'รับงาน' }).click();
   await page.getByRole('button', { name: 'ฟีเจอร์ความปลอดภัยใน BIOS ถูกปิดไว้' }).click();
   await page.getByRole('button', { name: 'ไปซ่อมเครื่อง' }).click();

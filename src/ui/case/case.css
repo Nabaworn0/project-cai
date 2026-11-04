@@ -82,6 +82,11 @@
   .case-panel[data-stage='ticket'] .says { font-size: 18px; }
   .case-panel[data-stage='ticket'] .ticket-head { padding: 8px 14px; font-size: 20px; }
   .case-panel[data-stage='ticket'] .ticket dl { gap: 8px 20px; padding: 14px; font-size: 19px; }
+  .case-panel[data-stage='ticket'] .w11check-row { padding: 14px 16px; }
+  .case-panel[data-stage='ticket'] .w11check-need { font-size: 19px; }
+  .case-panel[data-stage='ticket'] .w11check-value { font-size: 17px; }
+  .case-panel[data-stage='ticket'] .w11check-feedback { font-size: 16px; }
+  .case-panel[data-stage='ticket'] .w11check-strip li { font-size: 14px; padding: 3px 10px; }
 }
 
 /* ---- multiple choice ---- */
@@ -206,6 +211,14 @@
 .w11check-feedback { margin: 6px 0 0; font-size: 14px; }
 .w11check-feedback.ok { color: #1d6b4f; }
 .w11check-feedback.no { color: #a33a2a; }
+.w11check-strip { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.w11check-strip li { padding: 2px 8px; font-size: 13px; font-weight: 700; color: #5f6b80; background: #eef1f6; }
+.w11check-strip li.ok { color: #1d6b4f; background: #dff6e3; }
+.w11check-strip li.no { color: #a33a2a; background: #ffe1e1; }
+.w11check-strip li.now { color: #fff; background: var(--navy); }
+.w11check-count { margin: 0 0 2px; font-family: var(--f-head); font-weight: 700; font-size: 13px; color: var(--teal-shade); }
+.w11check-next { display: flex; justify-content: flex-end; margin-top: 8px; }
+.w11check-done { margin: 8px 0 0; font-weight: 700; color: var(--navy); }
 
 /* A talk with the senior (TalkBox.tsx): the speaker's name in their own colour, and how far along the talk is. */
 .case-panel .speaker.senior { background: #8a5a33; color: var(--cream); }
