@@ -329,11 +329,12 @@ function orderRecord(v: unknown): OrderRecord | null {
   if (!isObj(v) || !isObj(v.first)) return null;
   const stars = count(v.stars);
   const plays = count(v.plays);
-  const { tries, solved, lost } = v.first;
+  // Records from before 4 Nov 2026 also hold the boss belt's hearts lost; that is dropped.
+  const { tries, solved } = v.first;
   const okTries = Array.isArray(tries) && tries.every((t) => count(t) !== null);
   const okSolved = Array.isArray(solved) && solved.every((s) => typeof s === 'boolean');
-  if (stars === null || stars < 1 || stars > 3 || plays === null || plays < 1 || !okTries || !okSolved || count(lost) === null) return null;
-  return { stars, plays, first: { tries: tries as number[], solved: solved as boolean[], lost: lost as number } };
+  if (stars === null || stars < 1 || stars > 3 || plays === null || plays < 1 || !okTries || !okSolved) return null;
+  return { stars, plays, first: { tries: tries as number[], solved: solved as boolean[] } };
 }
 
 function lessonRecords(v: unknown): Record<string, LessonRecord> {

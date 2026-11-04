@@ -185,20 +185,11 @@ test('the ordering game: cards told apart by id and text, the boss opens a real 
   get(files, 'order.json').rounds[1].steps[0].id = 'backup';
   hasError(files, 'duplicate card id "backup"');
   files = real();
-  get(files, 'order.json').traps[0].th = get(files, 'order.json').rounds[0].steps[2].th;
+  get(files, 'order.json').rounds[1].steps[0].th = get(files, 'order.json').rounds[0].steps[2].th;
   hasError(files, 'order.json: duplicate card text');
   files = real();
   get(files, 'order.json').rounds[1].id = 'overview';
   hasError(files, 'duplicate round "overview"');
-  files = real();
-  get(files, 'order.json').boss.expand = 'setup-image';
-  hasError(files, 'boss expands "setup-image", not a step of the first round');
-  files = real();
-  get(files, 'order.json').boss.into = 'overview';
-  hasError(files, 'boss opens into "overview", not a later round');
-  files = real();
-  get(files, 'order.json').traps.length = 3;
-  assert.ok(run(files).warnings.some((w) => w.includes('การ์ดกับดักแค่ 3 ใบ')));
   hasError(
     real().filter((f) => f.path !== 'order.json'),
     'order.json: missing',

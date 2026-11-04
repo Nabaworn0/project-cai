@@ -50,7 +50,7 @@ test('one learner by the four objectives: before, while learning, after and thei
     post: postSitting(10),
     done: ['lesson-os', 'order', 'reflect'],
     lessons: { 'lesson-os': { at: 0, first: [os.questions[0]!.answer, (os.questions[1]!.answer + 1) % 3] } },
-    order: { stars: 3, plays: 2, first: { tries: [2, 5], solved: [true, true], lost: 1 } },
+    order: { stars: 3, plays: 2, first: { tries: [2, 5], solved: [true, true] } },
     reflect: { self: { 'self-os': 4, 'self-install': 2 }, write: {}, sat: {}, suggest: '', at: 1 },
   };
   p = recordCase(recordCase(p, 'c1', 2), 'c1', 3);
@@ -160,10 +160,10 @@ test('the class: tests before and after, each item, satisfaction by item, group 
     learner: learner('1'),
     pre: sitting(3),
     post: postSitting(8),
-    order: { stars: 3, plays: 1, first: { tries: [1, 1], solved: [true, true], lost: 0 } },
+    order: { stars: 3, plays: 1, first: { tries: [1, 1], solved: [true, true] } },
     reflect: { self: { 'self-os': 5 }, write: {}, sat: sat(5), suggest: '', at: 1 },
   };
-  const b: Progress = { ...a, learner: learner('2'), pre: sitting(5), post: postSitting(9), order: { stars: 1, plays: 1, first: { tries: [4, 4], solved: [true, true], lost: 2 } }, reflect: { ...a.reflect!, self: { 'self-os': 3 }, sat: sat(2) } };
+  const b: Progress = { ...a, learner: learner('2'), pre: sitting(5), post: postSitting(9), order: { stars: 1, plays: 1, first: { tries: [5, 5], solved: [false, false] } }, reflect: { ...a.reflect!, self: { 'self-os': 3 }, sat: sat(2) } };
   const none: Progress = { ...EMPTY, learner: learner('3'), pre: sitting(1) };
   const f = classFigures([a, b, none], C);
   assert.equal(f.learners, 3);

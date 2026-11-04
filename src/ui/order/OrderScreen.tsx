@@ -1,6 +1,6 @@
 // The step-ordering game on the learning page (docs/order-plan.md task B): two rounds of putting the steps of a
 // Windows 11 install in order with colour hints, the senior's hint after two misses and his answer with reasons,
-// then the boss belt (BossBelt.tsx) and the stars. The rules are src/core/order.ts; this only draws them.
+// then the stars. The rules are src/core/order.ts; this only draws them.
 // A play is short, so it is not saved half way: leaving starts it over.
 
 import { useEffect, useMemo, useState } from 'preact/hooks';
@@ -23,19 +23,18 @@ import {
 } from '../../core/order';
 import { STEP_INFO } from '../../core/path';
 import { LearnPage } from '../menu/MenuScreen';
-import { BossBelt } from './BossBelt';
 import { Senior } from './Senior';
 import './order.css';
 
 interface Props {
   order: Order;
-  /** ?seed= fixes the deal and the belt (tests, teachers); otherwise new each play. */
+  /** ?seed= fixes the deal (tests, teachers); otherwise new each play. */
   seed: string | null;
   onFinish: (r: OrderResult) => void;
   onBack: () => void;
 }
 
-type Phase = { at: 'intro' } | { at: 'round'; k: number } | { at: 'answer'; k: number } | { at: 'boss' } | { at: 'result'; result: OrderResult };
+type Phase = { at: 'intro' } | { at: 'round'; k: number } | { at: 'answer'; k: number } | { at: 'result'; result: OrderResult };
 
 const MARK = { right: { sign: '✓', th: 'ถูกตำแหน่ง' }, near: { sign: '↔', th: 'ห่างไป 1 ช่อง' }, off: { sign: '✗', th: 'ยังห่าง' } } as const;
 
@@ -60,8 +59,6 @@ export function OrderScreen({ order, seed, onFinish, onBack }: Props) {
       <p class="menu-who" data-testid="order-round">
         รอบ {phase.k + 1}/{order.rounds.length} · {order.rounds[phase.k]!.titleTh}
       </p>
-    ) : phase.at === 'boss' ? (
-      <p class="menu-who">ด่านบอส · สายพานงานซ่อม</p>
     ) : null;
 
   return (
@@ -81,7 +78,7 @@ export function OrderScreen({ order, seed, onFinish, onBack }: Props) {
       {phase.at === 'intro' && (
         <div class="order-intro">
           <Senior face="happy">
-            {`ก่อนเข้าร้าน มาลองเรียงขั้นตอนลง Windows 11 กันก่อน ${order.rounds.length} รอบ: ${order.rounds.map((r) => r.titleTh).join(' แล้วก็ ')} แล้วปิดท้ายด้วยสายพานงานซ่อม`}
+            {`ก่อนเข้าร้าน มาลองเรียงขั้นตอนลง Windows 11 กันก่อน ${order.rounds.length} รอบ: ${order.rounds.map((r) => r.titleTh).join(' แล้วก็ ')}`}
           </Senior>
           <p>แตะการ์ดเพื่อวางลงช่องว่างถัดไป แตะการ์ดในช่องเพื่อเอาออก วางครบแล้วกด "ตรวจลำดับ" แต่ละช่องจะบอกว่า</p>
           <ul class="order-legend">
@@ -117,17 +114,10 @@ export function OrderScreen({ order, seed, onFinish, onBack }: Props) {
         <Answer
           round={rounds[phase.k]!}
           steps={order.rounds[phase.k]!.steps}
-          next={phase.k < last ? `ไปรอบ ${phase.k + 2}` : 'ไปด่านบอส'}
-          onNext={() => setPhase(phase.k < last ? { at: 'round', k: phase.k + 1 } : { at: 'boss' })}
-        />
-      )}
-
-      {phase.at === 'boss' && (
-        <BossBelt
-          order={order}
-          seed={`${play}:boss`}
-          onDone={(lost) => {
-            const result: OrderResult = { tries: rounds.map((r) => r.tries.length), solved: rounds.map(solved), lost };
+          next={phase.k < last ? `ไปรอบ ${phase.k + 2}` : 'ดูผล'}
+          onNext={() => {
+            if (phase.k < last) return setPhase({ at: 'round', k: phase.k + 1 });
+            const result: OrderResult = { tries: rounds.map((r) => r.tries.length), solved: rounds.map(solved) };
             onFinish(result);
             setPhase({ at: 'result', result });
           }}
@@ -270,9 +260,8 @@ function Result({ result, titles, onAgain, onBack }: { result: OrderResult; titl
             รอบ {k + 1} {t}: {result.solved[k] ? `เรียงถูกในครั้งที่ ${result.tries[k]}` : `ครบ ${MAX_TRIES} ครั้ง พี่ช่างเฉลย`}
           </li>
         ))}
-        <li>สายพานงานซ่อม: เสียหัวใจ {result.lost} ดวง</li>
       </ul>
-      <p class="order-note">ดาวดวงที่ 2: ทุกรอบเรียงถูกภายใน 3 ครั้ง · ดวงที่ 3: สายพานเสียหัวใจไม่เกิน 1 ดวง</p>
+      <p class="order-note">ดาวดวงที่ 2: เรียงถูกเองทุกรอบ ไม่ต้องให้พี่ช่างเฉลย · ดวงที่ 3: ทุกรอบเรียงถูกภายใน 3 ครั้ง</p>
       <div class="actions">
         <button class="btn ghost" type="button" onClick={onAgain}>
           เล่นอีกครั้ง

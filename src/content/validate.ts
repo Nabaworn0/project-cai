@@ -493,15 +493,14 @@ function checkReflect(r: Reflect | undefined, errors: string[], warnings: string
   for (const g of r.groups) if (!r.satisfaction.some((s) => s.group === g.id)) errors.push(`reflect.json: group ${g.id} has no items`);
 }
 
-/** The ordering game: every card is told apart by id and by its text (the learner sees only the text), and the
- *  boss opens up a step of the first round into another round. */
+/** The ordering game: every card is told apart by id and by its text (the learner sees only the text). */
 function checkOrder(order: Order | undefined, errors: string[], warnings: string[]): void {
   if (!order) {
     errors.push('order.json: missing');
     return;
   }
-  if (order.draft) warnings.push('order.json: คำใบ้และการ์ดกับดักยังเป็นร่าง รอข้อความจาก ChatGPT');
-  const cards = [...order.rounds.flatMap((r) => r.steps), ...order.traps];
+  if (order.draft) warnings.push('order.json: คำใบ้ยังเป็นร่าง รอข้อความจาก ChatGPT');
+  const cards = order.rounds.flatMap((r) => r.steps);
   dupes(
     order.rounds.map((r) => r.id),
     'order.json: duplicate round',
@@ -517,11 +516,6 @@ function checkOrder(order: Order | undefined, errors: string[], warnings: string
     'order.json: duplicate card text',
     errors,
   );
-  const [first, ...rest] = order.rounds;
-  if (!first!.steps.some((s) => s.id === order.boss.expand))
-    errors.push(`order.json: boss expands "${order.boss.expand}", not a step of the first round`);
-  if (!rest.some((r) => r.id === order.boss.into)) errors.push(`order.json: boss opens into "${order.boss.into}", not a later round`);
-  if (order.traps.length < 4) warnings.push(`order.json: มีการ์ดกับดักแค่ ${order.traps.length} ใบ (แผนคือ 4–6)`);
 }
 
 /** Free play's ranks, lowest first: the first needs nothing and says nothing; each next one needs more than the one

@@ -358,7 +358,6 @@ export function ContentViewer() {
                   {r.steps.map((s) => (
                     <li key={s.id}>
                       <b>{s.th}</b>
-                      {s.id === parsed.order!.boss.expand && <span class="v-badge">บอส: แตกเป็นรอบ "{parsed.order!.boss.into}"</span>}
                       <div class="v-dim">คำใบ้: {s.hintTh}</div>
                       <div class="v-dim">เหตุผล: {s.whyTh}</div>
                     </li>
@@ -366,19 +365,6 @@ export function ContentViewer() {
                 </ol>
               </article>
             ))}
-            <article class="v-card" data-testid="order-traps">
-              <header class="v-card-head">
-                <h3>การ์ดกับดักในบอสสายพาน ({parsed.order.traps.length} ใบ)</h3>
-              </header>
-              <ul>
-                {parsed.order.traps.map((t) => (
-                  <li key={t.id}>
-                    <b>{t.th}</b>
-                    <div class="v-dim">{t.whyTh}</div>
-                  </li>
-                ))}
-              </ul>
-            </article>
           </section>
         )}
 

@@ -176,7 +176,7 @@ test("the fullest file a learner can make fits the sheet's cell", () => {
     ...learner('99', 'ก'.repeat(60), 'ร'.repeat(20)),
     done: ['lesson-os', 'lesson-types', 'order', 'reflect'],
     cases: Object.fromEntries(PLAYABLE.map((id) => [id, { stars: 3, plays: 99, first: 3 }])),
-    order: { stars: 3, plays: 99, first: { tries: [9, 9, 9, 9, 9, 9], solved: [true, true, true, true, true, true], lost: 9 } },
+    order: { stars: 3, plays: 99, first: { tries: [9, 9, 9, 9, 9, 9], solved: [true, true, true, true, true, true] } },
     lessons: Object.fromEntries(['lesson-os', 'lesson-types'].map((id) => [id, { at: 1e13, first: [1, 2, 3, 0] }])),
     reflect: {
       self: Object.fromEntries(reflect.self.map((x) => [x.id, 5])),

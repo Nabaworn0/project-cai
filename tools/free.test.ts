@@ -17,7 +17,7 @@ const FINISHED: Progress = {
   post: sitting,
   done: ['lesson-os', 'lesson-types', 'order', 'reflect'],
   cases: { 'c01-boot-order': { stars: 3, plays: 2, first: 2 } },
-  order: { stars: 2, plays: 1, first: { tries: [3, 4], solved: [true, true], lost: 1 } },
+  order: { stars: 2, plays: 1, first: { tries: [3, 4], solved: [true, true] } },
   lessons: { 'lesson-os': { at: 0, first: [1, 0] } },
   reflect: reflect as Progress['reflect'],
   cardsRead: ['boot-order'],

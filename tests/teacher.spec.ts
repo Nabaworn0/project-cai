@@ -35,7 +35,7 @@ function learner(n: number): Progress {
     learner: { name: `นักเรียน ${n}`, room: CLASS, no: String(n) },
     pre: sit(2 + (n % 5)),
     post: n > 27 ? null : sit(5 + (n % 6), testJson.postItems),
-    order: { stars: 3, plays: 1, first: { tries: [n % 4, 2], solved: [true, true], lost: n % 3 } },
+    order: { stars: 3, plays: 1, first: { tries: [n % 4, 2], solved: [true, true] } },
     cases: { 'c01-boot-order': { stars: 3, plays: 1, first: 1 + (n % 3) } },
     reflect: n > 25 ? null : { self: { 'self-os': 1 + (n % 5) }, write: { learned: n === 3 ? 'ได้รู้เรื่อง BIOS' : '' }, sat: Object.fromEntries(reflect.satisfaction.map((s, i) => [s.id, 3 + ((n + i) % 3)])), suggest: '', at: 1 },
   };

@@ -30,7 +30,7 @@ test.describe('content viewer (?view=content)', () => {
     await expect(page.locator('[data-question="w11-tpm"] + [data-question="w11-tpm-b"]')).toContainText('ข้อ 7 ข · หลังเรียน');
     await tab('เรียงขั้นตอน').click();
     await expect(page.getByRole('heading', { name: 'รอบ 1 ภาพรวมทั้งงาน (8 ขั้น)' })).toBeVisible();
-    await expect(page.getByTestId('order-traps')).toContainText('ถอด USB ระหว่างคัดลอกไฟล์');
+    await expect(page.getByTestId('order-traps')).toHaveCount(0);
     await tab('บทเรียน').click();
     const os = page.getByTestId('lesson-lesson-os');
     await expect(os.getByRole('heading')).toHaveText('ระบบปฏิบัติการคืออะไร (วัตถุประสงค์ 1 · 22 ประโยค)');

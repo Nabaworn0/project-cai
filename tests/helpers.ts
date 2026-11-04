@@ -19,7 +19,7 @@ export async function reopenGame(page: Page) {
 export const LEARNED = {
   pre: PRE_DONE,
   done: ['lesson-os', 'lesson-types', 'order'],
-  order: { stars: 2, plays: 1, first: { tries: [3, 4], solved: [true, true], lost: 1 } },
+  order: { stars: 2, plays: 1, first: { tries: [3, 4], solved: [true, true] } },
 };
 
 /** The lessons and the ordering game marked done on this device and the page reloaded: tests about the shop do not

@@ -194,7 +194,7 @@ export function LearnPage(props: {
   tall?: boolean;
   /** A wider board (the lesson cartoons). */
   wide?: boolean;
-  /** The picture behind the board: the shop's entrance (the sign in it says the shop's name), or the belt room. */
+  /** The picture behind the board: the shop's entrance (the sign in it says the shop's name), or the back room. */
   scene?: 'entrance' | 'room';
   children: ComponentChildren;
 }) {
